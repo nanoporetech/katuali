@@ -1,0 +1,39 @@
+NSLOTS: 40
+
+SOURCE: "source"
+
+# Pomoxis
+IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
+
+# Scrappie 
+SCRAPPIE: "~/git/scrappie"
+SCRAPPIE_OPTS: "raw -H mean --model rgrgr_r94 --local 10.0 --uuid"
+
+# Mini_assemble
+MINI_ASSEMBLE_OPTS: ""
+
+# Guppy
+GUPPY: "guppy_basecaller"
+GUPPY_RUNNERS: 4
+
+# Nanopolish
+NP: "~/git/nanopolish" 
+NP_OPTS: "--min-candidate-frequency 0.1 --fix-homopolymers"
+
+# Medaka
+IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+
+# Miyagi
+IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
+MIYAGI_BATCHES_PER_REF_MB: 100
+MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
+MIYAGI_APPLY_MODEL_OPTS: "--model r94"
+
+# Output file names
+REFERENCE: "ref.fasta"
+ANALYSISDIR: "analysis"
+BASECALLSDIR: "basecalls"
+ALIGNMENTDIR: "align"
+CALLS2REF: "calls2ref.bam"
+BASECALLS: "basecalls.fasta"
+READS: "reads"
