@@ -43,11 +43,15 @@ rule basecall_scrappie:
         fasta = "analysis/basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
     log:
         "analysis/basecall/scrappie{suffix,[^/]*}/scrappie.log",
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         echo "{input.scrappie} {config[SCRAPPIE_OPTS]} "> {log}
-        find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {config[SCRAPPIE_OPTS]} --threads {config[NSLOTS]} >{output.fasta} 2>> {log}
+        find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {config[SCRAPPIE_OPTS]} --threads {threads} >{output.fasta} 2>> {log}
         """
+    
 
 # TODO rule basecall_guppy:
 
@@ -57,6 +61,8 @@ rule scrappie_summary:
         fasta = "{dir}/basecalls.fasta",
     output:
         summary = "{dir}/sequencing_summary.txt"
+    params:
+        sge = "m_mem_free=1G,gpu=0"
     shell:
     	"cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} &&"
     	# most tools expect read_id, not uuid
@@ -67,12 +73,14 @@ rule align_to_ref:
         venv = IN_POMOXIS,
         basecalls = "{bc_dir}/basecalls.fasta",
         ref = config["REFERENCE"]
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     output:
         bam = "{bc_dir}/align/calls2ref.bam"
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.ref} -p {wildcards.bc_dir}/align/calls2ref -P -t {config[NSLOTS]}
+    	mini_align -i {input.basecalls} -r {input.ref} -p {wildcards.bc_dir}/align/calls2ref -P -t {config[THREADS_PER_JOB]}
         """
 
 rule align_to_draft:
@@ -82,10 +90,12 @@ rule align_to_draft:
         draft = "{dir}/consensus.fasta"
     output:
         bam = "{dir}/{subdir}/calls2draft.bam"
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {config[NSLOTS]}
+    	mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {config[THREADS_PER_JOB]}
         """
 
 rule get_depth:
@@ -94,6 +104,8 @@ rule get_depth:
         bam = "{dir}/calls2ref.bam"
     output:
         depth = directory("{dir}/depth")
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -110,11 +122,13 @@ rule subsample_bam:
         "{dir}/{contig}/{depth}X/subsample.log"
     params:
         contig_opt = get_contig_opt,
-        prefix = lambda w: "{dir}/{contig}/{depth}X/sub_sample".format(**dict(w))
+        prefix = lambda w: "{dir}/{contig}/{depth}X/sub_sample".format(**dict(w)),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
     shell:
 	    """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} -t {config[NSLOTS]} &>{log};
+        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} -t {threads} &>{log};
         sleep 5;
         for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
         """
@@ -129,14 +143,17 @@ rule ref_guided_racon:
         basecalls = "{dir}/ref_guided_racon{suffix,[^/]*}/basecalls.fasta"
     log:
         "{dir}/ref_guided_racon{suffix}.log"
+    threads: config["THREADS_PER_JOB"]
     params:
-        racon_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w))
+        racon_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[racon_dir]} && 
-        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[racon_dir]} -t {config[NSLOTS]} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[racon_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
         # rename output
         mv {params[racon_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
@@ -154,12 +171,15 @@ rule medaka_consensus:
         consensus = "{dir}/medaka/consensus.fasta"
     log:
         "{dir}/medaka.log"
+    threads: config["THREADS_PER_JOB"]
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, medaka_consensus will fail if it exists..
         rm -r {wildcards.dir}/medaka &&
-        medaka_consensus -i {input.basecalls} -d {input.draft} -o {wildcards.dir}/medaka -t {config[NSLOTS]} &> {log}
+        medaka_consensus -i {input.basecalls} -d {input.draft} -o {wildcards.dir}/medaka -t {threads} &> {log}
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{wildcards.dir}/medaka/basecalls.fasta
         """
@@ -178,11 +198,13 @@ rule nanopolish_index:
         "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.readdb",
     log:
         "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/nanopolish_index.log"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
     	# create indices then synchronise time stamps
 	    """
-        ln -s $PWD/{input.basecalls} $PWD/{output[0]} &&
-        {input.nanopolish} index -d {input.fast5} -s {input.summary} {output[0]} &> {log} &&
+        ln -s $PWD/{input.basecalls} $PWD/{output[0]} && sleep 1 && 
+        {input.nanopolish} index -d {input.fast5} -s {input.summary} {output[0]} &> {log} && sleep 5 &&
     	touch --no-dereference {output[0]}*
         """
 
@@ -191,6 +213,8 @@ rule fast5_list:
         fast5 = config["READS"],
     output:
         filelist = os.path.join(config["READS"], "reads.txt")
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         "find -L `readlink -f {config[READS]}` -name '*.fast5' > {output.filelist}"
 
@@ -202,6 +226,8 @@ rule miyagi_index:
     output:
         index = "analysis/basecall/{basecaller}/align/{subdir}/miyagi/miyagi.index",
         basecalls = "analysis/basecall/{basecaller}/align/{subdir}/miyagi/basecalls.fasta",
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     run:
         # create miyagi index linking read_id to file path
         import os
@@ -229,6 +255,8 @@ rule nanopolish_vcf:
         vcf = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/regions/{region}.vcf",
     log:
         "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/regions/{region}.vcf.log"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
 	    """
         {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {config[NP_OPTS]} &> {log}
@@ -242,6 +270,8 @@ rule nanopolish_regions:
     output:
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
         regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -260,6 +290,8 @@ rule nanopolish:
         consensus = "{dir}/nanopolish/consensus.fasta",
     log:
         "{dir}/nanopolish/vcf2fasta.log"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         "{input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2> {log}"
 
@@ -269,6 +301,8 @@ rule miyagi_hp_vcf:
         draft = "{dir}/consensus.fasta",
     output:
         vcf = "{dir}/miyagi/regions/{region}.hp.vcf"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -289,6 +323,7 @@ rule miyagi_score_reads:
         "{dir}/miyagi/regions/parts/{region}_part_{n}_of_{N}_scores_per_read.log"
     params:
         prefix = "{dir}/miyagi/regions/parts/{region}_part_{n}_of_{N}",  # miyagi will append _scores_per_read to this
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -322,6 +357,8 @@ rule miyagi_concat_region:
         hdf = "{dir}/miyagi/regions/{region}_sorted_scores_per_read.hdf",
     log:
         "{dir}/miyagi/regions/{region}_sorted_scores_per_read.log"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -337,6 +374,8 @@ rule miyagi_apply_model:
         vcf = "{dir}/miyagi/corrections.vcf",
     log:
         "{dir}/miyagi/apply_model.log",
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -352,6 +391,8 @@ rule miyagi_apply_corrections:
         consensus = "{dir}/miyagi/consensus.fasta",
     log:
         "{dir}/miyagi/apply_corrections.log",
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;

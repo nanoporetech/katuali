@@ -1,4 +1,4 @@
-NSLOTS: 40
+THREADS_PER_JOB: 16
 
 SOURCE: "source"
 
