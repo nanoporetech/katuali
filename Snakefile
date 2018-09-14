@@ -77,10 +77,11 @@ rule align_to_ref:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     output:
         bam = "{bc_dir}/align/calls2ref.bam"
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.ref} -p {wildcards.bc_dir}/align/calls2ref -P -t {config[THREADS_PER_JOB]}
+    	mini_align -i {input.basecalls} -r {input.ref} -p {wildcards.bc_dir}/align/calls2ref -P -t {threads}
         """
 
 rule align_to_draft:
@@ -92,11 +93,32 @@ rule align_to_draft:
         bam = "{dir}/{subdir}/calls2draft.bam"
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {config[THREADS_PER_JOB]}
+    	mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads}
         """
+
+rule assess_consensus:
+    input:
+        venv = IN_POMOXIS,
+        consensus = "{dir}/consensus.fasta",
+        truth = config["REFERENCE"],
+    output:
+        summ = "{dir}/consensus_to_truth_summ.txt",
+        bam = "{dir}/consensus_to_truth.bam",
+        stats = "{dir}/consensus_to_truth_stats.txt",
+    params:
+        prefix = "{dir}/consensus_to_truth",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads}
+        """
+
 
 rule get_depth:
     input:
