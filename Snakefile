@@ -328,7 +328,7 @@ rule miyagi_hp_vcf:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        miyagi_create_homop_vcf {input.draft} {wildcards.region} {output.vcf} 
+        miyagi_create_homop_vcf {input.draft} {wildcards.region} {output.vcf} {config[MIYAGI_HOMOP_VCF_OPTS]} 
         """
 
 rule miyagi_score_reads:

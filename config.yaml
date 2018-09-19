@@ -28,6 +28,7 @@ IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
 MIYAGI_BATCHES_PER_REF_MB: 100
 MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
 MIYAGI_APPLY_MODEL_OPTS: "--model r94"
+MIYAGI_HOMOP_VCF_OPTS: ""
 
 # Output file names
 REFERENCE: "ref.fasta"
