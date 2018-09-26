@@ -9,6 +9,11 @@ IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 SCRAPPIE: "~/git/scrappie"
 SCRAPPIE_OPTS: "raw -H mean --model rgrgr_r94 --local 10.0 --uuid"
 
+#Canu
+CANU_EXEC: "~/git/canu/Linux-amd64/bin/canu"
+CANU_EXEC_OPTS: "useGrid=False"
+CANU_GENOME_SIZE: "4.8M"
+
 # Mini_assemble
 MINI_ASSEMBLE_OPTS: ""
 

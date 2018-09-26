@@ -7,9 +7,11 @@ configfile: os.path.join(KATUALI_HOME, "config.yaml")
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
 SCRAPPIE_JSON_TO_TSV = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "misc", "json_to_tsv.py")
 NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NP"]), "nanopolish")
+NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NP"]), "scripts", "nanopolish_makerange.py")
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_MIYAGI = os.path.expanduser(config["IN_MIYAGI"])
+CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
 # NOTE on virtual environments
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.
@@ -168,20 +170,71 @@ rule ref_guided_racon:
     threads: config["THREADS_PER_JOB"]
     params:
         racon_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w))
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
-        rm -r {params[racon_dir]} && 
-        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[racon_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        rm -r {params[output_dir]} && 
+        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[output_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
         # rename output
-        mv {params[racon_dir]}/assm_final.fa {output.consensus}
+        mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[racon_dir]}/basecalls.fasta &&
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
         # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-        touch --no-dereference $PWD/{params[racon_dir]}/*
+        touch --no-dereference $PWD/{params[output_dir]}/*
+        """
+
+rule miniasm_racon:
+    input:
+        venv = IN_POMOXIS,
+        basecalls = "{dir}/basecalls.fasta",
+    output:
+        consensus = "{dir}/miniasm_racon{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/miniasm_racon{suffix,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/miniasm_racon{suffix}.log"
+    params:
+        output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w))
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir, mini_assemble will fail if it exists..
+        rm -r {params[output_dir]} && 
+        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {config[NSLOTS]} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        # rename output
+        mv {params[output_dir]}/assm_final.fa {output.consensus}
+        # keep a link of basecalls with the consensus
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
+        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
+        touch --no-dereference $PWD/{params[output_dir]}/*
+        """
+
+rule canu:
+    input:
+        canu = CANU_EXEC,
+        basecalls = "{dir}/basecalls.fasta",
+    output:
+        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/canu{suffix}.log"
+    params:
+        output_dir = lambda w: "{dir}/canu{suffix}".format(**dict(w)),
+        genome_sz = config["CANU_GENOME_SIZE"],
+        exec_opts = config["CANU_EXEC_OPTS"],
+        prefix = "canu",
+    shell:
+        """
+        # snakemake will create the output dir, canu will fail if it exists..
+        #rm -r {params[output_dir]}
+        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.genome_sz} -nanopore-raw {input.basecalls} {params.exec_opts} &&
+        mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
+        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
+        touch --no-dereference $PWD/{output.consensus} $PWD/{output.basecalls}
         """
 
 rule medaka_consensus:
@@ -287,7 +340,7 @@ rule nanopolish_vcf:
 rule nanopolish_regions:
     input:
         venv = IN_POMOXIS, # use pomoxis python as this has all requirements of the script
-        make_range = os.path.join(os.path.expanduser(config["NP"]), "scripts", "nanopolish_makerange.py"),
+        make_range = NANOPOLISH_MAKE_RANGE,
         draft = "{dir}/consensus.fasta",
     output:
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
