@@ -86,6 +86,15 @@ options on the command line, and adding a suffix to each scrappie directory:
 
 You can also add a suffix to the ref_guided_racon targets to allow e.g. a grid scan over different mini_assemble settings.
 
+
+Providing mini_assemble options on the command line
+===================================================
+
+The following will chop off adapters, error-correct the longest 20% of reads, then assemble with miniasm, polish with racon and medaka. 
+
+    snakemake -s ~/git/katuali/Snakefile analysis/basecall/scrappie/miniasm_racon/medaka/consensus.fasta --config MINI_ASSEMBLE_OPTS="-c -e 20"
+
+
 Processing just one reference contig/chromosome
 ===============================================
 
