@@ -198,12 +198,13 @@ rule miniasm_racon:
         "{dir}/miniasm_racon{suffix}.log"
     params:
         output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w))
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} && 
-        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {config[NSLOTS]} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
