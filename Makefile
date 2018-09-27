@@ -39,7 +39,7 @@ test_racon: reads
 	${TEST} analysis/basecall/scrappie/align/all_contigs/25X/ref_guided_racon/consensus.fasta
 
 test_racon_one_contig: reads
-	${TEST} analysis/basecall/scrappie/align/ecoli_SCS110_chromosome_chunk100/25X/ref_guided_racon/consensus.fasta
+	${TEST} analysis/basecall/scrappie/align/ecoli_SCS110_plasmid2/25X/ref_guided_racon/consensus.fasta
 
 test_racon_suffix: reads
 	${TEST} analysis/basecall/scrappie/align/all_contigs/25X/ref_guided_racon_alt/consensus.fasta
