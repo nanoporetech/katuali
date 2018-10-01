@@ -83,15 +83,16 @@ rule align_to_ref:
         venv = IN_POMOXIS,
         basecalls = "{bc_dir}/basecalls.fasta",
         ref = config["REFERENCE"]
-    params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     output:
         bam = "{bc_dir}/align/calls2ref.bam"
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        prefix = lambda w, output: os.path.splitext(output.bam)[0],
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.ref} -p {wildcards.bc_dir}/align/calls2ref -P -t {threads}
+    	mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads}
         """
 
 rule align_to_draft:
