@@ -23,6 +23,14 @@ rule help:
     run:
         print(open(os.path.join(KATUALI_HOME, "README.md")).read())
 
+rule fast_assm_polish:
+    input:
+        consensus = "basecall/{BASECALLER}/miniasm_racon/medaka/consensus.fasta".format(**config),
+
+rule standard_assm_polish:
+    input:
+        consensus = "basecall/{BASECALLER}/canu/nanopolish/consensus.fasta".format(**config),
+
 def get_contig_opt(wildcards):
     if wildcards.contig == "all_contigs":
         contig_opt = ""
@@ -42,9 +50,9 @@ rule basecall_scrappie:
         scrappie = SCRAPPIE_EXEC,
         fast5 = config["READS"]
     output:
-        fasta = "analysis/basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
+        fasta = "basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
     log:
-        "analysis/basecall/scrappie{suffix,[^/]*}/scrappie.log",
+        "basecall/scrappie{suffix,[^/]*}/scrappie.log",
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     threads: config["THREADS_PER_JOB"]
@@ -120,7 +128,6 @@ rule assess_consensus:
         set +u; {config[SOURCE]} {input.venv}; set -u;
         assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads}
         """
-
 
 rule get_depth:
     input:
@@ -260,27 +267,36 @@ rule medaka_consensus:
         ln -s $PWD/{input.basecalls} $PWD/{wildcards.dir}/medaka/basecalls.fasta
         """
 
+rule nanopolish_basecalls:
+    # nanopolish index can't seem to cope with fasta headers
+    input:
+        "basecall/{subdir}/basecalls.fasta",
+    output:
+        "basecall/{subdir}/nanopolish/basecalls.fasta",
+    shell:
+        """
+        cut -d' ' -f1 < {input} > {output}
+        """
+
 rule nanopolish_index:
     input:
         nanopolish = NANOPOLISH_EXEC,
         fast5 = config["READS"],
-        summary = "analysis/basecall/{basecaller}/sequencing_summary.txt",
-        basecalls = "analysis/basecall/{basecaller}/align/{subdir}/basecalls.fasta",
+        summary = "basecall/{basecaller}/sequencing_summary.txt",
+        basecalls = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta",
     output:
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta",
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index",
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.gzi",
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.fai",
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.readdb",
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index",
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.fai",
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
     log:
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/nanopolish_index.log"
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/nanopolish_index.log"
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:
     	# create indices then synchronise time stamps
 	    """
-        ln -s $PWD/{input.basecalls} $PWD/{output[0]} && sleep 1 && 
-        {input.nanopolish} index -d {input.fast5} -s {input.summary} {output[0]} &> {log} && sleep 5 &&
+        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log} && sleep 5 &&
     	touch --no-dereference {output[0]}*
         """
 
@@ -297,11 +313,11 @@ rule fast5_list:
 rule miyagi_index:
     input:
         filelist = os.path.join(config["READS"], "reads.txt"),
-        summary = "analysis/basecall/{basecaller}/sequencing_summary.txt",
-        basecalls = "analysis/basecall/{basecaller}/align/{subdir}/basecalls.fasta",
+        summary = "basecall/{basecaller}/sequencing_summary.txt",
+        basecalls = "basecall/{basecaller}/align/{subdir}/basecalls.fasta",
     output:
-        index = "analysis/basecall/{basecaller}/align/{subdir}/miyagi/miyagi.index",
-        basecalls = "analysis/basecall/{basecaller}/align/{subdir}/miyagi/basecalls.fasta",
+        index = "basecall/{basecaller}/align/{subdir}/miyagi/miyagi.index",
+        basecalls = "basecall/{basecaller}/align/{subdir}/miyagi/basecalls.fasta",
     params:
         sge = "m_mem_free=1G,gpu=0" 
     run:
@@ -320,17 +336,17 @@ rule miyagi_index:
 rule nanopolish_vcf:
     input:
         nanopolish = NANOPOLISH_EXEC,
-        draft = "analysis/basecall/{basecaller}/align/{subdir}/consensus.fasta",
-        basecalls = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta",
-        bam = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/calls2draft.bam",
-        index = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index",
-        index_gzi = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.gzi",
-        index_fai = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.fai",
-        index_readdb = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/basecalls.fasta.index.readdb",
+        draft = "basecall/{basecaller}/{subdir}/consensus.fasta",
+        basecalls = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta",
+        bam = "basecall/{basecaller}/{subdir}/nanopolish/calls2draft.bam",
+        index = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index",
+        index_gzi = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
+        index_fai = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.fai",
+        index_readdb = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
     output:
-        vcf = "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/regions/{region}.vcf",
+        vcf = "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf",
     log:
-        "analysis/basecall/{basecaller}/align/{subdir}/nanopolish/regions/{region}.vcf.log"
+        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf.log"
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:

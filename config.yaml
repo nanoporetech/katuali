@@ -9,8 +9,8 @@ IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 SCRAPPIE: "~/git/scrappie"
 SCRAPPIE_OPTS: "raw -H mean --model rgrgr_r94 --local 10.0 --uuid"
 
-#Canu
-CANU_EXEC: "~/git/canu/Linux-amd64/bin/canu"
+#Canu 
+CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
 CANU_GENOME_SIZE: "4.8M"
 
@@ -32,14 +32,12 @@ IN_MEDAKA: "~/git/medaka/venv/bin/activate"
 IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
 MIYAGI_BATCHES_PER_REF_MB: 100
 MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
-MIYAGI_APPLY_MODEL_OPTS: "--model r94"
+MIYAGI_APPLY_MODEL_OPTS: ""
 MIYAGI_HOMOP_VCF_OPTS: ""
 
-# Output file names
+# input paths
 REFERENCE: "ref.fasta"
-ANALYSISDIR: "analysis"
-BASECALLSDIR: "basecalls"
-ALIGNMENTDIR: "align"
-CALLS2REF: "calls2ref.bam"
-BASECALLS: "basecalls.fasta"
 READS: "reads"
+
+# Parameters only used in short cut target (e.g. standard_assm_polish)
+BASECALLER: "scrappie"  
