@@ -37,13 +37,13 @@ If you want to run with your own data, start by creating a dictory of reads and 
     
 Then you can then make any number of targets the pipline knows how to make by running e.g.:
 
-   snakemake -s ~/git/katuali/Snakefile fast_assm_polish
+    snakemake -s ~/git/katuali/Snakefile fast_assm_polish
 
 This will basecall the reads, then assemble them with miniasm, and polish with racon and medaka. 
 
 Running
 
-   snakemake -s ~/git/katuali/Snakefile standard_assm_polish
+    snakemake -s ~/git/katuali/Snakefile standard_assm_polish
 
 will instead basecall, assemble with canu and the polish with nanopolish. 
 
@@ -79,7 +79,7 @@ Processing just one reference contig/chromosome
 
 It is also possible to process just one of the contigs in your reference by specifying targets such as:
 
-   basecall/scrappie/align/ecoli_SCS110_plasmid2/25X/ref_guided_racon/consensus.fasta 
+    basecall/scrappie/align/ecoli_SCS110_plasmid2/25X/ref_guided_racon/consensus.fasta 
 
 which will just process the ecoli_SCS110_plasmid2.
 
