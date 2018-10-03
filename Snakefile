@@ -39,13 +39,6 @@ def get_contig_opt(wildcards):
         contig_opt = "-r {}".format(wildcards.contig)
     return contig_opt
 
-# support either processing all contigs or a single contig
-ALL_CONTIGS = "all_contigs"
-if "contig" not in config:
-    config["contig"] = ALL_CONTIGS
-
-CONTIGOPTION = "" if config["contig"] == ALL_CONTIGS else "-r {}".format(config["contig"])
-
 rule basecall_scrappie:
     input:
         scrappie = SCRAPPIE_EXEC,
