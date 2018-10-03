@@ -3,10 +3,10 @@
 venv: venv/bin/activate
 IN_VENV=. ./venv/bin/activate
 SNAKEFILE=${PWD}/Snakefile
-JOBS=8
+JOBS=$(shell nproc)
 
 DATADIR=test/data
-TESTDIR=${DATADIR}/analysis
+TESTDIR=${DATADIR}/basecall
 
 TEST=${IN_VENV} && cd test/data && snakemake -s ${SNAKEFILE} --printshellcmds -j ${JOBS}
 
