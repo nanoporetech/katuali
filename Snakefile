@@ -88,7 +88,7 @@ rule basecall_guppy:
 
         echo "Runnning on host $HOSTNAME GPU $SGE_HGR_gpu" >> {log}
 
-        {input.guppy} -s {params.output_dir} -i {input.fast5} -x cuda:$SGE_HGR_gpu {config[GUPPY_OPTS]} &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {config[GUPPY_OPTS]} &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
