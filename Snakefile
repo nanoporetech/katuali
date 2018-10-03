@@ -205,7 +205,8 @@ rule miniasm_racon:
     log:
         "{dir}/miniasm_racon{suffix}.log"
     params:
-        output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w))
+        output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w)),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
     threads: config["THREADS_PER_JOB"]
     shell:
         """
@@ -235,6 +236,7 @@ rule canu:
         genome_sz = config["CANU_GENOME_SIZE"],
         exec_opts = config["CANU_EXEC_OPTS"],
         prefix = "canu",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
     shell:
         """
         # snakemake will create the output dir, canu will fail if it exists..
