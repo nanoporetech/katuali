@@ -127,7 +127,7 @@ rule assess_consensus:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads}
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
         """
 
 rule get_depth:

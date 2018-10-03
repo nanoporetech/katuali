@@ -35,6 +35,9 @@ MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
 MIYAGI_APPLY_MODEL_OPTS: ""
 MIYAGI_HOMOP_VCF_OPTS: ""
 
+# assess_assembly
+ASSESS_ASSM_OPTS: "-C"
+
 # input paths
 REFERENCE: "ref.fasta"
 READS: "reads"
