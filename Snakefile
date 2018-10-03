@@ -70,6 +70,7 @@ rule basecall_guppy:
         venv = IN_POMOXIS,
     output:
         fasta = "basecall/guppy{suffix,[^/]*}/basecalls.fasta",
+        summary = "basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
     log:
         "basecall/guppy{suffix,[^/]*}.log",
     params:
@@ -102,14 +103,16 @@ rule basecall_guppy:
         # convert fastq to fasta
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
+
+        touch {output.summary}  # otherwise it will be older than basecalls
         """
 
 rule scrappie_summary:
     input:
         json_to_tsv = SCRAPPIE_JSON_TO_TSV,
-        fasta = "{dir}/basecalls.fasta",
+        fasta = "scrappie/basecalls.fasta",
     output:
-        summary = "{dir}/sequencing_summary.txt"
+        summary = "scrappie/sequencing_summary.txt"
     params:
         sge = "m_mem_free=1G,gpu=0"
     shell:
