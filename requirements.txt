@@ -1,3 +1,4 @@
+gpustat
 pandas
 pysam
 snakemake

@@ -4,6 +4,7 @@ import sys
 KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
 configfile: os.path.join(KATUALI_HOME, "config.yaml")
 
+GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
 SCRAPPIE_JSON_TO_TSV = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "misc", "json_to_tsv.py")
 NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NP"]), "nanopolish")
@@ -62,8 +63,46 @@ rule basecall_scrappie:
         find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {config[SCRAPPIE_OPTS]} --threads {threads} >{output.fasta} 2>> {log}
         """
     
+rule basecall_guppy:
+    input:
+        guppy = GUPPY_EXEC,
+        fast5 = config["READS"],
+        venv = IN_POMOXIS,
+    output:
+        fasta = "basecall/guppy{suffix,[^/]*}/basecalls.fasta",
+    log:
+        "basecall/guppy{suffix,[^/]*}.log",
+    params:
+        sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
+        output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w))
+    shell:
+        """
+        # snakemake will create the output dir, guppy will fail if it exists..
+        rm -r {params[output_dir]}
+ 
+        echo "{input.guppy} {config[GUPPY_OPTS]} " > {log}
+        echo "GPU status before" >> {log}
+        gpustat >> {log}
+         
+        if [ "$SGE_HGR_gpu" == "" ]; then
+          echo "SGE_HGR_gpu was not set" >> {log}
+          # pick GPU with lowest memory usage
+          SGE_HGR_gpu=`gpustat | awk '{{ if(NR==2){{gpu0=$11}}; if(NR==3){{gpu1=$11}} }}END{{if(gpu0 > gpu1){{print "1"}} else{{print "0"}} }}'`
+          echo "set GPU to $SGE_HGR_gpu based on memory usage" >> {log}
+        fi
+        SGE_HGR_gpu="${{SGE_HGR_gpu#cuda}}"
 
-# TODO rule basecall_guppy:
+        echo "Runnning on host $HOSTNAME GPU $SGE_HGR_gpu" >> {log}
+
+        {input.guppy} -s {params.output_dir} -i {input.fast5} -x cuda:$SGE_HGR_gpu {config[GUPPY_OPTS]} &>> {log}
+
+        echo "gpustat after" >> {log}
+        gpustat >> {log}
+
+        # convert fastq to fasta
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
+        """
 
 rule scrappie_summary:
     input:
@@ -177,7 +216,6 @@ rule ref_guided_racon:
         "{dir}/ref_guided_racon{suffix}.log"
     threads: config["THREADS_PER_JOB"]
     params:
-        racon_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w))
     threads: config["THREADS_PER_JOB"]

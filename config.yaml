@@ -18,8 +18,9 @@ CANU_GENOME_SIZE: "4.8M"
 MINI_ASSEMBLE_OPTS: ""
 
 # Guppy
-GUPPY: "guppy_basecaller"
-GUPPY_RUNNERS: 4
+GUPPY: "/usr/bin/guppy_basecaller"
+GUPPY_OPTS: "-c /opt/ont/guppy/data/dna_r9.4_450bps.cfg"
+GUPPY_SLOTS: 4 
 
 # Nanopolish
 NP: "~/git/nanopolish" 
