@@ -24,7 +24,7 @@ GUPPY_SLOTS: 4
 
 # Nanopolish
 NP: "~/git/nanopolish" 
-NP_OPTS: "--min-candidate-frequency 0.1 --fix-homopolymers"
+NP_OPTS: "--fix-homopolymers"
 
 # Medaka
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"
