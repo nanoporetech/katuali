@@ -274,6 +274,8 @@ rule nanopolish_basecalls:
         "basecall/{subdir}/basecalls.fasta",
     output:
         "basecall/{subdir}/nanopolish/basecalls.fasta",
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         cut -d' ' -f1 < {input} > {output}
