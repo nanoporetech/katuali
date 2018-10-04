@@ -62,3 +62,9 @@ test_nanopolish_from_scratch: clean test_nanopolish
 
 clean:
 	rm -rf ${TESTDIR} ${DATADIR}/reads ${DATADIR}/ref.fasta.*
+
+update:
+	git stash
+	git checkout master
+	git pull origin master
+	${IN_VENV} && pip install -r requirements.txt
