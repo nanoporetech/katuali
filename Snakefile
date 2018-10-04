@@ -79,7 +79,7 @@ rule basecall_guppy:
         echo "GPU status before" >> {log}
         gpustat >> {log}
          
-        if [ "$SGE_HGR_gpu" == "" ]; then
+        if [ -z ${{SGE_HGR_gpu+x}} ]; then 
           echo "SGE_HGR_gpu was not set" >> {log}
           # pick GPU with lowest memory usage
           SGE_HGR_gpu=`gpustat | awk '{{ if(NR==2){{gpu0=$11}}; if(NR==3){{gpu1=$11}} }}END{{if(gpu0 > gpu1){{print "1"}} else{{print "0"}} }}'`
