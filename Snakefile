@@ -94,10 +94,19 @@ rule basecall_guppy:
         gpustat >> {log}
 
         # convert fastq to fasta
+        sleep 5
+        echo "Combining the following fastq files into {output.fasta}" >> {log}
+        ls {params[output_dir]}/*.fastq >> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
-
-        touch {output.summary}  # otherwise it will be older than basecalls
+       
+        # update time stamp of summary otherwise it will be older than basecalls
+        if [ ! -f {output.summary} ]; then
+          echo "{output.summary} not found!" >> {log}
+        else
+          echo "Updating the time stamp of the sequencing summary {output.summary}" >> {log}
+          touch {output.summary}  
+        fi
         """
 
 rule scrappie_summary:
