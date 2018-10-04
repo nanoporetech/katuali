@@ -36,6 +36,9 @@ MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
 MIYAGI_APPLY_MODEL_OPTS: ""
 MIYAGI_HOMOP_VCF_OPTS: ""
 
+# Ray
+IN_RAY: "~/git/ray/venv/bin/activate"
+
 # assess_assembly
 ASSESS_ASSM_OPTS: "-C"
 

@@ -12,6 +12,7 @@ NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NP"]), "scripts"
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_MIYAGI = os.path.expanduser(config["IN_MIYAGI"])
+IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
 # NOTE on virtual environments
@@ -173,6 +174,50 @@ rule assess_consensus:
         set +u; {config[SOURCE]} {input.venv}; set -u;
         assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
         """
+
+rule ray_catalogue:
+    input:
+        venv = IN_RAY,
+        bam = "{dir}/{prefix}.bam",
+        truth = config["REFERENCE"],
+    output:
+        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
+    log:
+        "{dir}/{prefix}_ray_catalogue.log"
+    params:
+        prefix = "{dir}/{prefix}_ray",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+    threads: config["THREADS_PER_JOB"]
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
+        """
+
+rule hp_acc_vs_length:
+    input:
+        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
+    output:
+        hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
+    run:
+        from collections import defaultdict
+        import pandas as pd
+
+        def get_acc(df):
+            correct = df['ref_hp_len'] == df['q_hp_len']
+            return 100 * float(len(df[correct])) / len(df)
+
+        df = pd.read_table(input.catalogue)
+        accs = defaultdict(dict)
+        for hp_len, df_l in df.groupby('ref_hp_len'):
+               accs['acc_all_bases'][hp_len] = get_acc(df_l)
+               accs['n_all_bases'][hp_len] = len(df_l)
+               for base, df_b in df_l.groupby('base'):
+                   accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
+                   accs['n_{}'.format(base)][hp_len] = len(df_b)
+        summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
+        pd.DataFrame(summ).to_csv(output.hp_acc_sum, sep=',', index=False)
+            
 
 rule get_depth:
     input:
