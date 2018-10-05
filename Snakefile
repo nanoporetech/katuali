@@ -27,11 +27,11 @@ rule help:
 
 rule fast_assm_polish:
     input:
-        consensus = "basecall/{BASECALLER}/miniasm_racon/medaka/consensus.fasta".format(**config),
+        consensus = ancient("basecall/{BASECALLER}/miniasm_racon/medaka/consensus.fasta".format(**config))
 
 rule standard_assm_polish:
     input:
-        consensus = "basecall/{BASECALLER}/canu/nanopolish/consensus.fasta".format(**config),
+        consensus = ancient("basecall/{BASECALLER}/canu/nanopolish/consensus.fasta".format(**config))
 
 def get_contig_opt(wildcards):
     if wildcards.contig == "all_contigs":
@@ -42,8 +42,8 @@ def get_contig_opt(wildcards):
 
 rule basecall_scrappie:
     input:
-        scrappie = SCRAPPIE_EXEC,
-        fast5 = config["READS"]
+        scrappie = ancient(SCRAPPIE_EXEC),
+        fast5 = ancient(config["READS"]),
     output:
         fasta = "basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
     log:
@@ -59,9 +59,9 @@ rule basecall_scrappie:
     
 rule basecall_guppy:
     input:
-        guppy = GUPPY_EXEC,
-        fast5 = config["READS"],
-        venv = IN_POMOXIS,
+        guppy = ancient(GUPPY_EXEC),
+        fast5 = ancient(config["READS"]),
+        venv = ancient(IN_POMOXIS),
     output:
         fasta = "basecall/guppy{suffix,[^/]*}/basecalls.fasta",
         summary = "basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
@@ -112,8 +112,8 @@ rule basecall_guppy:
 
 rule scrappie_summary:
     input:
-        json_to_tsv = SCRAPPIE_JSON_TO_TSV,
-        fasta = "scrappie/basecalls.fasta",
+        json_to_tsv = ancient(SCRAPPIE_JSON_TO_TSV),
+        fasta = ancient("scrappie/basecalls.fasta"),
     output:
         summary = "scrappie/sequencing_summary.txt"
     params:
@@ -125,9 +125,9 @@ rule scrappie_summary:
 
 rule align_to_ref:
     input:
-        venv = IN_POMOXIS,
-        basecalls = "{bc_dir}/basecalls.fasta",
-        ref = config["REFERENCE"]
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{bc_dir}/basecalls.fasta"),
+        ref = ancient(config["REFERENCE"]),
     output:
         bam = "{bc_dir}/align/calls2ref.bam"
     params:
@@ -142,9 +142,9 @@ rule align_to_ref:
 
 rule align_to_draft:
     input:
-        venv = IN_POMOXIS,
-        basecalls = "{dir}/{subdir}/basecalls.fasta",
-        draft = "{dir}/consensus.fasta"
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{dir}/{subdir}/basecalls.fasta"),
+        draft = ancient("{dir}/consensus.fasta"),
     output:
         bam = "{dir}/{subdir}/calls2draft.bam"
     params:
@@ -158,9 +158,9 @@ rule align_to_draft:
 
 rule assess_consensus:
     input:
-        venv = IN_POMOXIS,
-        consensus = "{dir}/consensus.fasta",
-        truth = config["REFERENCE"],
+        venv = ancient(IN_POMOXIS),
+        consensus = ancient("{dir}/consensus.fasta"),
+        truth = ancient(config["REFERENCE"]),
     output:
         summ = "{dir}/consensus_to_truth_summ.txt",
         bam = "{dir}/consensus_to_truth.bam",
@@ -177,9 +177,9 @@ rule assess_consensus:
 
 rule ray_catalogue:
     input:
-        venv = IN_RAY,
-        bam = "{dir}/{prefix}.bam",
-        truth = config["REFERENCE"],
+        venv = ancient(IN_RAY),
+        bam = ancient("{dir}/{prefix}.bam"),
+        truth = ancient(config["REFERENCE"]),
     output:
         catalogue = "{dir}/{prefix}_ray_catalogue.txt"
     log:
@@ -196,7 +196,7 @@ rule ray_catalogue:
 
 rule hp_acc_vs_length:
     input:
-        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
+        catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
     output:
         hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
     run:
@@ -221,8 +221,8 @@ rule hp_acc_vs_length:
 
 rule get_depth:
     input:
-        venv = IN_POMOXIS,
-        bam = "{dir}/calls2ref.bam"
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
     output:
         depth = directory("{dir}/depth")
     params:
@@ -235,8 +235,8 @@ rule get_depth:
 
 rule subsample_bam:
     input:
-        venv = IN_POMOXIS,
-        bam = "{dir}/calls2ref.bam"
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
     output:
         fasta = "{dir}/{contig}/{depth}X/basecalls.fasta",
     log:
@@ -256,9 +256,9 @@ rule subsample_bam:
 
 rule ref_guided_racon:
     input:
-        venv = IN_POMOXIS,
-        basecalls = "{dir}/basecalls.fasta",
-        ref = config["REFERENCE"]
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+        ref = ancient(config["REFERENCE"])
     output:
         consensus = "{dir}/ref_guided_racon{suffix,[^/]*}/consensus.fasta",
         basecalls = "{dir}/ref_guided_racon{suffix,[^/]*}/basecalls.fasta"
@@ -285,8 +285,8 @@ rule ref_guided_racon:
 
 rule miniasm_racon:
     input:
-        venv = IN_POMOXIS,
-        basecalls = "{dir}/basecalls.fasta",
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/miniasm_racon{suffix,[^/]*}/consensus.fasta",
         basecalls = "{dir}/miniasm_racon{suffix,[^/]*}/basecalls.fasta"
@@ -312,8 +312,8 @@ rule miniasm_racon:
 
 rule canu:
     input:
-        canu = CANU_EXEC,
-        basecalls = "{dir}/basecalls.fasta",
+        canu = ancient(CANU_EXEC),
+        basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
         basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
@@ -338,9 +338,9 @@ rule canu:
 
 rule medaka_consensus:
     input:
-        venv = IN_MEDAKA,
-        draft = "{dir}/consensus.fasta",
-        basecalls = "{dir}/basecalls.fasta"
+        venv = ancient(IN_MEDAKA),
+        draft = ancient("{dir}/consensus.fasta"),
+        basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/medaka/consensus.fasta"
     log:
@@ -361,7 +361,7 @@ rule medaka_consensus:
 rule nanopolish_basecalls:
     # nanopolish index can't seem to cope with fasta headers
     input:
-        "basecall/{subdir}/basecalls.fasta",
+        ancient("basecall/{subdir}/basecalls.fasta"),
     output:
         "basecall/{subdir}/nanopolish/basecalls.fasta",
     params:
@@ -373,10 +373,10 @@ rule nanopolish_basecalls:
 
 rule nanopolish_index:
     input:
-        nanopolish = NANOPOLISH_EXEC,
-        fast5 = config["READS"],
-        summary = "basecall/{basecaller}/sequencing_summary.txt",
-        basecalls = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta",
+        nanopolish = ancient(NANOPOLISH_EXEC),
+        fast5 = ancient(config["READS"]),
+        summary = ancient("basecall/{basecaller}/sequencing_summary.txt"),
+        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
     output:
         "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index",
         "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
@@ -395,7 +395,7 @@ rule nanopolish_index:
 
 rule fast5_list:
     input:
-        fast5 = config["READS"],
+        fast5 = ancient(config["READS"]),
     output:
         filelist = os.path.join(config["READS"], "reads.txt")
     params:
@@ -405,9 +405,9 @@ rule fast5_list:
 
 rule miyagi_index:
     input:
-        filelist = os.path.join(config["READS"], "reads.txt"),
-        summary = "basecall/{basecaller}/sequencing_summary.txt",
-        basecalls = "basecall/{basecaller}/align/{subdir}/basecalls.fasta",
+        filelist = ancient(os.path.join(config["READS"], "reads.txt")),
+        summary = ancient("basecall/{basecaller}/sequencing_summary.txt"),
+        basecalls = ancient("basecall/{basecaller}/align/{subdir}/basecalls.fasta"),
     output:
         index = "basecall/{basecaller}/align/{subdir}/miyagi/miyagi.index",
         basecalls = "basecall/{basecaller}/align/{subdir}/miyagi/basecalls.fasta",
@@ -428,14 +428,14 @@ rule miyagi_index:
 
 rule nanopolish_vcf:
     input:
-        nanopolish = NANOPOLISH_EXEC,
-        draft = "basecall/{basecaller}/{subdir}/consensus.fasta",
-        basecalls = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta",
-        bam = "basecall/{basecaller}/{subdir}/nanopolish/calls2draft.bam",
-        index = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index",
-        index_gzi = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
-        index_fai = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.fai",
-        index_readdb = "basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
+        nanopolish = ancient(NANOPOLISH_EXEC),
+        draft = ancient("basecall/{basecaller}/{subdir}/consensus.fasta"),
+        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
+        bam = ancient("basecall/{basecaller}/{subdir}/nanopolish/calls2draft.bam"),
+        index = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index"),
+        index_gzi = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.gzi"),
+        index_fai = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.fai"),
+        index_readdb = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.readdb"),
     output:
         vcf = "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf",
     log:
@@ -449,9 +449,10 @@ rule nanopolish_vcf:
 
 rule nanopolish_regions:
     input:
-        venv = IN_POMOXIS, # use pomoxis python as this has all requirements of the script
-        make_range = NANOPOLISH_MAKE_RANGE,
-        draft = "{dir}/consensus.fasta",
+        # use pomoxis python as this has all requirements of the script
+        venv = ancient(IN_POMOXIS), 
+        make_range = ancient(NANOPOLISH_MAKE_RANGE),
+        draft = ancient("{dir}/consensus.fasta"),
     output:
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
         regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
@@ -466,11 +467,11 @@ rule nanopolish_regions:
 
 rule nanopolish:
     input:
-        nanopolish = NANOPOLISH_EXEC,
-        draft = "{dir}/consensus.fasta",
+        nanopolish = ancient(NANOPOLISH_EXEC),
+        draft = ancient("{dir}/consensus.fasta"),
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
-        regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
-        vcfs = dynamic("{dir}/nanopolish/regions/{region}.vcf"),
+        regions = ancient(dynamic("{dir}/nanopolish/regions/{region}.region")),
+        vcfs = ancient(dynamic("{dir}/nanopolish/regions/{region}.vcf")),
     output:
         consensus = "{dir}/nanopolish/consensus.fasta",
     log:
@@ -482,8 +483,8 @@ rule nanopolish:
 
 rule miyagi_hp_vcf:
     input:
-        venv = IN_MIYAGI,
-        draft = "{dir}/consensus.fasta",
+        venv = ancient(IN_MIYAGI),
+        draft = ancient("{dir}/consensus.fasta"),
     output:
         vcf = "{dir}/miyagi/regions/{region}.hp.vcf"
     params:
@@ -496,12 +497,12 @@ rule miyagi_hp_vcf:
 
 rule miyagi_score_reads:
     input:
-        venv = IN_MIYAGI,
-        draft = "{dir}/consensus.fasta",
-        #region = "{dir}/miyagi/regions/{region}.region",
-        bam = "{dir}/miyagi/calls2draft.bam",
-        index = "{dir}/miyagi/miyagi.index",
-        vcf = "{dir}/miyagi/regions/{region}.hp.vcf"
+        venv = ancient(IN_MIYAGI),
+        draft = ancient("{dir}/consensus.fasta"),
+        #region = ancient("{dir}/miyagi/regions/{region}.region"),
+        bam = ancient("{dir}/miyagi/calls2draft.bam"),
+        index = ancient("{dir}/miyagi/miyagi.index"),
+        vcf = ancient("{dir}/miyagi/regions/{region}.hp.vcf"),
     output:
         hdf = "{dir}/miyagi/regions/parts/{region}_part_{n}_of_{N}_scores_per_read.hdf",
     log:
@@ -536,8 +537,8 @@ def wildcards_2_sorted_score_targets(wildcards):
 
 rule miyagi_concat_region:
     input:
-        wildcards_2_score_targets,
-        venv = IN_MIYAGI,
+        ancient(wildcards_2_score_targets),
+        venv = ancient(IN_MIYAGI),
     output:
         hdf = "{dir}/miyagi/regions/{region}_sorted_scores_per_read.hdf",
     log:
@@ -552,9 +553,9 @@ rule miyagi_concat_region:
 
 rule miyagi_apply_model:
     input:
-        venv = IN_MIYAGI,
-        draft = "{dir}/consensus.fasta",
-        hdfs = wildcards_2_sorted_score_targets,
+        venv = ancient(IN_MIYAGI),
+        draft = ancient("{dir}/consensus.fasta"),
+        hdfs = ancient(wildcards_2_sorted_score_targets),
     output:
         vcf = "{dir}/miyagi/corrections.vcf",
     log:
@@ -569,9 +570,9 @@ rule miyagi_apply_model:
 
 rule miyagi_apply_corrections:
     input:
-        venv = IN_MIYAGI,
-        draft = "{dir}/consensus.fasta",
-        vcf = "{dir}/miyagi/corrections.vcf",
+        venv = ancient(IN_MIYAGI),
+        draft = ancient("{dir}/consensus.fasta"),
+        vcf = ancient("{dir}/miyagi/corrections.vcf"),
     output:
         consensus = "{dir}/miyagi/consensus.fasta",
     log:
