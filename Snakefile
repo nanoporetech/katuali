@@ -113,9 +113,9 @@ rule basecall_guppy:
 rule scrappie_summary:
     input:
         json_to_tsv = ancient(SCRAPPIE_JSON_TO_TSV),
-        fasta = ancient("scrappie/basecalls.fasta"),
+        fasta = ancient("basecall/scrappie/basecalls.fasta"),
     output:
-        summary = "scrappie/sequencing_summary.txt"
+        summary = "basecall/scrappie/sequencing_summary.txt"
     params:
         sge = "m_mem_free=1G,gpu=0"
     shell:
