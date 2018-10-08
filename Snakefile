@@ -342,20 +342,22 @@ rule medaka_consensus:
         draft = ancient("{dir}/consensus.fasta"),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/medaka/consensus.fasta"
+        consensus = "{dir}/medaka{suffix,[^/]*}/consensus.fasta"
     log:
-        "{dir}/medaka.log"
+        "{dir}/medaka{suffix}.log"
     threads: config["THREADS_PER_JOB"]
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        opts = lambda w: config["MEDAKA_OPTS"][w["suffix"]],
+        output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, medaka_consensus will fail if it exists..
-        rm -r {wildcards.dir}/medaka &&
-        medaka_consensus -i {input.basecalls} -d {input.draft} -o {wildcards.dir}/medaka -t {threads} &> {log}
+        rm -r {params[output_dir]} &&
+        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{wildcards.dir}/medaka/basecalls.fasta
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
 rule nanopolish_basecalls:

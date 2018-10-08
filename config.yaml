@@ -28,6 +28,8 @@ NP_OPTS: "--fix-homopolymers"
 
 # Medaka
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+MEDAKA_OPTS: 
+  "": ""
 
 # Miyagi
 IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
