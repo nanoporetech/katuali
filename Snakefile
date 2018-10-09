@@ -15,6 +15,9 @@ IN_MIYAGI = os.path.expanduser(config["IN_MIYAGI"])
 IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
+if "TRUTH" not in config:
+    config["TRUTH"] = config["REFERENCE"]
+
 # NOTE on virtual environments
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
@@ -160,7 +163,7 @@ rule assess_consensus:
     input:
         venv = ancient(IN_POMOXIS),
         consensus = ancient("{dir}/consensus.fasta"),
-        truth = ancient(config["REFERENCE"]),
+        truth = ancient(config["TRUTH"]),
     output:
         summ = "{dir}/consensus_to_truth_summ.txt",
         bam = "{dir}/consensus_to_truth.bam",
@@ -179,7 +182,7 @@ rule ray_catalogue:
     input:
         venv = ancient(IN_RAY),
         bam = ancient("{dir}/{prefix}.bam"),
-        truth = ancient(config["REFERENCE"]),
+        truth = ancient(config["TRUTH"]),
     output:
         catalogue = "{dir}/{prefix}_ray_catalogue.txt"
     log:
@@ -199,6 +202,8 @@ rule hp_acc_vs_length:
         catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
     output:
         hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
+    params:
+        sge = "m_mem_free=1G,gpu=0"
     run:
         from collections import defaultdict
         import pandas as pd
@@ -207,16 +212,23 @@ rule hp_acc_vs_length:
             correct = df['ref_hp_len'] == df['q_hp_len']
             return 100 * float(len(df[correct])) / len(df)
 
+        def get_summ(df):
+            accs = defaultdict(dict)
+            for hp_len, df_l in df.groupby('ref_hp_len'):
+                   accs['acc_all_bases'][hp_len] = get_acc(df_l)
+                   accs['n_all_bases'][hp_len] = len(df_l)
+                   for base, df_b in df_l.groupby('base'):
+                       accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
+                       accs['n_{}'.format(base)][hp_len] = len(df_b)
+            summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
+            return summ
+
         df = pd.read_table(input.catalogue)
-        accs = defaultdict(dict)
-        for hp_len, df_l in df.groupby('ref_hp_len'):
-               accs['acc_all_bases'][hp_len] = get_acc(df_l)
-               accs['n_all_bases'][hp_len] = len(df_l)
-               for base, df_b in df_l.groupby('base'):
-                   accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
-                   accs['n_{}'.format(base)][hp_len] = len(df_b)
-        summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
-        pd.DataFrame(summ).to_csv(output.hp_acc_sum, sep=',', index=False)
+        # create a summary over all refs, and one per reference
+        get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
+        for ref, d in df.groupby('reference'):
+            out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
+            get_summ(d).to_csv(out, sep=',', index=False)
             
 
 rule get_depth:
