@@ -72,13 +72,14 @@ rule basecall_guppy:
         "basecall/guppy{suffix,[^/]*}.log",
     params:
         sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
-        output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w))
+        output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w)),
+        #TODO maybe use use defaults if suffic not in opts dict (eg. guppy_v1")
+        opts = lambda w: config["GUPPY_OPTS"][w["suffix"]],
     shell:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
  
-        echo "{input.guppy} {config[GUPPY_OPTS]} " > {log}
         echo "GPU status before" >> {log}
         gpustat >> {log}
          
@@ -92,7 +93,9 @@ rule basecall_guppy:
 
         echo "Runnning on host $HOSTNAME GPU $SGE_HGR_gpu" >> {log}
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {config[GUPPY_OPTS]} &>> {log}
+        echo "{input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} -t 1" >> {log}
+
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} -t 1 &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}

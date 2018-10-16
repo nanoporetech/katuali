@@ -19,7 +19,9 @@ MINI_ASSEMBLE_OPTS: ""
 
 # Guppy
 GUPPY: "/usr/bin/guppy_basecaller"
-GUPPY_OPTS: "-c /opt/ont/guppy/data/dna_r9.4_450bps.cfg"
+GUPPY_OPTS: 
+    "": "-c /opt/ont/guppy/data/dna_r9.4_450bps.cfg"
+
 GUPPY_SLOTS: 4 
 
 # Nanopolish
