@@ -1,4 +1,4 @@
-.PHONY: install
+.PHONY: install install_scripts
 
 venv: venv/bin/activate
 IN_VENV=. ./venv/bin/activate
@@ -7,8 +7,10 @@ JOBS=$(shell nproc)
 
 DATADIR=test/data
 TESTDIR=${DATADIR}/basecall
+CONFIGDIR=${DATADIR}/configs
+LOGDIR=${DATADIR}/logs
 
-TEST=${IN_VENV} && cd test/data && snakemake -s ${SNAKEFILE} --printshellcmds -j ${JOBS}
+TEST=${IN_VENV} && cd test/data && katuali -s ${SNAKEFILE} --printshellcmds -j ${JOBS}
 
 OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
@@ -18,12 +20,21 @@ venv/bin/activate:
 	${IN_VENV} && pip install pip --upgrade
 	${IN_VENV} && pip install -r requirements.txt
 
-install: venv
+
+
+install: venv install_scripts
+
+install_scripts:
+	cp scripts/* venv/bin/
 
 reads:
 	cd test/data && tar -xvf reads.tgz
 
-test: install test_basecall_suffix test_align test_subsample test_racon test_racon_suffix test_medaka test_nanopolish test_canu test_miniasm_racon test_nanopolish_from_scratch 
+test: install test_basecall_suffix test_align test_subsample test_racon test_racon_suffix test_medaka test_nanopolish test_canu test_miniasm_racon test_nanopolish_from_scratch check
+
+check:
+	grep '100%' ${LOGDIR}/*.log
+	grep 'Exception' ${LOGDIR}/*.log || echo "No exceptions found"
 
 test_basecall: clean reads
 	${TEST} basecall/scrappie/basecalls.fasta
@@ -44,7 +55,7 @@ test_racon_one_contig: reads
 	${TEST} basecall/scrappie/align/ecoli_SCS110_plasmid2/25X/ref_guided_racon/consensus.fasta
 
 test_racon_suffix: reads
-	${TEST} basecall/scrappie/align/all_contigs/25X/ref_guided_racon_alt/consensus.fasta
+	${TEST} basecall/scrappie/align/all_contigs/25X/ref_guided_racon_ce/consensus.fasta
 
 test_medaka: reads
 	${TEST} basecall/scrappie/align/all_contigs/25X/ref_guided_racon/medaka/consensus.fasta
@@ -61,7 +72,7 @@ test_miniasm_racon: reads
 test_nanopolish_from_scratch: clean test_nanopolish
 
 clean:
-	rm -rf ${TESTDIR} ${DATADIR}/reads ${DATADIR}/ref.fasta.*
+	rm -rf ${TESTDIR} ${LOGDIR} ${CONFIGDIR} ${DATADIR}/reads ${DATADIR}/ref.fasta.*
 
 update:
 	git stash

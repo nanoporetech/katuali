@@ -1,8 +1,8 @@
+from functools import partial
 import os
 import sys
 
 KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
-configfile: os.path.join(KATUALI_HOME, "config.yaml")
 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
@@ -34,7 +34,7 @@ rule fast_assm_polish:
 
 rule standard_assm_polish:
     input:
-        consensus = ancient("basecall/{BASECALLER}/canu/nanopolish/consensus.fasta".format(**config))
+        consensus = ancient("basecall/{BASECALLER}/canu/nanopolish_hp/consensus.fasta".format(**config))
 
 def get_contig_opt(wildcards):
     if wildcards.contig == "all_contigs":
@@ -43,6 +43,29 @@ def get_contig_opt(wildcards):
         contig_opt = "-r {}".format(wildcards.contig)
     return contig_opt
 
+
+def get_opts(wildcards, config, config_key):
+    default_key = ''
+
+    if config_key not in config:
+        raise KeyError('{} not in config'.format(config_key))
+
+    suffix = wildcards["suffix"]
+
+    if not isinstance(config[config_key], dict):
+        opts = config[config_key]
+        logger.run_info("{} parameters were not nested, using {}".format(config_key, opts))
+
+    elif suffix in config[config_key] and suffix != default_key:
+        opts = config[config_key][suffix]
+        logger.run_info("Using {} parameters specified by suffix {}".format(config_key, suffix))
+    else:
+        opts = config[config_key][default_key]
+        logger.run_info("Using default {} parameters".format(config_key))
+
+    return opts
+    
+    
 rule basecall_scrappie:
     input:
         scrappie = ancient(SCRAPPIE_EXEC),
@@ -52,14 +75,16 @@ rule basecall_scrappie:
     log:
         "basecall/scrappie{suffix,[^/]*}/scrappie.log",
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        opts = partial(get_opts, config=config, config_key="SCRAPPIE_OPTS")
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         echo "{input.scrappie} {config[SCRAPPIE_OPTS]} "> {log}
-        find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {config[SCRAPPIE_OPTS]} --threads {threads} >{output.fasta} 2>> {log}
+        find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {params[opts]} --threads {threads} >{output.fasta} 2>> {log}
         """
-    
+
+
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
@@ -73,12 +98,13 @@ rule basecall_guppy:
     params:
         sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
         output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w)),
-        #TODO maybe use use defaults if suffic not in opts dict (eg. guppy_v1")
-        opts = lambda w: config["GUPPY_OPTS"][w["suffix"]],
+        opts = partial(get_opts, config=config, config_key="GUPPY_OPTS")
     shell:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
+    
+        # TODO: fall back on CPU if GPU not found?
  
         echo "GPU status before" >> {log}
         gpustat >> {log}
@@ -95,7 +121,7 @@ rule basecall_guppy:
 
         echo "{input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} -t 1" >> {log}
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} -t 1 &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params.opts} --runners {config[GUPPY_SLOTS]} -t 1 &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
@@ -115,6 +141,7 @@ rule basecall_guppy:
           touch {output.summary}  
         fi
         """
+
 
 rule scrappie_summary:
     input:
@@ -282,14 +309,16 @@ rule ref_guided_racon:
     threads: config["THREADS_PER_JOB"]
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
-        output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w))
+        output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
+
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} && 
-        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[output_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
@@ -310,13 +339,14 @@ rule miniasm_racon:
     params:
         output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w)),
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} && 
-        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {config[MINI_ASSEMBLE_OPTS]} &&
+        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
@@ -338,13 +368,14 @@ rule canu:
         output_dir = lambda w: "{dir}/canu{suffix}".format(**dict(w)),
         genome_sz = config["CANU_GENOME_SIZE"],
         exec_opts = config["CANU_EXEC_OPTS"],
+        opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
     shell:
         """
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
-        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.genome_sz} -nanopore-raw {input.basecalls} {params.exec_opts} &&
+        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.genome_sz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} &> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
         # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
@@ -363,14 +394,16 @@ rule medaka_consensus:
     threads: config["THREADS_PER_JOB"]
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
-        opts = lambda w: config["MEDAKA_OPTS"][w["suffix"]],
+        opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir, medaka_consensus will fail if it exists..
-        rm -r {params[output_dir]} &&
+        # snakemake will create the output dir if it does not exist, remove it it exists. 
+        rm -r {params[output_dir]} 
+
         medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
+
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
@@ -458,10 +491,13 @@ rule nanopolish_vcf:
     log:
         "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf.log"
     params:
-        sge = "m_mem_free=1G,gpu=0" 
+        sge = "m_mem_free=1G,gpu=0", 
+        # wildcards in dynamic files cannot be constrained => we can't safely extract a
+        # suffix from dynamic nanopolish targets to use to use nested config
+        opts = config["NP_OPTS"],
     shell:
 	    """
-        {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {config[NP_OPTS]} &> {log}
+        {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
         """
 
 rule nanopolish_regions:
@@ -494,7 +530,7 @@ rule nanopolish:
     log:
         "{dir}/nanopolish/vcf2fasta.log"
     params:
-        sge = "m_mem_free=1G,gpu=0" 
+        sge = "m_mem_free=1G,gpu=0", 
     shell:
         "{input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2> {log}"
 

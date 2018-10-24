@@ -7,31 +7,41 @@ IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 
 # Scrappie 
 SCRAPPIE: "~/git/scrappie"
-SCRAPPIE_OPTS: "raw -H mean --model rgrgr_r94 --local 10.0 --uuid"
+SCRAPPIE_OPTS: 
+    "": "raw --model rgrgr_r94 --uuid"
+    "_hp": "raw -H mean --model rgrgr_r94 --uuid"
 
 #Canu 
 CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
 CANU_GENOME_SIZE: "4.8M"
+CANU_OPTS:
+    "": "" 
 
 # Mini_assemble
-MINI_ASSEMBLE_OPTS: ""
+MINI_ASSEMBLE_OPTS: 
+    "": ""
+    "_ce": "-c -e 10"
+    "_ces": "-c -e 10 -n 10"
 
 # Guppy
 GUPPY: "/usr/bin/guppy_basecaller"
 GUPPY_OPTS: 
-    "": "-c /opt/ont/guppy/data/dna_r9.4_450bps.cfg"
+    "": "-c dna_r9.4_450bps.cfg"
+    "_hp": "-c dna_r9.4_450bps.cfg --hp_correct 1"
 
 GUPPY_SLOTS: 4 
 
 # Nanopolish
 NP: "~/git/nanopolish" 
+# wildcards in dynamic files cannot be constrained => we can't safely extract a
+# suffix from dynamic nanopolish targets to use to use nested config
 NP_OPTS: "--fix-homopolymers"
 
 # Medaka
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"
 MEDAKA_OPTS: 
-  "": ""
+    "": ""
 
 # Miyagi
 IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
