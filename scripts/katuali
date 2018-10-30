@@ -1,0 +1,97 @@
+#!/bin/bash
+
+snakefile=$(readlink -f "$(dirname $(which snakemake))/../../Snakefile")
+
+config=$(readlink -f "$(dirname $(which snakemake))/../../config.yaml")
+
+log_dir=logs
+config_dir=configs
+
+silent=false
+args=""
+config_opts=""
+cluster_opt=""
+cluster_parm=""
+sge_opt="--latency-wait 300 --cluster-sync"
+sge_parm="$(which qsub) -V -cwd -P research -l {params.sge} -sync yes -o $log_dir -j y" 
+
+for i in "$@"; 
+do
+    #echo "Processing $i"
+    case "${1-}" in
+        -s)
+            snakefile="${2-}"
+            shift 2
+            ;;
+        --snakefile)
+            snakefile="${2-}"
+            shift 2
+            ;;
+        --configfile)
+            config="${2-}"
+            shift 2
+            ;;
+        --cluster*)
+            cluster_opt="${1-}"
+            cluster_parm="\"${2-}\""
+            #echo "cluster $cluster_opt $cluster_parm"
+            shift 2
+            ;;
+        --sge)
+            cluster_opt=$sge_opt
+            cluster_parm="\"$sge_parm\""
+            #echo "cluster $cluster_opt $cluster_parm"
+            shift 1
+            ;;
+        --config)
+            shift 1
+            while true; do
+                if [[ ${1-} == *"="* ]]; then 
+                    config_opts="$config_opts ${1-}";
+                    shift 1;
+                else
+                    break
+                fi
+            done
+            ;;
+        -h)
+            args="$args help"
+            shift 1
+            ;;
+        --help)
+            args="$args help"
+            shift 1
+            ;;
+        --silent)
+            silent=true
+            shift 1
+            ;;
+        *)
+            args="$args ${1-}"
+            shift 1
+            ;;
+    esac
+done
+
+#echo "snakefile $snakefile"
+#echo "config opts $config_opts"
+#echo "other args $args"
+
+mkdir -p $config_dir $log_dir
+
+t=$(date --rfc-3339=seconds | sed 's/ /_/')
+configout="${config_dir}/katuali_${t}.yaml"
+log="${log_dir}/katuali_${t}.log"
+
+process_config.py $config $configout $config_opts
+
+cmd="snakemake -s ${snakefile} --configfile $configout $args $cluster_opt $cluster_parm"
+
+if $silent; then 
+    echo $cmd | /bin/bash &> $log
+else
+    echo "Running $cmd"
+    echo "Config saved to $configout"
+    echo "Log saved to $log" 
+    echo $cmd | /bin/bash 2>&1 | tee $log
+fi
