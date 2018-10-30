@@ -119,9 +119,9 @@ rule basecall_guppy:
 
         echo "Runnning on host $HOSTNAME GPU $SGE_HGR_gpu" >> {log}
 
-        echo "{input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} -t 1" >> {log}
+        echo "{input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} --worker_threads 1" >> {log}
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params.opts} --runners {config[GUPPY_SLOTS]} -t 1 &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
