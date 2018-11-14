@@ -683,7 +683,8 @@ rule medaka_train_features:
         rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         rc_truth = lambda w, output: os.path.join(os.path.dirname(output.features), "truthrc.fasta"),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        sge = "m_mem_free=1G,gpu=0"
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
     shell:
         """
