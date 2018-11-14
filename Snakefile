@@ -18,6 +18,8 @@ CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 if "TRUTH" not in config:
     config["TRUTH"] = config["REFERENCE"]
 
+config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
+
 # NOTE on virtual environments
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
@@ -684,7 +686,7 @@ rule medaka_train_features:
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         rc_truth = lambda w, output: os.path.join(os.path.dirname(output.features), "truthrc.fasta"),
         #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
-        sge = "m_mem_free=1G,gpu=0"
+        sge = "m_mem_free=1G,gpu=0",
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
     shell:
         """
