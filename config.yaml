@@ -11,6 +11,21 @@ SCRAPPIE_OPTS:
     "": "raw --model rgrgr_r94 --uuid"
     "_hp": "raw -H mean --model rgrgr_r94 --uuid"
 
+        
+# Guppy
+GUPPY: "/usr/bin/guppy_basecaller"
+GUPPY_OPTS: 
+    "": "-c dna_r9.4_450bps.cfg"
+    "_hp": "-c dna_r9.4_450bps.cfg --hp_correct 1"
+
+GUPPY_SLOTS: 4 
+
+# subsample_bam
+SUBSAMPLE_BAM_OPTS:
+    "": ""
+    "_prop": "--proportional"
+ 
+
 #Canu 
 CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
@@ -23,14 +38,10 @@ MINI_ASSEMBLE_OPTS:
     "": ""
     "_ce": "-c -e 10"
     "_ces": "-c -e 10 -n 10"
+    "_ce3x_ecoli": "-c -e 3x -l 4.66mb"
+    "_ce3x_yeast": "-c -e 3x -l 12.15mb"
+    "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
 
-# Guppy
-GUPPY: "/usr/bin/guppy_basecaller"
-GUPPY_OPTS: 
-    "": "-c dna_r9.4_450bps.cfg"
-    "_hp": "-c dna_r9.4_450bps.cfg --hp_correct 1"
-
-GUPPY_SLOTS: 4 
 
 # Nanopolish
 NP: "~/git/nanopolish" 
@@ -39,9 +50,14 @@ NP: "~/git/nanopolish"
 NP_OPTS: "--fix-homopolymers"
 
 # Medaka
-IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+IN_MEDAKA: "~/git/medaka_dev/venv/bin/activate"
 MEDAKA_OPTS: 
     "": ""
+
+# Medaka training features
+MEDAKA_TRAIN_FEAT_OPTS:
+    "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100 --max_label_len 1 --model /nfs/groups_ech/res_data/active/mwykes/R10_ONLP13701/feature_set_30.yml"
+
 
 # Miyagi
 IN_MIYAGI: "~/git/miyagi/venv/bin/activate"

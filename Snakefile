@@ -36,11 +36,14 @@ rule standard_assm_polish:
     input:
         consensus = ancient("basecall/{BASECALLER}/canu/nanopolish_hp/consensus.fasta".format(**config))
 
-def get_contig_opt(wildcards):
-    if wildcards.contig == "all_contigs":
+def get_contig_opt(wildcards, config):
+    if "REGIONS" in config and "REGIONS" != "":
+        contig_opt = "-r {}".format(config["REGIONS"])
+    elif wildcards.contig == "all_contigs":
         contig_opt = ""
     else:
         contig_opt = "-r {}".format(wildcards.contig)
+    logger.run_info("Setting region option to {}".format(contig_opt))
     return contig_opt
 
 
@@ -275,23 +278,39 @@ rule get_depth:
     	mkdir -p {output.depth} && coverage_from_bam {input.bam} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
         """
 
+
+rule get_basecall_stats:
+    input:
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
+    output:
+        stats = "{dir}/calls2ref_stats.txt"
+    params:
+        sge = "m_mem_free=1G,gpu=0" 
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+    	stats_from_bam --bam {input.bam} -o {output.stats}
+        """
+
 rule subsample_bam:
     input:
         venv = ancient(IN_POMOXIS),
         bam = ancient("{dir}/calls2ref.bam"),
     output:
-        fasta = "{dir}/{contig}/{depth}X/basecalls.fasta",
+        fasta = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/basecalls.fasta",
     log:
-        "{dir}/{contig}/{depth}X/subsample.log"
+        "{dir}/{contig}/{depth}X{suffix}/subsample.log"
     params:
-        contig_opt = get_contig_opt,
-        prefix = lambda w: "{dir}/{contig}/{depth}X/sub_sample".format(**dict(w)),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        contig_opt = partial(get_contig_opt, config=config),
+        prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
     threads: config["THREADS_PER_JOB"]
     shell:
 	    """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} -t {threads} &>{log};
+        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>{log};
         sleep 5;
         for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
         """
@@ -388,10 +407,13 @@ rule medaka_consensus:
         draft = ancient("{dir}/consensus.fasta"),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/medaka{suffix,[^/]*}/consensus.fasta"
+        consensus = "{dir}/medaka{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/medaka{suffix,[^/]*}/basecalls.fasta"
     log:
         "{dir}/medaka{suffix}.log"
-    threads: config["THREADS_PER_JOB"]
+    #threads: config["THREADS_PER_JOB"]
+    # medaka currently serial only
+    threads: 1
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
@@ -405,7 +427,7 @@ rule medaka_consensus:
         medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
 
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         """
 
 rule nanopolish_basecalls:
@@ -636,4 +658,70 @@ rule miyagi_apply_corrections:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         miyagi_apply_corrections {input.draft} {input.vcf} {output.consensus} &> {log}
+        """
+
+rule medaka_train_features:
+    input:
+        in_medaka = ancient(IN_MEDAKA),
+        in_pomoxis = ancient(IN_POMOXIS),
+        draft = ancient("{dir}/consensus.fasta"),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+        truth = ancient(config["REFERENCE"]),
+    output:
+        features = "{dir}/medaka_train{suffix,[^/]*}/medaka_train.hdf",
+        rc_features = "{dir}/medaka_train{suffix,[^/]*}/medaka_train_rc.hdf",
+    log:
+        "{dir}/medaka_train{suffix}.log"
+    #threads: config["THREADS_PER_JOB"]
+    # medaka is serial at the moment
+    threads: 1 
+    params:
+        output_dir = "{dir}/medaka_train",
+        bam = lambda w, output: os.path.join(os.path.dirname(output.features), "calls2ref"),
+        truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2ref"),
+        rc_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "callsrc2ref"),
+        rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
+        rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
+        rc_truth = lambda w, output: os.path.join(os.path.dirname(output.features), "truthrc.fasta"),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
+
+        # keep a link of basecalls with the consensus
+        
+        ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
+        sleep 1
+
+        echo "aligning basecalls to draft" >{log}
+        mini_align -i {input.basecalls} -r {input.draft} -p {params.bam} -t {threads} -P -m &>> {log}
+        sleep 5
+
+        echo "aligning truth to draft" >>{log}
+        mini_align -i {input.truth} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c 10000 &>> {log}
+        sleep 5
+
+        echo "reverse complement the draft and align reads" >> {log}
+        seqkit seq --complement --reverse {input.draft} -o {params.rc_draft} &>> {log}
+        sleep 5
+
+        echo "aligning basecalls to rc draft" >>{log}
+        mini_align -i {input.basecalls} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
+        sleep 5
+
+        echo "reverse complement the truth and align to the draft" >> {log}
+        seqkit seq --complement --reverse {input.truth} -o {params.rc_truth} &>> {log}
+        sleep 5
+
+        echo "aligning truth to rc draft" >> {log}
+        mini_align -i {params.rc_truth} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c 10000 &>> {log}
+        sleep 5
+
+        echo "creating features" >> {log}
+        set +u; {config[SOURCE]} {input.in_medaka} set -u;
+        medaka features {params.bam}.bam {output.features} --truth {params.truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+        echo "creating rc features"
+        medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+
         """
