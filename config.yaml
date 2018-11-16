@@ -41,6 +41,7 @@ MINI_ASSEMBLE_OPTS:
     "_ce3x_ecoli": "-c -e 3x -l 4.66mb"
     "_ce3x_yeast": "-c -e 3x -l 12.15mb"
     "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
+    "_ce3xs_ecoli": "-c -e 3x -l 4.66mb -n 10"
 
 
 # Nanopolish
@@ -50,7 +51,7 @@ NP: "~/git/nanopolish"
 NP_OPTS: "--fix-homopolymers"
 
 # Medaka
-IN_MEDAKA: "~/git/medaka_dev/venv/bin/activate"
+IN_MEDAKA: "~/git/medaka/venv/bin/activate"
 MEDAKA_OPTS: 
     "": ""
 
