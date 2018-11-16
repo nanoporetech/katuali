@@ -417,7 +417,8 @@ rule medaka_consensus:
     # medaka currently serial only
     threads: 1
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        sge = "m_mem_free=1G,gpu=0",
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
     shell:
