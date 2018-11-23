@@ -6,6 +6,7 @@ KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
+FLAPPIE_EXEC = os.path.join(os.path.expanduser(config["FLAPPIE"]), "flappie")
 SCRAPPIE_JSON_TO_TSV = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "misc", "json_to_tsv.py")
 NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NP"]), "nanopolish")
 NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NP"]), "scripts", "nanopolish_makerange.py")
@@ -87,6 +88,32 @@ rule basecall_scrappie:
         """
         echo "{input.scrappie} {config[SCRAPPIE_OPTS]} "> {log}
         find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {params[opts]} --threads {threads} >{output.fasta} 2>> {log}
+        """
+
+
+rule basecall_flappie:
+    input:
+        flappie = ancient(FLAPPIE_EXEC),
+        fast5 = ancient(config["READS"]),
+        venv = ancient(IN_POMOXIS),
+    output:
+        fastq = "basecall/flappie{suffix,[^/]*}/basecalls.fastq",
+        fasta = "basecall/flappie{suffix,[^/]*}/basecalls.fasta",
+    log:
+        "basecall/flappie{suffix,[^/]*}/flappie.log",
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        opts = partial(get_opts, config=config, config_key="FLAPPIE_OPTS"),
+    threads: config["THREADS_PER_JOB"]
+    shell:
+        """
+        export OPENBLAS_NUM_THREADS=1
+        echo "{input.flappie} {params[opts]} "> {log}
+        #find -L {input.fast5} -name '*.fast5' | parallel -P {threads} -X {input.flappie} {params[opts]} >{output.fastq} 2>> {log}
+        find -L {input.fast5} -name '*.fast5' | parallel -j {threads} -n 10 -X {input.flappie} {params[opts]} >{output.fastq} 2>> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        sleep 5
+        seqkit fq2fa {output.fastq} > {output.fasta}
         """
 
 
@@ -252,7 +279,7 @@ rule hp_acc_vs_length:
             for hp_len, df_l in df.groupby('ref_hp_len'):
                    accs['acc_all_bases'][hp_len] = get_acc(df_l)
                    accs['n_all_bases'][hp_len] = len(df_l)
-                   for base, df_b in df_l.groupby('base'):
+                   for base, df_b in df_l.groupby('ref_base'):
                        accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
                        accs['n_{}'.format(base)][hp_len] = len(df_b)
             summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
@@ -261,7 +288,7 @@ rule hp_acc_vs_length:
         df = pd.read_table(input.catalogue)
         # create a summary over all refs, and one per reference
         get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
-        for ref, d in df.groupby('reference'):
+        for ref, d in df.groupby('record_name'):
             out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
             get_summ(d).to_csv(out, sep=',', index=False)
             

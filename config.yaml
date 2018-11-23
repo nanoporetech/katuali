@@ -12,6 +12,13 @@ SCRAPPIE_OPTS:
     "_hp": "raw -H mean --model rgrgr_r94 --uuid"
 
         
+# Flappie 
+FLAPPIE: "~/git/github/flappie"
+FLAPPIE_OPTS: 
+    "": "raw --model rgrgr_r94 --uuid"
+    "_r10c_pcr": "--model=r10c_pcr"
+
+        
 # Guppy
 GUPPY: "/usr/bin/guppy_basecaller"
 GUPPY_OPTS: 
