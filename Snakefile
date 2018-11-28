@@ -2,6 +2,8 @@ from functools import partial
 import os
 import sys
 
+import gpustat
+
 KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
@@ -117,6 +119,22 @@ rule basecall_flappie:
         """
 
 
+def get_gpu():
+    """
+    Get GPU to use from environmental variable SGE_HGR_gpu or find best GPU from gpustat
+    """
+    gpu = os.getenv('SGE_HGR_gpu')
+    if gpu is None:
+        stats = gpustat.GPUStatCollection.new_query()
+        sorter = lambda s: (s.memory_used, s.utilization, s.temperature)
+        gpu = sorted(stats.gpus, key=sorter)[0].index
+        logger.run_info('SGE_HGR_gpu was not set, setting GPU to {} based on memory and utilization'.format(gpu))
+    else:
+        gpu = gpu.replace('cuda', '')
+        logger.run_info('Using gpu {} from SGE_HGR_gpu'.format(gpu))
+    return gpu
+
+
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
@@ -130,30 +148,19 @@ rule basecall_guppy:
     params:
         sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
         output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w)),
-        opts = partial(get_opts, config=config, config_key="GUPPY_OPTS")
+        opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
+        gpu = get_gpu(),
     shell:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
-    
-        # TODO: fall back on CPU if GPU not found?
  
         echo "GPU status before" >> {log}
         gpustat >> {log}
-         
-        if [ -z ${{SGE_HGR_gpu+x}} ]; then 
-          echo "SGE_HGR_gpu was not set" >> {log}
-          # pick GPU with lowest memory usage
-          SGE_HGR_gpu=`gpustat | awk '{{ if(NR==2){{gpu0=$11}}; if(NR==3){{gpu1=$11}} }}END{{if(gpu0 > gpu1){{print "1"}} else{{print "0"}} }}'`
-          echo "set GPU to $SGE_HGR_gpu based on memory usage" >> {log}
-        fi
-        SGE_HGR_gpu="${{SGE_HGR_gpu#cuda}}"
 
-        echo "Runnning on host $HOSTNAME GPU $SGE_HGR_gpu" >> {log}
+        echo "Runnning on host $HOSTNAME GPU {params.gpu}" >> {log}
 
-        echo "{input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params[opts]} --runners {config[GUPPY_SLOTS]} --worker_threads 1" >> {log}
-
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$SGE_HGR_gpu {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:{params.gpu} {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
@@ -164,14 +171,6 @@ rule basecall_guppy:
         ls {params[output_dir]}/*.fastq >> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
-       
-        # update time stamp of summary otherwise it will be older than basecalls
-        if [ ! -f {output.summary} ]; then
-          echo "{output.summary} not found!" >> {log}
-        else
-          echo "Updating the time stamp of the sequencing summary {output.summary}" >> {log}
-          touch {output.summary}  
-        fi
         """
 
 
