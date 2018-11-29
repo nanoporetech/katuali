@@ -26,7 +26,7 @@ To setup the environment run:
 .. _dependencies:
 
 Dependencies
-============
+------------
 
 Katuali makes use of a number of tools to do basecalling, assembly and
 polishing that you will need to install.  
@@ -52,7 +52,7 @@ Please refer to the documentation of each of these tools for installation instru
 .. _tests:
 
 Tests
-=======
+-----
 
 The easiest way to test the pipeline is to run the tests, which will basecall,
 assemble and polish a small dataset that comes bundled with `Katuali`. 
