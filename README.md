@@ -62,7 +62,6 @@ on the command line to point to your installations of these tools:
 * [NANOPOLISH](https://github.com/jts/nanopolish): "~/git/nanopolish"
 * [IN_MEDAKA](https://github.com/nanoporetech/medaka): "~/git/medaka/venv/bin/activate"
 * GUPPY: "/usr/bin/guppy_basecaller"
-* IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
 * IN_RAY: "~/git/ray/venv/bin/activate"
 
 Please refer to the documentation of each of these tools for installation
