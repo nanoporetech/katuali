@@ -1,0 +1,22 @@
+language: python
+python:
+    - "3.4"
+    - "3.6"
+dist: trusty
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y python3-all-dev
+
+script:
+  - make install
+  - make docs
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GHPAGES_TOKEN
+  local_dir: docs/_build/html
+  target_branch: gh-pages
+  on:
+    branch: master
