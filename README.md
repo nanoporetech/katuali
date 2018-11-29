@@ -1,3 +1,5 @@
+![Oxford Nanopore Technologies logo](images/ONT_logo_590x106.png)
+
 
 Katuali
 =======
