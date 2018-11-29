@@ -83,8 +83,9 @@ Reads can be assembled in three ways at present:
     katuali basecall/scrappie/miniasm_racon/consensus.fasta  
 
     # use pomoxis mini_assemble to align reads to a reference then form
-    # consensus with racon katuali
-    basecall/scrappie/ref_guided_racon/consensus.fasta  
+    # consensus with racon 
+    ln -s /path/to/ref.fasta ref.fasta
+    katuali basecall/scrappie/ref_guided_racon/consensus.fasta  
 
 
 Polishing
@@ -130,6 +131,24 @@ If you have already basecalled your data, mocking out the working space as if ka
     # now we can run katuali to assemble and polish
     katuali ${BCDIR}/miniasm_racon/consensus.fasta
 
+Read coverage depth and subsampling
+===================================
+
+Calculating read coverage depth
+-------------------------------
+
+It is often useful to know the read coverage depth of a dataset. 
+This can be calculated as follows:
+
+.. code-block:: bash
+
+    ln -s /path/to/ref.fasta ref.fasta
+    katuali basecall/scrappie/align/depth
+
+The depth directory will contain a text file per reference contig with coverage
+vs genomic coordinate, as well as a file containing summary statistics for all
+contigs.
+
 
 Creating subsampled datasets
 ----------------------------
@@ -139,6 +158,7 @@ reference at a given depth.
 
 .. code-block:: bash
 
+    ln -s /path/to/ref.fasta ref.fasta
     katuali basecall/scrappie/align/all_contigs/25X/ref_guided_racon/consensus.fasta
 
 will perform the following steps:
@@ -182,5 +202,4 @@ strings:
 
     REGIONS="ecoli_SCS110_chromosome:50000-150000 ecoli_SCS110_chromosome:200000-250000"
     katuali basecall/scrappie/align/my_regions/25X/ref_guided_racon/consensus.fasta --config REGIONS="$REGIONS"
-
 
