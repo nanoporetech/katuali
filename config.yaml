@@ -45,11 +45,6 @@ MINI_ASSEMBLE_OPTS:
     "": ""
     "_ce": "-c -e 10"
     "_ces": "-c -e 10 -n 10"
-    "_ce3x_ecoli": "-c -e 3x -l 4.66mb"
-    "_ce3x_yeast": "-c -e 3x -l 12.15mb"
-    "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
-    "_ce3xs_ecoli": "-c -e 3x -l 4.66mb -n 10"
-
 
 # Nanopolish
 NANOPOLISH: "~/git/nanopolish" 
@@ -66,13 +61,6 @@ MEDAKA_OPTS:
 MEDAKA_TRAIN_FEAT_OPTS:
     "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100"
 
-
-# Miyagi
-IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
-MIYAGI_BATCHES_PER_REF_MB: 100
-MIYAGI_SCORE_READS_OPTS: "--pore_mode r94 --debug"
-MIYAGI_APPLY_MODEL_OPTS: ""
-MIYAGI_HOMOP_VCF_OPTS: ""
 
 # Ray
 IN_RAY: "~/git/ray/venv/bin/activate"

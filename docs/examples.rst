@@ -107,13 +107,14 @@ restrictions:
 
     * basecalling must be performed before assembly.
     * assembly must come before polishing (use of polishing targets to
-      error correct reads is not supports).
+      error correct reads is not supported).
 
 
 Starting from existing basecalls
-================================
+--------------------------------
 
-If you have already basecalled your data, mocking out the working space as if katuali had basecalled allows any derived targets to be created. 
+If you have already basecalled your data, mocking out the working space as if
+katuali had basecalled allows any derived targets to be created. 
 
 .. code-block:: bash
     
@@ -123,7 +124,7 @@ If you have already basecalled your data, mocking out the working space as if ka
     cd ${BCDIR}
     source ~/git/pomoxis/venv/bin/activate
     seqkit fq2fa /path/to/basecalls.fastq > basecalls.fasta
-    # these next two steps are only required if you wish to use signal-level polishers such as nanopolish. 
+    # these next two steps are only required if you wish to use nanopolish.  
     ln -s /path/to/sequencing_summary.txt sequencing_summary.txt
     ln -s /path/to/fast5 reads
     cd ${START}

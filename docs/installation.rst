@@ -44,7 +44,6 @@ The following config default parameters can be changed in the config or on the c
     * `CANU_EXEC <https://github.com/marbl/canu>`_: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
     * `NANOPOLISH <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
     * `IN_MEDAKA <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
-    * IN_MIYAGI: "~/git/miyagi/venv/bin/activate"
 
 Please refer to the documentation of each of these tools for installation instructions.
 
