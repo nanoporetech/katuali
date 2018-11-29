@@ -129,7 +129,7 @@ rule basecall_flappie:
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
-        PICK_GPU = PICK_GPU,
+        PICK_GPU = ancient(PICK_GPU),
         fast5 = ancient(config["READS"]),
         venv = ancient(IN_POMOXIS),
     output:
