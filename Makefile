@@ -10,7 +10,7 @@ TESTDIR=${DATADIR}/basecall
 CONFIGDIR=${DATADIR}/configs
 LOGDIR=${DATADIR}/logs
 
-TEST=${IN_VENV} && cd test/data && katuali -s ${SNAKEFILE} --printshellcmds -j ${JOBS}
+TEST=${IN_VENV} && cd test/data && katuali -s ${SNAKEFILE} --printshellcmds -j ${JOBS} --config THREADS_PER_JOB=${JOBS}
 
 OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
