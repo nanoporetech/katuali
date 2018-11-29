@@ -4,7 +4,11 @@ import sys
 
 import gpustat
 
+KATUALI_VERSION = "0.0"
+
 KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
+
+PICK_GPU = os.path.join(KATUALI_HOME, 'scripts', 'pick_gpu.py') 
 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
@@ -28,6 +32,10 @@ config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
 # so any activation commands must be wrapped as such:
 #      set +u; {config[IN_MEDAKA]}; set -u; 
+
+rule version:
+    run:
+        print('katuali version {}'.format(KATUALI_VERSION))
 
 rule help:
     run:
@@ -119,25 +127,12 @@ rule basecall_flappie:
         """
 
 
-def get_gpu():
-    """
-    Get GPU to use from environmental variable SGE_HGR_gpu or find best GPU from gpustat
-    """
-    gpu = os.getenv('SGE_HGR_gpu')
-    if gpu is None:
-        stats = gpustat.GPUStatCollection.new_query()
-        sorter = lambda s: (s.memory_used, s.utilization, s.temperature)
-        gpu = sorted(stats.gpus, key=sorter)[0].index
-        logger.run_info('SGE_HGR_gpu was not set, setting GPU to {} based on memory and utilization'.format(gpu))
-    else:
-        gpu = gpu.replace('cuda', '')
-        logger.run_info('Using gpu {} from SGE_HGR_gpu'.format(gpu))
-    return gpu
 
 
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
+        PICK_GPU = PICK_GPU,
         fast5 = ancient(config["READS"]),
         venv = ancient(IN_POMOXIS),
     output:
@@ -149,7 +144,6 @@ rule basecall_guppy:
         sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
         output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
-        gpu = get_gpu(),
     shell:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
@@ -158,9 +152,11 @@ rule basecall_guppy:
         echo "GPU status before" >> {log}
         gpustat >> {log}
 
-        echo "Runnning on host $HOSTNAME GPU {params.gpu}" >> {log}
+        GPU=$({input.PICK_GPU} 2>> {log})
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:{params.gpu} {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
+        echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
+
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$GPU {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
