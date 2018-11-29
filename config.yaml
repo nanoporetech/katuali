@@ -52,10 +52,10 @@ MINI_ASSEMBLE_OPTS:
 
 
 # Nanopolish
-NP: "~/git/nanopolish" 
+NANOPOLISH: "~/git/nanopolish" 
 # wildcards in dynamic files cannot be constrained => we can't safely extract a
 # suffix from dynamic nanopolish targets to use to use nested config
-NP_OPTS: "--fix-homopolymers"
+NANOPOLISH_OPTS: "--fix-homopolymers"
 
 # Medaka
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"
@@ -64,7 +64,7 @@ MEDAKA_OPTS:
 
 # Medaka training features
 MEDAKA_TRAIN_FEAT_OPTS:
-    "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100 --max_label_len 1 --model /nfs/groups_ech/res_data/active/mwykes/R10_ONLP13701/feature_set_30.yml"
+    "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100"
 
 
 # Miyagi

@@ -10,8 +10,8 @@ GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
 FLAPPIE_EXEC = os.path.join(os.path.expanduser(config["FLAPPIE"]), "flappie")
 SCRAPPIE_JSON_TO_TSV = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "misc", "json_to_tsv.py")
-NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NP"]), "nanopolish")
-NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NP"]), "scripts", "nanopolish_makerange.py")
+NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "nanopolish")
+NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "scripts", "nanopolish_makerange.py")
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_MIYAGI = os.path.expanduser(config["IN_MIYAGI"])
@@ -545,7 +545,7 @@ rule nanopolish_vcf:
         sge = "m_mem_free=1G,gpu=0", 
         # wildcards in dynamic files cannot be constrained => we can't safely extract a
         # suffix from dynamic nanopolish targets to use to use nested config
-        opts = config["NP_OPTS"],
+        opts = config["NANOPOLISH_OPTS"],
     shell:
 	    """
         {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
