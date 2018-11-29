@@ -116,7 +116,7 @@ which is equivalent to running:
 
     NSLOTS=100
     target=fast_assm_polish
-    katuali -j ${NSLOTS} --cluster-sync "${qsub_path} -V -cwd -P research -l {params.sge} -sync yes" --latency-wait 300 ${target}
+    katuali -j ${NSLOTS} --cluster-sync "${qsub_path} -V -cwd -l {params.sge} -sync yes" --latency-wait 300 ${target}
 
 The local snakemake task will then submit all tasks to the queue for execution.
 The `--latency-wait` parameter is useful for ensuring that pipelines don't crash

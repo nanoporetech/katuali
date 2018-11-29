@@ -74,7 +74,7 @@ Usage
 The `Katuali` tests contain examples of how to basecall, assemble, and polish
 a small dataset that comes bundled with `Katuali`.
 
-To run with other data, start by creating a dictory of reads (which could
+To run with other data, start by creating a directory of reads (which could
 contain subdirectories of reads):
 
     ln -s /path/to/fast5 reads

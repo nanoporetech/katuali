@@ -13,7 +13,7 @@ config_opts=""
 cluster_opt=""
 cluster_parm=""
 sge_opt="--latency-wait 300 --cluster-sync"
-sge_parm="$(which qsub) -V -cwd -P research -l {params.sge} -sync yes -o $log_dir -j y" 
+sge_parm="$(which qsub) -V -cwd -l {params.sge} -sync yes -o $log_dir -j y" 
 
 for i in "$@"; 
 do
