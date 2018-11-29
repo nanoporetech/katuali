@@ -97,6 +97,27 @@ Pipeline restrictions
     * you must assemble before you polish.
 
 
+Starting from existing basecalls
+================================
+
+If you have already basecalled your data, mocking out the working space as if katuali had basecalled allows any derived targets to be created. 
+
+.. code-block:: bash
+    
+    START=${PWD}
+    BCDIR=basecall/mybasecalls/
+    mkdir -p ${BCDIR}
+    cd ${BCDIR}
+    source ~/git/pomoxis/venv/bin/activate
+    seqkit fq2fa /path/to/basecalls.fastq > basecalls.fasta
+    # these next two steps are only required if you wish to use signal-level polishers such as nanopolish. 
+    ln -s /path/to/sequencing_summary.txt sequencing_summary.txt
+    ln -s /path/to/fast5 reads
+    cd ${START}
+    # now we can run katuali to assemble and polish
+    katuali ${BCDIR}/miniasm_racon/consensus.fasta
+
+
 Creating subsampled datasets
 ============================
 

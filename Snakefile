@@ -127,8 +127,6 @@ rule basecall_flappie:
         """
 
 
-
-
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),

@@ -42,25 +42,21 @@ master_doc = 'index'
 # General information about the project.
 __pkg_name__ = u'katuali'
 project = __pkg_name__.capitalize()
-copyright = u'2017, Oxford Nanopore Technologies'
+copyright = u'2018, Oxford Nanopore Technologies'
 
 # Generate API documentation:
-if subprocess.call(['sphinx-apidoc', '-o', './', "../{}".format(__pkg_name__)]) != 0:
-    sys.stderr.write('Failed to generate API documentation!\n')
+#if subprocess.call(['sphinx-apidoc', '-o', './', "../{}".format(__pkg_name__)]) != 0:
+#    sys.stderr.write('Failed to generate API documentation!\n')
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 
-# Get the version number from __init__.py
-verstrline = open(os.path.join('..', __pkg_name__, '__init__.py'), 'r').read()
-vsre = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(vsre, verstrline, re.M)
-if mo:
-    __version__ = mo.group(1)
-else:
-    raise RuntimeError('Unable to find version string in "{}/__init__.py".'.format(__pkg_name__))
+# Get the version number from the Snakefile
+with open('../Snakefile') as fh:
+    versionstrline = [l for l in fh.readlines() if 'KATUALI_VERSION' in l][0]
+__version__ = versionstrline.split()[-1].replace('"', '')
 
 # The short X.Y version.
 version = __version__
