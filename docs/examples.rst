@@ -132,9 +132,6 @@ katuali had basecalled allows any derived targets to be created.
     # now we can run katuali to assemble and polish
     katuali ${BCDIR}/miniasm_racon/consensus.fasta
 
-Read coverage depth and subsampling
-===================================
-
 Calculating read coverage depth
 -------------------------------
 
