@@ -4,7 +4,7 @@ import sys
 
 import gpustat
 
-KATUALI_VERSION = "0.0"
+KATUALI_VERSION = "0.1"
 
 KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
 
