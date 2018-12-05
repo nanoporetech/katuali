@@ -657,3 +657,7 @@ rule train_medaka:
         """
 
 
+rule medaka_train_replicates:
+    input:
+        ancient(expand("medaka_train_{replicate}", replicate=config["MEDAKA_TRAIN_REPLICATES"]))
+    input:

@@ -93,6 +93,9 @@ BASECALLER: "guppy"
 
 MEDAKA_TRAIN_REGIONS: ["yeast", "lbrevis"]
 
+MEDAKA_TRAIN_REPLICATES:
+    [1, 2, 3]
+
 REGION_DEFINITIONS:
     "ecoli": "ecoli_SCS110_chromosome"
     "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
