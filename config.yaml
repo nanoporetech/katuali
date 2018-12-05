@@ -45,6 +45,11 @@ MINI_ASSEMBLE_OPTS:
     "": ""
     "_ce": "-c -e 10"
     "_ces": "-c -e 10 -n 10"
+    "_ce3x_ecoli": "-c -e 3x -l 4.66mb"
+    "_ce3x_yeast": "-c -e 3x -l 12.15mb"
+    "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
+    "_ce3xs_ecoli": "-c -e 3x -l 4.66mb -n 10"
+
 
 # Nanopolish
 NANOPOLISH: "~/git/nanopolish" 
@@ -61,6 +66,9 @@ MEDAKA_OPTS:
 MEDAKA_TRAIN_FEAT_OPTS:
     "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100"
 
+MEDAKA_TRAIN_OPTS:
+    "": "--mini_epochs 5 --validation_split 0.10"
+
 
 # Ray
 IN_RAY: "~/git/ray/venv/bin/activate"
@@ -69,8 +77,30 @@ IN_RAY: "~/git/ray/venv/bin/activate"
 ASSESS_ASSM_OPTS: "-C"
 
 # input paths
-REFERENCE: "ref.fasta"
+REFERENCES: 
+    "": "ref.fasta"
+    "ecoli": "/media/groups_cs2/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
+    "yeast": "/media/groups_cs2/res_data/active/refs/git_references/yeast/yeast_S288C.fasta"
+    "lbrevis": "/nfs/groups_ech/res_data/stored/datasets/apps_atcc_genomes/analysis/demultiplexed/refs_for_assembly/NC_008497.1.fa"
+
+TRUTH:
+    "/media/groups_cs2/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
+
 READS: "reads"
 
 # Parameters only used in short cut target (e.g. standard_assm_polish)
-BASECALLER: "scrappie"  
+BASECALLER: "guppy" 
+
+MEDAKA_TRAIN_REGIONS: ["yeast", "lbrevis"]
+
+REGION_DEFINITIONS:
+    "ecoli": "ecoli_SCS110_chromosome"
+    "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
+    "lbrevis": "NC_008497.1"
+
+RUNIDS:
+    "yeast": ["80a94504", "f81e9478", "fad5950a"]
+    "lbrevis": ["95730659", "15e93eaf", "c50fb4ef"]
+
+DEPTHS:
+    [25, 50, 70, 100, 125, 150, 175, 200, 225, 250]
