@@ -88,4 +88,58 @@ assembly with racon and medaka. Running
 
     katuali standard_assm_polish
 
-will instead basecall, assemble with canu, and the polish with nanopolish. 
+will instead basecall, assemble with canu, and the polish with nanopolish.
+
+Medaka training branch
+----------------------
+
+Using this branch, it is now possible to train medaka models starting from folders of fast5s in a single command. 
+
+The config is currently configured for 3 runs of yeast and 3 runs of lbrevis each with median 250X coverage.
+
+The fast5 files should be located in ./runid/reads/. Here `reads` can be symbolic links to fast5 directories. 
+
+Running:
+
+    katuali medaka_train_replicates
+
+will:
+    * basecall all the runs
+    * align each run to its reference
+    * create subsampled sets of basecalls over the desired regions and depths
+    * assemble those sets of basecalls
+    * create medaka training features for all those sets
+    * launch multiple medaka training replicates using all those features
+
+The following config items can be set to control this process:
+
+    # reference to be used for each region set
+    REFERENCES: 
+        "": "ref.fasta"
+        "ecoli": "/nfs/groups_ech/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
+        "yeast": "/nfs/groups_ech/res_data/active/refs/git_references/yeast/yeast_S288C.fasta"
+        "lbrevis": "/nfs/groups_ech/res_data/stored/datasets/apps_atcc_genomes/analysis/demultiplexed/refs_for_assembly/NC_008497.1.fa"
+
+    # regions used for subsampling
+    REGION_DEFINITIONS:
+        "ecoli": "ecoli_SCS110_chromosome"
+        "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
+        "lbrevis": "NC_008497.1"
+
+    # train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
+    MEDAKA_TRAIN_REGIONS: ["yeast", "lbrevis"]
+
+    # Run a training replicate for each of these suffixes
+    MEDAKA_TRAIN_REPLICATES:
+        ["rep_1", "rep_2", "rep_3"]
+
+    # Define runs - fast5s should be under ./runid/reads/ and can be in subdirectories.
+    RUNIDS:
+        "yeast": ["80a94504", "f81e9478", "fad5950a"]
+        "lbrevis": ["95730659", "15e93eaf", "c50fb4ef"]
+
+    # create sets of basecalls, assemblies and training features for these depths. 
+    # medaka models do not perform well (and can make consensus accuracy worse than
+    # the draft) for depths they were not exposed to during training. 
+    DEPTHS:
+        [25, 50, 70, 100, 125, 150, 175, 200, 225, 250]
