@@ -1,4 +1,5 @@
 from functools import partial
+import itertools
 import os
 import sys
 
@@ -141,6 +142,8 @@ rule basecall_guppy:
  
         echo "GPU status before" >> {log}
         gpustat >> {log}
+    
+        sleep $(((RANDOM % 30)  + 1 ))        
 
         GPU=$({input.PICK_GPU} 2>> {log})
 
@@ -317,7 +320,8 @@ rule subsample_bam:
     log:
         "{dir}/{contig}/{depth}X{suffix}/subsample.log"
     params:
-        contig_opt = partial(get_contig_opt, config=config),
+        #contig_opt = partial(get_contig_opt, config=config),
+        contig_opt = lambda w: "-r {}".format(config["REGION_DEFINITIONS"][w["contig"]]),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
@@ -622,19 +626,13 @@ rule train_medaka:
     input:
         PICK_GPU = ancient(PICK_GPU),
         venv = ancient(IN_MEDAKA),
-        yeast_features = ancient(expand("{runid}/basecall/{basecaller}/align_{region_set}/{region_set}/{depths}X_prop/miniasm_racon_ce3x_{region_set}/medaka_train/{feature_files}", 
-                runid=config["RUNIDS"]["yeast"],
-                basecaller=config["BASECALLER"],
-                region_set=["yeast"],
-                depths=config["DEPTHS"],
-                feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"],
-        )),
-        lbrevis_features = ancient(expand("{runid}/basecall/{basecaller}/align_{region_set}/{region_set}/{depths}X_prop/miniasm_racon_ce3x_{region_set}/medaka_train/{feature_files}", 
-                runid=config["RUNIDS"]["yeast"],
-                basecaller=config["BASECALLER"],
-                region_set=["lbrevis"],
-                depths=config["DEPTHS"],
-                feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"],
+        features = ancient(itertools.chain([
+                expand("{runid}/basecall/{basecaller}/align_{region_set}/{region_set}/{depths}X_prop/miniasm_racon_ce3x_{region_set}/medaka_train/{feature_files}", 
+                    runid=config["RUNIDS"][train_reg],
+                    basecaller=config["BASECALLER"],
+                    region_set=[train_reg],
+                    depths=config["DEPTHS"],
+                    feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"]) for train_reg in config["MEDAKA_TRAIN_REGIONS"]]
         ))
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")
@@ -653,7 +651,7 @@ rule train_medaka:
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
         set +u; {config[SOURCE]} {input.venv} set -u;
-        medaka train {input.yeast_features} {input.lbrevis_features} --train_name {output.train_dir} {params.opts} &>> {log}
+        medaka train {input.features} --train_name {output.train_dir} {params.opts} &>> {log}
         """
 
 
