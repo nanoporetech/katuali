@@ -104,25 +104,23 @@ Running:
     katuali medaka_train_replicates
 
 will:
-    * basecall all the runs
-    * align each run to its reference
-    * create subsampled sets of basecalls over the desired regions and depths
-    * assemble those sets of basecalls
-    * create medaka training features for all those sets
-    * launch multiple medaka training replicates using all those features
 
-The following config items can be set to control this process:
+* basecall all the runs
+* align each run to its reference
+* create subsampled sets of basecalls over the desired regions and depths
+* assemble those sets of basecalls
+* create medaka training features for all those sets
+* launch multiple medaka training replicates using all those features
+
+The following config (katuali/config.yaml) items can be set to control this process:
 
     # reference to be used for each region set
     REFERENCES: 
-        "": "ref.fasta"
-        "ecoli": "/nfs/groups_ech/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
         "yeast": "/nfs/groups_ech/res_data/active/refs/git_references/yeast/yeast_S288C.fasta"
         "lbrevis": "/nfs/groups_ech/res_data/stored/datasets/apps_atcc_genomes/analysis/demultiplexed/refs_for_assembly/NC_008497.1.fa"
 
     # regions used for subsampling
     REGION_DEFINITIONS:
-        "ecoli": "ecoli_SCS110_chromosome"
         "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
         "lbrevis": "NC_008497.1"
 
