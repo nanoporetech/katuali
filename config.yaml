@@ -29,8 +29,8 @@ GUPPY_SLOTS: 20
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
-    "": ""
-    "_prop": "--proportional"
+    "": " --all_fail"
+    "_prop": "--proportional --all_fail"
  
 
 #Canu 
