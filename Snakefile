@@ -651,7 +651,7 @@ rule train_medaka:
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
         set +u; {config[SOURCE]} {input.venv} set -u;
-        medaka train {input.features} --train_name {output.train_dir} {params.opts} &>> {log}
+        medaka train {input.features} --train_name {output.train_dir} {params.opts} --device $GPU &>> {log}
         """
 
 
