@@ -49,6 +49,12 @@ MINI_ASSEMBLE_OPTS:
     "_ce3x_yeast": "-c -e 3x -l 12.15mb"
     "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
     "_ce3xs_ecoli": "-c -e 3x -l 4.66mb -n 10"
+    "_ce3x_BS.pilon.polished.v3.ST170922": "-c -e 3x -l 4mb"
+    "_ce3x_Enterococcus_faecalis_complete_genome": "-c -e 3x -l 2.8mb"
+    "_ce3x_Escherichia_coli_chromosome": "-c -e 3x -l 4.8mb"
+    "_ce3x_Lactobacillus_fermentum_complete_genome": "-c -e 3x -l 1.9mb"
+    "_ce3x_Pseudomonas_aeruginosa_complete_genome": "-c -e 3x -l 6.8mb"
+    "_ce3x_Staphylococcus_aureus_chromosome": "-c -e 3x -l 2.7mb"
 
 
 # Nanopolish
@@ -86,27 +92,28 @@ BASECALLER: "guppy"
 # reference to be used for each region set
 REFERENCES: 
     "": "ref.fasta"
-    "ecoli": "/nfs/groups_ech/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
-    "yeast": "/nfs/groups_ech/res_data/active/refs/git_references/yeast/yeast_S288C.fasta"
-    "lbrevis": "/nfs/groups_ech/res_data/stored/datasets/apps_atcc_genomes/analysis/demultiplexed/refs_for_assembly/NC_008497.1.fa"
+    "zymo": "/media/groups_cs2/res_data/active/refs/ZymoBIOMICS.STD.refseq.v2/all_species.fasta"
 
-# regions used for subsampling
-REGION_DEFINITIONS:
-    "ecoli": "ecoli_SCS110_chromosome"
-    "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
-    "lbrevis": "NC_008497.1"
+# regions used for subsampling - each region in each list of regions will be subsampled and assembled separately. 
+REGION_DEFINITIONS: 
+    "zymo": ["BS.pilon.polished.v3.ST170922", 
+             "Enterococcus_faecalis_complete_genome", 
+             "Escherichia_coli_chromosome", 
+             "Lactobacillus_fermentum_complete_genome", 
+             "Pseudomonas_aeruginosa_complete_genome",
+             "Staphylococcus_aureus_chromosome"]
 
 # train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
-MEDAKA_TRAIN_REGIONS: ["yeast", "lbrevis"]
+MEDAKA_TRAIN_REGIONS: ["zymo"]
 
 # Run a training replicate for each of these suffixes
 MEDAKA_TRAIN_REPLICATES:
     ["rep_1", "rep_2", "rep_3"]
 
+
 # Define runs - fast5s should be under ./runid/reads/ and can be in subdirectories.
 RUNIDS:
-    "yeast": ["80a94504", "f81e9478", "fad5950a"]
-    "lbrevis": ["95730659", "15e93eaf", "c50fb4ef"]
+  zymo: ['0b11bceb', '893d8c5f', '9a456918', 'ddfc392d', 'e49ace80', 'ef0bab84']
 
 # create sets of basecalls, assemblies and training features for these depths. 
 # medaka models do not perform well (and can make consensus accuracy worse than

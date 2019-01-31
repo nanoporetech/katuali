@@ -320,8 +320,8 @@ rule subsample_bam:
     log:
         "{dir}/{contig}/{depth}X{suffix}/subsample.log"
     params:
-        #contig_opt = partial(get_contig_opt, config=config),
-        contig_opt = lambda w: "-r {}".format(config["REGION_DEFINITIONS"][w["contig"]]),
+        contig_opt = partial(get_contig_opt, config=config),
+        #contig_opt = lambda w: "-r {}".format(config["REGION_DEFINITIONS"][w["contig"]]),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
@@ -567,9 +567,7 @@ rule medaka_train_features:
         rc_features = "{prefix}/align_{refname,[^/]*}/{dir}/medaka_train{suffix,[^/]*}/medaka_train_rc.hdf",
     log:
         "{prefix}/align_{refname}/{dir}/medaka_train{suffix}.log"
-    #threads: config["THREADS_PER_JOB"]
-    # medaka is serial at the moment
-    threads: 1 
+    threads: config["THREADS_PER_JOB"]
     params:
         output_dir = "{prefix}/align_{refname}/{dir}/medaka_train",
         bam = lambda w, output: os.path.join(os.path.dirname(output.features), "calls2ref"),
@@ -578,8 +576,7 @@ rule medaka_train_features:
         rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         rc_truth = lambda w, output: os.path.join(os.path.dirname(output.features), "truthrc.fasta"),
-        #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
-        sge = "m_mem_free=1G,gpu=0",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
     shell:
         """
@@ -622,18 +619,31 @@ rule medaka_train_features:
 
         """
 
+def get_medaka_features_targets(config):
+    features = itertools.chain([
+            expand("{runid}/basecall/{basecaller}/align_{region_set}/{region}/{depths}X_prop/miniasm_racon_ce3x_{region}/medaka_train/{feature_files}", 
+                runid=config["RUNIDS"][train_reg],
+                basecaller=config["BASECALLER"],
+                region_set=[train_reg],
+                region=config["REGION_DEFINITIONS"][train_reg],
+                depths=config["DEPTHS"],
+                feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"]) for train_reg in config["MEDAKA_TRAIN_REGIONS"]]
+        )
+    return features
+
+
+rule all_medaka_train_features:
+    input:
+        venv = ancient(IN_MEDAKA),
+        features = ancient(get_medaka_features_targets(config)),
+    log:
+        "medaka_train_features.log"
+
 rule train_medaka:
     input:
         PICK_GPU = ancient(PICK_GPU),
         venv = ancient(IN_MEDAKA),
-        features = ancient(itertools.chain([
-                expand("{runid}/basecall/{basecaller}/align_{region_set}/{region_set}/{depths}X_prop/miniasm_racon_ce3x_{region_set}/medaka_train/{feature_files}", 
-                    runid=config["RUNIDS"][train_reg],
-                    basecaller=config["BASECALLER"],
-                    region_set=[train_reg],
-                    depths=config["DEPTHS"],
-                    feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"]) for train_reg in config["MEDAKA_TRAIN_REGIONS"]]
-        ))
+        features = ancient(get_medaka_features_targets(config)),
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")
     log:
@@ -658,4 +668,5 @@ rule train_medaka:
 rule medaka_train_replicates:
     input:
         ancient(expand("medaka_train_{replicate}", replicate=config["MEDAKA_TRAIN_REPLICATES"]))
-    input:
+    log:
+        "medaka_train_replicates.log",
