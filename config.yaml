@@ -31,10 +31,11 @@ GUPPY_SLOTS: 4
 SUBSAMPLE_BAM_OPTS:
     "": ""
     "_prop": "--proportional"
+    "_filtered": "--quality 6 --accuracy 85 --coverage 90"
  
 
 #Canu 
-CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
+CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
 CANU_GENOME_SIZE: "4.8M"
 CANU_OPTS:

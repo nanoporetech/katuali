@@ -292,11 +292,12 @@ rule get_depth:
     output:
         depth = directory("{dir}/depth")
     params:
-        sge = "m_mem_free=1G,gpu=0" 
+        contig_opt = partial(get_contig_opt, config=config),
+        sge = "m_mem_free=1G,gpu=0", 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mkdir -p {output.depth} && coverage_from_bam {input.bam} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
+    	mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
         """
 
 
@@ -366,6 +367,39 @@ rule ref_guided_racon:
         # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
         touch --no-dereference $PWD/{params[output_dir]}/*
         """
+
+
+rule racon:
+    input:
+        venv = ancient(IN_POMOXIS),
+        draft = ancient("{dir}/consensus.fasta"),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+    output:
+        consensus = "{dir}/racon{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/racon{suffix,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/racon{suffix}.log"
+    threads: config["THREADS_PER_JOB"]
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        output_dir = lambda w: "{dir}/racon{suffix}".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
+
+    threads: config["THREADS_PER_JOB"]
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir, mini_assemble will fail if it exists..
+        rm -r {params[output_dir]} && 
+        mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
+        # rename output
+        mv {params[output_dir]}/assm_final.fa {output.consensus}
+        # keep a link of basecalls with the consensus
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
+        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
+        touch --no-dereference $PWD/{params[output_dir]}/*
+        """
+
 
 rule miniasm_racon:
     input:
