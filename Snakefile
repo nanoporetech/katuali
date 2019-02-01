@@ -53,6 +53,10 @@ def get_contig_opt(wildcards, config):
     return contig_opt
 
 
+def get_truth(wildcards, config):
+    return config["REFERENCES"][wildcards.ref]
+
+
 def get_opts(wildcards, config, config_key):
     default_key = ''
 
@@ -214,73 +218,73 @@ rule assess_consensus:
     input:
         venv = ancient(IN_POMOXIS),
         consensus = ancient("{dir}/consensus.fasta"),
-        truth = ancient(config["TRUTH"]),
     output:
-        summ = "{dir}/consensus_to_truth_summ.txt",
-        bam = "{dir}/consensus_to_truth.bam",
-        stats = "{dir}/consensus_to_truth_stats.txt",
+        summ = "{dir}/consensus_to_{ref,[^/]*}_truth_summ.txt",
+        bam = "{dir}/consensus_to_{ref,[^/]*}_truth.bam",
+        stats = "{dir}/consensus_to_{ref,[^/]*}_truth_stats.txt",
     params:
-        prefix = "{dir}/consensus_to_truth",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        prefix = "{dir}/consensus_to_{ref}_truth",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        truth = partial(get_truth, config=config),
     threads: config["THREADS_PER_JOB"]
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
+        assess_assembly -i {input.consensus} -r {params.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
         """
 
-rule ray_catalogue:
-    input:
-        venv = ancient(IN_RAY),
-        bam = ancient("{dir}/{prefix}.bam"),
-        truth = ancient(config["TRUTH"]),
-    output:
-        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
-    log:
-        "{dir}/{prefix}_ray_catalogue.log"
-    params:
-        prefix = "{dir}/{prefix}_ray",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
-    threads: config["THREADS_PER_JOB"]
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
-        """
-
-rule hp_acc_vs_length:
-    input:
-        catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
-    output:
-        hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
-    params:
-        sge = "m_mem_free=1G,gpu=0"
-    run:
-        from collections import defaultdict
-        import pandas as pd
-
-        def get_acc(df):
-            correct = df['ref_hp_len'] == df['q_hp_len']
-            return 100 * float(len(df[correct])) / len(df)
-
-        def get_summ(df):
-            accs = defaultdict(dict)
-            for hp_len, df_l in df.groupby('ref_hp_len'):
-                   accs['acc_all_bases'][hp_len] = get_acc(df_l)
-                   accs['n_all_bases'][hp_len] = len(df_l)
-                   for base, df_b in df_l.groupby('ref_base'):
-                       accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
-                       accs['n_{}'.format(base)][hp_len] = len(df_b)
-            summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
-            return summ
-
-        df = pd.read_table(input.catalogue)
-        # create a summary over all refs, and one per reference
-        get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
-        for ref, d in df.groupby('record_name'):
-            out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
-            get_summ(d).to_csv(out, sep=',', index=False)
-            
+#rule ray_catalogue:
+#    input:
+#        venv = ancient(IN_RAY),
+#        bam = ancient("{dir}/{prefix}.bam"),
+#        truth = ancient(config["TRUTH"]),
+#    output:
+#        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
+#    log:
+#        "{dir}/{prefix}_ray_catalogue.log"
+#    params:
+#        prefix = "{dir}/{prefix}_ray",
+#        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+#    threads: config["THREADS_PER_JOB"]
+#    shell:
+#        """
+#        set +u; {config[SOURCE]} {input.venv}; set -u;
+#        ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
+#        """
+#
+#rule hp_acc_vs_length:
+#    input:
+#        catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
+#    output:
+#        hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
+#    params:
+#        sge = "m_mem_free=1G,gpu=0"
+#    run:
+#        from collections import defaultdict
+#        import pandas as pd
+#
+#        def get_acc(df):
+#            correct = df['ref_hp_len'] == df['q_hp_len']
+#            return 100 * float(len(df[correct])) / len(df)
+#
+#        def get_summ(df):
+#            accs = defaultdict(dict)
+#            for hp_len, df_l in df.groupby('ref_hp_len'):
+#                   accs['acc_all_bases'][hp_len] = get_acc(df_l)
+#                   accs['n_all_bases'][hp_len] = len(df_l)
+#                   for base, df_b in df_l.groupby('ref_base'):
+#                       accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
+#                       accs['n_{}'.format(base)][hp_len] = len(df_b)
+#            summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
+#            return summ
+#
+#        df = pd.read_table(input.catalogue)
+#        # create a summary over all refs, and one per reference
+#        get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
+#        for ref, d in df.groupby('record_name'):
+#            out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
+#            get_summ(d).to_csv(out, sep=',', index=False)
+#            
 
 rule get_depth:
     input:
@@ -434,7 +438,7 @@ rule canu:
     log:
         "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
-        output_dir = lambda w: "{dir}/canu{suffix}".format(**dict(w)),
+        output_dir = lambda w: "{dir}/canu{suffix}gsz_{genome_size}".format(**dict(w)),
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
@@ -705,13 +709,14 @@ rule medaka_train_replicates:
 
 def canu_racon_medaka_twice_targets(config):
     targets = itertools.chain([
-            expand("{runid}/basecall/{basecaller}/align_{region_set}/{region}/{depths}X/canu_gsz_{genome_size}/racon/medaka/medaka/consensus.fasta", 
+            expand("{runid}/basecall/{basecaller}/align_{region_set}/{region}/{depths}X/canu_gsz_{genome_size}/racon/medaka{MEDAKA_EVAL_SUFFIX}/medaka{MEDAKA_EVAL_SUFFIX}/consensus_to_{region_set}_truth_summ.txt", 
                 runid=config["RUNIDS"][region_set],
                 basecaller=config["BASECALLER"],
                 depths=config["DEPTHS"],
                 genome_size=config["REGION_LENGTHS"][region],
                 region_set=[region_set],
                 region=[region],
+                MEDAKA_EVAL_SUFFIX=config["MEDAKA_EVAL_SUFFIXES"],
                 ) for region_set in config["MEDAKA_EVAL_REGIONS"] for region in config["EVAL_REGION_DEFINITIONS"][region_set]]
         )
     return targets
@@ -722,3 +727,4 @@ rule all_medaka_eval:
         targets = ancient(canu_racon_medaka_twice_targets(config)),
     log:
         "medaka_eval.log"
+

@@ -131,6 +131,8 @@ REGION_LENGTHS:
 MEDAKA_TRAIN_REGIONS: ["zymo"]
 # train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
 MEDAKA_EVAL_REGIONS: ["zymo"]
+# to test multiple trained models, use multiple suffixes
+MEDAKA_EVAL_SUFFIXES: ["_R10_YLB"]
 
 # Run a training replicate for each of these suffixes
 MEDAKA_TRAIN_REPLICATES:
@@ -146,4 +148,4 @@ RUNIDS:
 # medaka models do not perform well (and can make consensus accuracy worse than
 # the draft) for depths they were not exposed to during training. 
 DEPTHS:
-    [25, 50, 70, 100, 125, 150, 175, 200]
+    [25, 50, 75, 100, 125, 150, 175, 200]
