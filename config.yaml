@@ -36,7 +36,6 @@ SUBSAMPLE_BAM_OPTS:
 #Canu 
 CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
-CANU_GENOME_SIZE: "4.8M"
 CANU_OPTS:
     "": "" 
 
@@ -95,16 +94,43 @@ REFERENCES:
     "zymo": "/media/groups_cs2/res_data/active/refs/ZymoBIOMICS.STD.refseq.v2/all_species.fasta"
 
 # regions used for subsampling - each region in each list of regions will be subsampled and assembled separately. 
-REGION_DEFINITIONS: 
+TRAIN_REGION_DEFINITIONS: 
     "zymo": ["BS.pilon.polished.v3.ST170922", 
              "Enterococcus_faecalis_complete_genome", 
              "Escherichia_coli_chromosome", 
              "Lactobacillus_fermentum_complete_genome", 
              "Pseudomonas_aeruginosa_complete_genome",
-             "Staphylococcus_aureus_chromosome"]
+             "Staphylococcus_aureus_chromosome",
+    ]
+EVAL_REGION_DEFINITIONS: 
+    "zymo": ["BS.pilon.polished.v3.ST170922", 
+             "Enterococcus_faecalis_complete_genome", 
+             "Escherichia_coli_chromosome", 
+             "Lactobacillus_fermentum_complete_genome", 
+             "Pseudomonas_aeruginosa_complete_genome",
+             "Staphylococcus_aureus_chromosome",
+             "Listeria_monocytogenes_complete_genome",
+             "Salmonella_enterica_complete_genome",
+    ]
+
+# canu needs to know estimated genome sizes
+REGION_LENGTHS:
+    {
+        "BS.pilon.polished.v3.ST170922": "4.0M",
+        "Enterococcus_faecalis_complete_genome": "2.8M",
+        "Escherichia_coli_chromosome": "4.9M",
+        "Lactobacillus_fermentum_complete_genome": "1.9M",
+        "Pseudomonas_aeruginosa_complete_genome": "6.8M",
+        "Staphylococcus_aureus_chromosome": "2.7M",
+        "Listeria_monocytogenes_complete_genome": "3.0M",
+        "Salmonella_enterica_complete_genome": "4.8M",
+    }
+
 
 # train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
 MEDAKA_TRAIN_REGIONS: ["zymo"]
+# train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
+MEDAKA_EVAL_REGIONS: ["zymo"]
 
 # Run a training replicate for each of these suffixes
 MEDAKA_TRAIN_REPLICATES:
@@ -113,10 +139,11 @@ MEDAKA_TRAIN_REPLICATES:
 
 # Define runs - fast5s should be under ./runid/reads/ and can be in subdirectories.
 RUNIDS:
-  zymo: ['0b11bceb', '893d8c5f', '9a456918', 'ddfc392d', 'e49ace80', 'ef0bab84']
+  #zymo: ['0b11bceb', '893d8c5f', '9a456918', 'ddfc392d', 'e49ace80', 'ef0bab84']
+  zymo: ['loman',]
 
 # create sets of basecalls, assemblies and training features for these depths. 
 # medaka models do not perform well (and can make consensus accuracy worse than
 # the draft) for depths they were not exposed to during training. 
 DEPTHS:
-    [25, 50, 70, 100, 125, 150, 175, 200, 225, 250]
+    [25, 50, 70, 100, 125, 150, 175, 200]

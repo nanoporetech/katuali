@@ -321,7 +321,6 @@ rule subsample_bam:
         "{dir}/{contig}/{depth}X{suffix}/subsample.log"
     params:
         contig_opt = partial(get_contig_opt, config=config),
-        #contig_opt = lambda w: "-r {}".format(config["REGION_DEFINITIONS"][w["contig"]]),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
@@ -365,6 +364,38 @@ rule subsample_bam:
 #        touch --no-dereference $PWD/{params[output_dir]}/*
 #        """
 
+rule racon:
+    input:
+        venv = ancient(IN_POMOXIS),
+        draft = ancient("{dir}/consensus.fasta"),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+    output:
+        consensus = "{dir}/racon{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/racon{suffix,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/racon{suffix}.log"
+    threads: config["THREADS_PER_JOB"]
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        output_dir = lambda w: "{dir}/racon{suffix}".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
+
+    threads: config["THREADS_PER_JOB"]
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir, mini_assemble will fail if it exists..
+        rm -r {params[output_dir]} && 
+        mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
+        # rename output
+        mv {params[output_dir]}/assm_final.fa {output.consensus}
+        # keep a link of basecalls with the consensus
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
+        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
+        touch --no-dereference $PWD/{params[output_dir]}/*
+        """
+
+
 rule miniasm_racon:
     input:
         venv = ancient(IN_POMOXIS),
@@ -398,13 +429,12 @@ rule canu:
         canu = ancient(CANU_EXEC),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/basecalls.fasta"
     log:
-        "{dir}/canu{suffix}.log"
+        "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
         output_dir = lambda w: "{dir}/canu{suffix}".format(**dict(w)),
-        genome_sz = config["CANU_GENOME_SIZE"],
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
@@ -413,7 +443,7 @@ rule canu:
         """
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
-        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.genome_sz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} &> {log}
+        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={wildcards.genome_size} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} &> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
         # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
@@ -625,7 +655,7 @@ def get_medaka_features_targets(config):
                 runid=config["RUNIDS"][train_reg],
                 basecaller=config["BASECALLER"],
                 region_set=[train_reg],
-                region=config["REGION_DEFINITIONS"][train_reg],
+                region=config["TRAIN_REGION_DEFINITIONS"][train_reg],
                 depths=config["DEPTHS"],
                 feature_files=["medaka_train.hdf", "medaka_train_rc.hdf"]) for train_reg in config["MEDAKA_TRAIN_REGIONS"]]
         )
@@ -670,3 +700,25 @@ rule medaka_train_replicates:
         ancient(expand("medaka_train_{replicate}", replicate=config["MEDAKA_TRAIN_REPLICATES"]))
     log:
         "medaka_train_replicates.log",
+
+
+
+def canu_racon_medaka_twice_targets(config):
+    targets = itertools.chain([
+            expand("{runid}/basecall/{basecaller}/align_{region_set}/{region}/{depths}X/canu_gsz_{genome_size}/racon/medaka/medaka/consensus.fasta", 
+                runid=config["RUNIDS"][region_set],
+                basecaller=config["BASECALLER"],
+                depths=config["DEPTHS"],
+                genome_size=config["REGION_LENGTHS"][region],
+                region_set=[region_set],
+                region=[region],
+                ) for region_set in config["MEDAKA_EVAL_REGIONS"] for region in config["EVAL_REGION_DEFINITIONS"][region_set]]
+        )
+    return targets
+
+
+rule all_medaka_eval:
+    input:
+        targets = ancient(canu_racon_medaka_twice_targets(config)),
+    log:
+        "medaka_eval.log"
