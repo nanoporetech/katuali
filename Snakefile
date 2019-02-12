@@ -698,10 +698,11 @@ rule train_medaka:
         if [ "{config[SCRATCH]}" != "" ];then
             if [ "{config[TMPSCRATCH]}" != "" ];then
                 tmpscr={config[TMPSCRATCH]}
+                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}"
             else
                 userscr={config[SCRATCH]}/$USER
                 mkdir -p $userscr
-                tmpscr=$(tmktemp -d -p $userscr)
+                tmpscr=$(mktemp -d -p $userscr)
             fi
             t=$(date +"%T")
             echo "$t: Copying feature files to specified scratch directory: $tmpscr."
