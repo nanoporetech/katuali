@@ -1,6 +1,8 @@
 THREADS_PER_JOB: 16
 
 SOURCE: "source"
+SCRATCH: "/scratch"
+TMPSCRATCH: ""
 
 # Pomoxis
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"

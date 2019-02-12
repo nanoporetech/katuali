@@ -673,6 +673,7 @@ rule all_medaka_train_features:
     log:
         "medaka_train_features.log"
 
+
 rule train_medaka:
     input:
         PICK_GPU = ancient(PICK_GPU),
@@ -694,10 +695,36 @@ rule train_medaka:
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
-        set +u; {config[SOURCE]} {input.venv} set -u;
-        medaka train {input.features} --train_name {output.train_dir} {params.opts} --device $GPU &>> {log}
-        """
+        if [ "{config[SCRATCH]}" != "" ];then
+            if [ "{config[TMPSCRATCH]}" != "" ];then
+                tmpscr={config[TMPSCRATCH]}
+            else
+                userscr={config[SCRATCH]}/$USER
+                mkdir -p $userscr
+                tmpscr=$(tmktemp -d -p $userscr)
+            fi
+            t=$(date +"%T")
+            echo "$t: Copying feature files to specified scratch directory: $tmpscr."
+            for f in {input.features}; do
+                d=$tmpscr/$f;
+                t0=$(date +"%T");
+                if [[ ! -e $d ]]; then 
+                    echo "$t0 Copying $d";
+                    mkdir -p $(dirname $d) && sleep 1 && cp $f $d; 
+                    t1=$(date +"%T");
+                    echo "$t1 Copied $d";
+                else
+                    echo "Found existing file: $d"
+                fi
+            done
+            features=$(for f in {input.features}; do echo $tmpscr/$f)
+        else
+            features={input.features}
+        fi
 
+        set +u; {config[SOURCE]} {input.venv} set -u;
+        medaka train $features --train_name {output.train_dir} {params.opts} --device $GPU &>> {log}
+        """
 
 rule medaka_train_replicates:
     input:
