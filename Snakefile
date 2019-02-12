@@ -718,7 +718,7 @@ rule train_medaka:
                     echo "Found existing file: $d"
                 fi
             done
-            features=$(for f in {input.features}; do echo $tmpscr/$f)
+            features=$(for f in {input.features}; do echo $tmpscr/$f; done)
         else
             features={input.features}
         fi
