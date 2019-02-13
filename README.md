@@ -88,7 +88,7 @@ will:
 
 Running:
 
-    katuali all_medaka_train_features --keep-going
+    katuali medaka_train_replicates --keep-going
 
 will do all the tasks of `all_medaka_train_features` and additionally launch multiple medaka model-training replicates.
 
