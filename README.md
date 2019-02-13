@@ -59,49 +59,23 @@ on the command line to point to your installations of these tools:
 * [FLAPPIE](https://github.com/nanoporetech/flappie): "~/git/github/flappie"
 * [IN_POMOXIS](https://github.com/nanoporetech/pomoxis): "~/git/pomoxis/venv/bin/activate"
 * [CANU_EXEC](https://github.com/marbl/canu): "~/git/canu-1.7.1/Linux-amd64/bin/canu"
-* [NANOPOLISH](https://github.com/jts/nanopolish): "~/git/nanopolish"
 * [IN_MEDAKA](https://github.com/nanoporetech/medaka): "~/git/medaka/venv/bin/activate"
 * GUPPY: "/usr/bin/guppy_basecaller"
-* IN_RAY: "~/git/ray/venv/bin/activate"
 
 Please refer to the documentation of each of these tools for installation
 instructions.
 
-
-Usage
------
-
-The `Katuali` tests contain examples of how to basecall, assemble, and polish
-a small dataset that comes bundled with `Katuali`.
-
-To run with other data, start by creating a directory of reads (which could
-contain subdirectories of reads):
-
-    ln -s /path/to/fast5 reads
-    
-Then calculate any of the outputs the pipeline knows how to make by running e.g.:
-
-    katuali fast_assm_polish
-
-This will basecall the reads, assemble them with miniasm, and polish the
-assembly with racon and medaka. Running
-
-    katuali standard_assm_polish
-
-will instead basecall, assemble with canu, and the polish with nanopolish.
-
 Medaka training branch
 ----------------------
 
-Using this branch, it is now possible to train medaka models starting from folders of fast5s in a single command. 
-
-The config is currently configured for 3 runs of yeast and 3 runs of lbrevis each with median 250X coverage.
-
-The fast5 files should be located in ./runid/reads/. Here `reads` can be symbolic links to fast5 directories. 
+Using this branch, it is now possible to train medaka models starting from
+folders of fast5s in a single command once the config has been modified to
+reflect your input data (fast5s and genomes for each run as well as training
+and evaluation region definitions).
 
 Running:
 
-    katuali medaka_train_replicates
+    katuali all_medaka_train_features --keep-going
 
 will:
 
@@ -110,34 +84,16 @@ will:
 * create subsampled sets of basecalls over the desired regions and depths
 * assemble those sets of basecalls
 * create medaka training features for all those sets
-* launch multiple medaka training replicates using all those features
 
-The following config (katuali/config.yaml) items can be set to control this process:
 
-    # reference to be used for each region set
-    REFERENCES: 
-        "yeast": "/nfs/groups_ech/res_data/active/refs/git_references/yeast/yeast_S288C.fasta"
-        "lbrevis": "/nfs/groups_ech/res_data/stored/datasets/apps_atcc_genomes/analysis/demultiplexed/refs_for_assembly/NC_008497.1.fa"
+Running:
 
-    # regions used for subsampling
-    REGION_DEFINITIONS:
-        "yeast": "yeast_S288C_chromosomeI yeast_S288C_chromosomeII yeast_S288C_chromosomeIII yeast_S288C_chromosomeIV yeast_S288C_chromosomeV yeast_S288C_chromosomeVI yeast_S288C_chromosomeVII yeast_S288C_chromosomeVIII yeast_S288C_chromosomeIX yeast_S288C_chromosomeX yeast_S288C_chromosomeXI yeast_S288C_chromosomeXII yeast_S288C_chromosomeXIII yeast_S288C_chromosomeXIV yeast_S288C_chromosomeXV yeast_S288C_chromosomeXVI"
-        "lbrevis": "NC_008497.1"
+    katuali all_medaka_train_features --keep-going
 
-    # train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
-    MEDAKA_TRAIN_REGIONS: ["yeast", "lbrevis"]
+will do all the tasks of `all_medaka_train_features` and additionally launch multiple medaka model-training replicates.
 
-    # Run a training replicate for each of these suffixes
-    MEDAKA_TRAIN_REPLICATES:
-        ["rep_1", "rep_2", "rep_3"]
+If some of your input runs have insufficient coverage-depth for some of the
+training regions, some of the training feature files will not be made. In this
+case the final stage of training should be performed by invoking `medaka train` directly rather than via `katuali`.
 
-    # Define runs - fast5s should be under ./runid/reads/ and can be in subdirectories.
-    RUNIDS:
-        "yeast": ["80a94504", "f81e9478", "fad5950a"]
-        "lbrevis": ["95730659", "15e93eaf", "c50fb4ef"]
-
-    # create sets of basecalls, assemblies and training features for these depths. 
-    # medaka models do not perform well (and can make consensus accuracy worse than
-    # the draft) for depths they were not exposed to during training. 
-    DEPTHS:
-        [25, 50, 70, 100, 125, 150, 175, 200, 225, 250]
+Refer to comments in the config (katuali/config.yaml) to see how this process can be controlled. 

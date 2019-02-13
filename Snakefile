@@ -233,59 +233,6 @@ rule assess_consensus:
         assess_assembly -i {input.consensus} -r {params.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
         """
 
-#rule ray_catalogue:
-#    input:
-#        venv = ancient(IN_RAY),
-#        bam = ancient("{dir}/{prefix}.bam"),
-#        truth = ancient(config["TRUTH"]),
-#    output:
-#        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
-#    log:
-#        "{dir}/{prefix}_ray_catalogue.log"
-#    params:
-#        prefix = "{dir}/{prefix}_ray",
-#        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
-#    threads: config["THREADS_PER_JOB"]
-#    shell:
-#        """
-#        set +u; {config[SOURCE]} {input.venv}; set -u;
-#        ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
-#        """
-#
-#rule hp_acc_vs_length:
-#    input:
-#        catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
-#    output:
-#        hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
-#    params:
-#        sge = "m_mem_free=1G,gpu=0"
-#    run:
-#        from collections import defaultdict
-#        import pandas as pd
-#
-#        def get_acc(df):
-#            correct = df['ref_hp_len'] == df['q_hp_len']
-#            return 100 * float(len(df[correct])) / len(df)
-#
-#        def get_summ(df):
-#            accs = defaultdict(dict)
-#            for hp_len, df_l in df.groupby('ref_hp_len'):
-#                   accs['acc_all_bases'][hp_len] = get_acc(df_l)
-#                   accs['n_all_bases'][hp_len] = len(df_l)
-#                   for base, df_b in df_l.groupby('ref_base'):
-#                       accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
-#                       accs['n_{}'.format(base)][hp_len] = len(df_b)
-#            summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
-#            return summ
-#
-#        df = pd.read_table(input.catalogue)
-#        # create a summary over all refs, and one per reference
-#        get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
-#        for ref, d in df.groupby('record_name'):
-#            out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
-#            get_summ(d).to_csv(out, sep=',', index=False)
-#            
-
 rule get_depth:
     input:
         venv = ancient(IN_POMOXIS),
@@ -336,37 +283,6 @@ rule subsample_bam:
         sleep 5;
         for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
         """
-
-#rule ref_guided_racon:
-#    input:
-#        venv = ancient(IN_POMOXIS),
-#        basecalls = ancient("{dir}/basecalls.fasta"),
-#        ref = ancient(config["REFERENCE"])
-#    output:
-#        consensus = "{dir}/ref_guided_racon{suffix,[^/]*}/consensus.fasta",
-#        basecalls = "{dir}/ref_guided_racon{suffix,[^/]*}/basecalls.fasta"
-#    log:
-#        "{dir}/ref_guided_racon{suffix}.log"
-#    threads: config["THREADS_PER_JOB"]
-#    params:
-#        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
-#        output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
-#        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-#
-#    threads: config["THREADS_PER_JOB"]
-#    shell:
-#        """
-#        set +u; {config[SOURCE]} {input.venv}; set -u;
-#        # snakemake will create the output dir, mini_assemble will fail if it exists..
-#        rm -r {params[output_dir]} && 
-#        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
-#        # rename output
-#        mv {params[output_dir]}/assm_final.fa {output.consensus}
-#        # keep a link of basecalls with the consensus
-#        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
-#        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-#        touch --no-dereference $PWD/{params[output_dir]}/*
-#        """
 
 rule racon:
     input:
@@ -483,111 +399,6 @@ rule medaka_consensus:
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         """
-
-#rule nanopolish_basecalls:
-#    # nanopolish index can't seem to cope with fasta headers
-#    input:
-#        ancient("basecall/{subdir}/basecalls.fasta"),
-#    output:
-#        "basecall/{subdir}/nanopolish/basecalls.fasta",
-#    params:
-#        sge = "m_mem_free=1G,gpu=0" 
-#    shell:
-#        """
-#        cut -d' ' -f1 < {input} > {output}
-#        """
-#
-#rule nanopolish_index:
-#    input:
-#        nanopolish = ancient(NANOPOLISH_EXEC),
-#        fast5 = ancient(config["READS"]),
-#        fast5 = ancient("{runid}/reads"),
-#        summary = ancient("basecall/{basecaller}/sequencing_summary.txt"),
-#        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
-#    output:
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index",
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.fai",
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
-#    log:
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/nanopolish_index.log"
-#    params:
-#        sge = "m_mem_free=1G,gpu=0" 
-#    shell:
-#    	# create indices then synchronise time stamps
-#	    """
-#        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log} && sleep 5 &&
-#    	touch --no-dereference {output[0]}*
-#        """
-#
-#rule fast5_list:
-#    input:
-#        fast5 = ancient(config["READS"]),
-#    output:
-#        filelist = os.path.join(config["READS"], "reads.txt")
-#    params:
-#        sge = "m_mem_free=1G,gpu=0" 
-#    shell:
-#        "find -L `readlink -f {config[READS]}` -name '*.fast5' > {output.filelist}"
-#
-#rule nanopolish_vcf:
-#    input:
-#        nanopolish = ancient(NANOPOLISH_EXEC),
-#        draft = ancient("basecall/{basecaller}/{subdir}/consensus.fasta"),
-#        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
-#        bam = ancient("basecall/{basecaller}/{subdir}/nanopolish/calls2draft.bam"),
-#        index = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index"),
-#        index_gzi = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.gzi"),
-#        index_fai = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.fai"),
-#        index_readdb = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.readdb"),
-#    output:
-#        vcf = "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf",
-#    log:
-#        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf.log"
-#    params:
-#        sge = "m_mem_free=1G,gpu=0", 
-#        # wildcards in dynamic files cannot be constrained => we can't safely extract a
-#        # suffix from dynamic nanopolish targets to use to use nested config
-#        opts = config["NANOPOLISH_OPTS"],
-#    shell:
-#	    """
-#        {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
-#        """
-#
-#rule nanopolish_regions:
-#    input:
-#        # use pomoxis python as this has all requirements of the script
-#        venv = ancient(IN_POMOXIS), 
-#        make_range = ancient(NANOPOLISH_MAKE_RANGE),
-#        draft = ancient("{dir}/consensus.fasta"),
-#    output:
-#        # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
-#        regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
-#    params:
-#        sge = "m_mem_free=1G,gpu=0" 
-#    shell:
-#        """
-#        set +u; {config[SOURCE]} {input.venv}; set -u;
-#        python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list &&
-#        for i in `cat {wildcards.dir}/nanopolish/regions.list`; do touch {wildcards.dir}/nanopolish/regions/$i.region; done
-#        """
-#
-#rule nanopolish:
-#    input:
-#        nanopolish = ancient(NANOPOLISH_EXEC),
-#        draft = ancient("{dir}/consensus.fasta"),
-#        # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
-#        regions = ancient(dynamic("{dir}/nanopolish/regions/{region}.region")),
-#        vcfs = ancient(dynamic("{dir}/nanopolish/regions/{region}.vcf")),
-#    output:
-#        consensus = "{dir}/nanopolish/consensus.fasta",
-#    log:
-#        "{dir}/nanopolish/vcf2fasta.log"
-#    params:
-#        sge = "m_mem_free=1G,gpu=0", 
-#    shell:
-#        "{input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2> {log}"
-
 
 rule medaka_train_features:
     input:

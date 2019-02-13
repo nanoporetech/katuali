@@ -1,8 +1,116 @@
+# Config for training and evaluating medaka models
+#
+# The config allows for training from fast5s obtained from multiple sequencing
+# runs and multiple genomes whilst specifying regions to train on and evaluate
+# on.    
+#
+# the snakemake rules assume a particular system of keys and values in various config entries as follows:
+#
+# the highest level key is refers to the genome(s) of a particular run (in this config `bacterial`.)
+# train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
+MEDAKA_TRAIN_REGIONS: ["bacterial"]
+# evalulated trained models on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
+MEDAKA_EVAL_REGIONS: ["bacterial"]
+
+# the runs (and hence folders of fast5s) belowing to `bacterial` are specified here:
+RUNIDS:
+  bacterial: ['0b11bceb', '893d8c5f', '9a456918']
+# here we define what reference fasta to align all basecalled runs belonging to `bacterial` prior to subsampling. 
+REFERENCES: 
+    "bacterial": "/path/to/reference.fasta"
+
+# Here we define contigs for training and evaluation of medaka models. 
+# Each contig will be subsampled and assembled separately.
+TRAIN_REGION_DEFINITIONS: 
+    "bacterial": ["contig1", 
+             "contig2", 
+             "contig3", 
+             "contig3", 
+             "contig4",
+             "contig5",
+    ]
+EVAL_REGION_DEFINITIONS: 
+    "bacterial": ["contig1", 
+             "contig2", 
+             "contig3", 
+             "contig3", 
+             "contig4",
+             "contig5",
+             "contig6",  # held out from training
+             "contig7",  # held out from training
+    ]
+
+# medaka models do not perform well (and can make consensus accuracy worse than
+# the draft) for depths they were not exposed to during training. 
+# create sets of basecalls, assemblies and training features for these depths. 
+# NOTE: if the input runs provide insufficient coverage, katuali will fail for some of the targets. 
+# use the --keep-going option to Snakemake to continue building other targets. 
+DEPTHS:
+    [25, 50, 75, 100, 125, 150, 175, 200]
+
+# we need to specify approximate contig lengths for the assembly steps
+# mini_assemble for assembling training data, canu for assembling evaluatio data
+# Used by canu
+REGION_LENGTHS:
+    {
+        "contig1": "4.0M",
+        "contig2": "2.8M",
+        "contig3": "4.9M",
+        "contig3": "1.9M",
+        "contig4": "6.8M",
+        "contig5": "2.7M",
+        "contig6": "3.0M",
+        "contig7": "4.8M",
+    }
+# Used by mini_assemble
+MINI_ASSEMBLE_OPTS: 
+    "": ""
+    "_ce": "-c -e 10"
+    "_ces": "-c -e 10 -n 10"
+    "_ce3x_contig1": "-c -e 3x -l 4mb"
+    "_ce3x_contig2": "-c -e 3x -l 2.8mb"
+    "_ce3x_contig3": "-c -e 3x -l 4.8mb"
+    "_ce3x_contig3": "-c -e 3x -l 1.9mb"
+    "_ce3x_contig4": "-c -e 3x -l 6.8mb"
+    "_ce3x_contig5": "-c -e 3x -l 2.7mb"
+
+# Run a training replicate for each of these suffixes - training output will be in medaka_train_{suffix}
+MEDAKA_TRAIN_REPLICATES:
+    ["rep_1", "rep_2", "rep_3"]
+
+# to test multiple trained models, use multiple suffixes. 
+# The suffix should be a key within MEDAKA_OPTS specifying the path of a trained model 
+MEDAKA_EVAL_SUFFIXES: ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
+MEDAKA_OPTS: 
+    "_rep_1_best_val": "medaka_train_rep1/model.best.val.hdf5"
+    "_rep_2_best_val": "medaka_train_rep1/model.best.val.hdf5"
+    "_rep_3_best_val": "medaka_train_rep1/model.best.val.hdf5"
+
+# Medaka
+IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+
+# Medaka training features
+MEDAKA_TRAIN_FEAT_OPTS:
+    "": "--chunk_len 1000 --chunk_ovlp 0"
+
+MEDAKA_TRAIN_OPTS:
+    "": "--mini_epochs 5 --validation_split 0.10"
+
+# specify the basecaller with which the fast5s should be basecalled. 
+# currently supported options are guppy, flappie or scrappie.
+BASECALLER: "guppy" 
+
+# training can be IO limited on e.g. a networked filesytem, so you can  
+# optionally specify a location to copy feature files to before training
+# e.g. SCRATCH: "/scratch"
+SCRATCH: ""
+TMPSCRATCH: ""
+    
+# Config entries common to the master branch of katuali
+
 THREADS_PER_JOB: 16
 
 SOURCE: "source"
-SCRATCH: "/scratch"
-TMPSCRATCH: ""
 
 # Pomoxis
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
@@ -36,118 +144,11 @@ SUBSAMPLE_BAM_OPTS:
  
 
 #Canu 
-CANU_EXEC: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
+CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
 CANU_OPTS:
     "": "" 
 
-# Mini_assemble
-MINI_ASSEMBLE_OPTS: 
-    "": ""
-    "_ce": "-c -e 10"
-    "_ces": "-c -e 10 -n 10"
-    "_ce3x_ecoli": "-c -e 3x -l 4.66mb"
-    "_ce3x_yeast": "-c -e 3x -l 12.15mb"
-    "_ce3x_lbrevis": "-c -e 3x -l 2.29mb"
-    "_ce3xs_ecoli": "-c -e 3x -l 4.66mb -n 10"
-    "_ce3x_BS.pilon.polished.v3.ST170922": "-c -e 3x -l 4mb"
-    "_ce3x_Enterococcus_faecalis_complete_genome": "-c -e 3x -l 2.8mb"
-    "_ce3x_Escherichia_coli_chromosome": "-c -e 3x -l 4.8mb"
-    "_ce3x_Lactobacillus_fermentum_complete_genome": "-c -e 3x -l 1.9mb"
-    "_ce3x_Pseudomonas_aeruginosa_complete_genome": "-c -e 3x -l 6.8mb"
-    "_ce3x_Staphylococcus_aureus_chromosome": "-c -e 3x -l 2.7mb"
-
-
-# Nanopolish
-NANOPOLISH: "~/git/nanopolish" 
-# wildcards in dynamic files cannot be constrained => we can't safely extract a
-# suffix from dynamic nanopolish targets to use to use nested config
-NANOPOLISH_OPTS: "--fix-homopolymers"
-
-# Medaka
-IN_MEDAKA: "~/git/medaka/venv/bin/activate"
-MEDAKA_OPTS: 
-    "": ""
-
-# Medaka training features
-MEDAKA_TRAIN_FEAT_OPTS:
-    "": "--chunk_len 1000 --chunk_ovlp 10 --batch_size 100"
-
-MEDAKA_TRAIN_OPTS:
-    "": "--mini_epochs 5 --validation_split 0.10"
-
-
-# Ray
-IN_RAY: "~/git/ray/venv/bin/activate"
-
 # assess_assembly
 ASSESS_ASSM_OPTS: "-C"
 
-
-# This has to be set for any assessment of consensus accuracy. 
-TRUTH:
-    "/nfs/groups_ech/res_data/active/refs/git_references/ecoli/ecoli_SCS110.fasta"
-
-BASECALLER: "guppy" 
-
-# reference to be used for each region set
-REFERENCES: 
-    "": "ref.fasta"
-    "zymo": "/media/groups_cs2/res_data/active/refs/ZymoBIOMICS.STD.refseq.v2/all_species.fasta"
-
-# regions used for subsampling - each region in each list of regions will be subsampled and assembled separately. 
-TRAIN_REGION_DEFINITIONS: 
-    "zymo": ["BS.pilon.polished.v3.ST170922", 
-             "Enterococcus_faecalis_complete_genome", 
-             "Escherichia_coli_chromosome", 
-             "Lactobacillus_fermentum_complete_genome", 
-             "Pseudomonas_aeruginosa_complete_genome",
-             "Staphylococcus_aureus_chromosome",
-    ]
-EVAL_REGION_DEFINITIONS: 
-    "zymo": ["BS.pilon.polished.v3.ST170922", 
-             "Enterococcus_faecalis_complete_genome", 
-             "Escherichia_coli_chromosome", 
-             "Lactobacillus_fermentum_complete_genome", 
-             "Pseudomonas_aeruginosa_complete_genome",
-             "Staphylococcus_aureus_chromosome",
-             "Listeria_monocytogenes_complete_genome",
-             "Salmonella_enterica_complete_genome",
-    ]
-
-# canu needs to know estimated genome sizes
-REGION_LENGTHS:
-    {
-        "BS.pilon.polished.v3.ST170922": "4.0M",
-        "Enterococcus_faecalis_complete_genome": "2.8M",
-        "Escherichia_coli_chromosome": "4.9M",
-        "Lactobacillus_fermentum_complete_genome": "1.9M",
-        "Pseudomonas_aeruginosa_complete_genome": "6.8M",
-        "Staphylococcus_aureus_chromosome": "2.7M",
-        "Listeria_monocytogenes_complete_genome": "3.0M",
-        "Salmonella_enterica_complete_genome": "4.8M",
-    }
-
-
-# train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
-MEDAKA_TRAIN_REGIONS: ["zymo"]
-# train on these region names (these must be keys for REGION_DEFINITIONS, REFERENCES and RUNIDS)
-MEDAKA_EVAL_REGIONS: ["zymo"]
-# to test multiple trained models, use multiple suffixes
-MEDAKA_EVAL_SUFFIXES: ["_R10_YLB"]
-
-# Run a training replicate for each of these suffixes
-MEDAKA_TRAIN_REPLICATES:
-    ["rep_1", "rep_2", "rep_3"]
-
-
-# Define runs - fast5s should be under ./runid/reads/ and can be in subdirectories.
-RUNIDS:
-  #zymo: ['0b11bceb', '893d8c5f', '9a456918', 'ddfc392d', 'e49ace80', 'ef0bab84']
-  zymo: ['loman',]
-
-# create sets of basecalls, assemblies and training features for these depths. 
-# medaka models do not perform well (and can make consensus accuracy worse than
-# the draft) for depths they were not exposed to during training. 
-DEPTHS:
-    [25, 50, 75, 100, 125, 150, 175, 200]
