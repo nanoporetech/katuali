@@ -306,12 +306,14 @@ rule get_basecall_stats:
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         stats = "{dir}/calls2ref_stats.txt"
+    log:
+        "{dir}/basecall_stats.log"
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	stats_from_bam --bam {input.bam} -o {output.stats}
+    	stats_from_bam -o {output.stats} {input.bam} > {log} 2>&1
         """
 
 rule subsample_bam:
