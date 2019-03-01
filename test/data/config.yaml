@@ -43,26 +43,13 @@ BASECALLER: "guppy"
 # (these need not be actual run UUIDs). Fast5s should be in RUNID/reads.
 # The keys within this data dict are RUNIDs.  MEDAKA_TRAIN_REGIONS and
 # MEDAKA_EVAL_REGIONS define regions for training and evaluation. In the
-# example below we train from the "minion" run using "ecoli" and "yeast" contigs
+# example below we train from the "minion" run using "ecoli"and "yeast" contigs
 # in the reference and evaluate on the "gridion" run using the contigs "ecoli",
 # "yeast" and "na12878_chr21" in the reference.
 DATA:
-    'MinIonRun1': 
-        'REFERENCE': '/path/to/references.fasta'   
-        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-        'MEDAKA_EVAL_REGIONS': []
-    'MinIonRun2': 
-        'REFERENCE': '/path/to/references.fasta'   
-        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-        'MEDAKA_EVAL_REGIONS': []
-    'GridIonRun1': 
-        'REFERENCE': '/path/to/references.fasta'   
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-    'GridIonRun2': 
-        'REFERENCE': '/path/to/references.fasta'   
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+    'run':
+        'REFERENCE': 'ref.fasta'  # only required for uniform subsampling
+        'GENOME_SIZE': '50k'  # for canu we need to specify genome size
 
 # Read depths at which to create assemblies for training, this should
 # span the range of depths at which the model is to be used
@@ -84,9 +71,8 @@ MEDAKA_TRAIN_REPLICATES:
 # to test multiple trained models, use multiple suffixes. 
 # The suffix should be a key within MEDAKA_OPTS specifying the path of a trained model 
 MEDAKA_EVAL_SUFFIXES: ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
-MEDAKA_OPTS: 
-    "": ""
-    "_flipflop": "-m r941_flip235"
+MEDAKA_OPTS:
+    "": "" 
     "_rep_1_best_val": "medaka_train_rep1/model.best.val.hdf5"
     "_rep_2_best_val": "medaka_train_rep2/model.best.val.hdf5"
     "_rep_3_best_val": "medaka_train_rep3/model.best.val.hdf5"
@@ -116,24 +102,12 @@ FLAPPIE_OPTS:
 # Guppy        
 GUPPY_OPTS: 
     "": "-c dna_r9.4_450bps.cfg"
-    "_flipflop": "-c dna_r9.4.1_450bps_flipflop.cfg"
-
 GUPPY_SLOTS: 20 
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
     "": " --all_fail"
     "_prop": "--proportional --all_fail"
-    "_filtered": "--quality 6 --coverage 90 --all_fail"
- 
-
-#Canu 
-CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
-CANU_EXEC_OPTS: "useGrid=False"
-CANU_GENOME_SIZE: "4.8M"
-CANU_OPTS:
-    "": "" 
->>>>>>> config.yaml
 
 # Used by mini_assemble
 MINI_ASSEMBLE_OPTS: 
