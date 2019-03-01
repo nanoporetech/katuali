@@ -1,8 +1,10 @@
 from functools import partial
+import itertools
 import os
 import sys
 
 import gpustat
+import pysam
 
 KATUALI_VERSION = "0.1"
 
@@ -21,8 +23,9 @@ IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
-if "TRUTH" not in config:
-    config["TRUTH"] = config["REFERENCE"]
+# Always set the environment
+LD_LIBRARY_PATH = config.get("LD_LIBRARY_PATH")
+shell.prefix("export LD_LIBRARY_PATH=\"%s\"; " % (LD_LIBRARY_PATH))
 
 config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
 
@@ -40,13 +43,33 @@ rule help:
     run:
         print(open(os.path.join(KATUALI_HOME, "README.md")).read())
 
+rule environment:
+    # Just output the contents of PATH and LD_LIBRARY_PATH to log
+    log:
+        "katuali.sge.log",
+    params:
+        sge = "m_mem_free=1G,gpu=0", 
+    shell:
+        'echo $PATH; echo $LD_LIBRARY_PATH'
+
+
+# shortcut targets to process all runs in config["DATA"] with a standard pipeline
 rule fast_assm_polish:
     input:
-        consensus = ancient("basecall/{BASECALLER}/miniasm_racon/medaka/consensus.fasta".format(**config))
+        consensus = ancient(["{runid}/basecall/guppy/miniasm_racon/medaka/consensus.fasta".format(runid=r) for r in config["DATA"].keys()])
 
 rule standard_assm_polish:
-    input:
-        consensus = ancient("basecall/{BASECALLER}/canu/nanopolish_hp/consensus.fasta".format(**config))
+    input: 
+        consensus = ancient(["{runid}/basecall/guppy_flipflop/canu_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"]) for r,d in config["DATA"].items()])
+
+rule standard_assm_nanopolish:
+    input: 
+        consensus = ancient(["{runid}/basecall/{bc}/canu_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"]) for r,d in config["DATA"].items()])
+
+
+def get_reference(wildcards, config):
+    return config["DATA"][wildcards["runid"]]["REFERENCE"]
+
 
 def get_contig_opt(wildcards, config):
     if "REGIONS" in config and "REGIONS" != "":
@@ -84,11 +107,11 @@ def get_opts(wildcards, config, config_key):
 rule basecall_scrappie:
     input:
         scrappie = ancient(SCRAPPIE_EXEC),
-        fast5 = ancient(config["READS"]),
+        fast5 = ancient("{runid}/reads"),
     output:
-        fasta = "basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
+        fasta = "{runid}/basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
     log:
-        "basecall/scrappie{suffix,[^/]*}/scrappie.log",
+        "{runid}/basecall/scrappie{suffix,[^/]*}/scrappie.log",
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         opts = partial(get_opts, config=config, config_key="SCRAPPIE_OPTS")
@@ -103,13 +126,13 @@ rule basecall_scrappie:
 rule basecall_flappie:
     input:
         flappie = ancient(FLAPPIE_EXEC),
-        fast5 = ancient(config["READS"]),
+        fast5 = ancient("{runid}/reads"),
         venv = ancient(IN_POMOXIS),
     output:
-        fastq = "basecall/flappie{suffix,[^/]*}/basecalls.fastq",
-        fasta = "basecall/flappie{suffix,[^/]*}/basecalls.fasta",
+        fastq = "{runid}/basecall/flappie{suffix,[^/]*}/basecalls.fastq",
+        fasta = "{runid}/basecall/flappie{suffix,[^/]*}/basecalls.fasta",
     log:
-        "basecall/flappie{suffix,[^/]*}/flappie.log",
+        "{runid}/basecall/flappie{suffix,[^/]*}/flappie.log",
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         opts = partial(get_opts, config=config, config_key="FLAPPIE_OPTS"),
@@ -130,16 +153,16 @@ rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
         PICK_GPU = ancient(PICK_GPU),
-        fast5 = ancient(config["READS"]),
+        fast5 = ancient("{runid}/reads"),
         venv = ancient(IN_POMOXIS),
     output:
-        fasta = "basecall/guppy{suffix,[^/]*}/basecalls.fasta",
-        summary = "basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
+        fasta = "{runid}/basecall/guppy{suffix,[^/]*}/basecalls.fasta",
+        summary = "{runid}/basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
     log:
-        "basecall/guppy{suffix,[^/]*}.log",
+        "{runid}/basecall/guppy{suffix,[^/]*}.log",
     params:
         sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
-        output_dir = lambda w: "basecall/guppy{suffix}".format(**dict(w)),
+        output_dir = lambda w: "{runid}/basecall/guppy{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
     shell:
         """
@@ -148,12 +171,14 @@ rule basecall_guppy:
  
         echo "GPU status before" >> {log}
         gpustat >> {log}
+    
+        sleep $(((RANDOM % 30)  + 1 ))        
 
         GPU=$({input.PICK_GPU} 2>> {log})
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$GPU {params.opts} --runners {config[GUPPY_SLOTS]} --worker_threads 1 &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$GPU {params.opts} &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}
@@ -170,9 +195,9 @@ rule basecall_guppy:
 rule scrappie_summary:
     input:
         json_to_tsv = ancient(SCRAPPIE_JSON_TO_TSV),
-        fasta = ancient("basecall/scrappie/basecalls.fasta"),
+        fasta = ancient("{runid}/basecall/scrappie/basecalls.fasta"),
     output:
-        summary = "basecall/scrappie/sequencing_summary.txt"
+        summary = "{runid}/basecall/scrappie/sequencing_summary.txt"
     params:
         sge = "m_mem_free=1G,gpu=0"
     shell:
@@ -180,13 +205,14 @@ rule scrappie_summary:
     	# most tools expect read_id, not uuid
 	    "sed -i '1 s/uuid/read_id/' {output.summary}"
 
+
 rule align_to_ref:
     input:
         venv = ancient(IN_POMOXIS),
-        basecalls = ancient("{bc_dir}/basecalls.fasta"),
-        ref = ancient(config["REFERENCE"]),
+        basecalls = ancient("{runid}/basecall/{bc_dir}/basecalls.fasta"),
+        ref = ancient(partial(get_reference, config=config)),
     output:
-        bam = "{bc_dir}/align/calls2ref.bam"
+        bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
     params:
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         prefix = lambda w, output: os.path.splitext(output.bam)[0],
@@ -216,15 +242,15 @@ rule align_to_draft:
 rule assess_consensus:
     input:
         venv = ancient(IN_POMOXIS),
-        consensus = ancient("{dir}/consensus.fasta"),
-        truth = ancient(config["TRUTH"]),
+        consensus = ancient("{runid,[^/]+}/{dir}/consensus.fasta"),
+        truth = ancient(partial(get_reference, config=config)),
     output:
-        summ = "{dir}/consensus_to_truth_summ.txt",
-        bam = "{dir}/consensus_to_truth.bam",
-        stats = "{dir}/consensus_to_truth_stats.txt",
+        summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
+        bam = "{runid,[^/]+}/{dir}/consensus_to_truth.bam",
+        stats = "{runid,[^/]+}/{dir}/consensus_to_truth_stats.txt",
     params:
-        prefix = "{dir}/consensus_to_truth",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
+        prefix = "{runid}/{dir}/consensus_to_truth",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
     threads: config["THREADS_PER_JOB"]
     shell:
         """
@@ -232,17 +258,18 @@ rule assess_consensus:
         assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
         """
 
+
 rule ray_catalogue:
     input:
         venv = ancient(IN_RAY),
-        bam = ancient("{dir}/{prefix}.bam"),
-        truth = ancient(config["TRUTH"]),
+        bam = ancient("{runid}/{dir}/{prefix}.bam"),
+        truth = ancient(partial(get_reference, config=config)),
     output:
-        catalogue = "{dir}/{prefix}_ray_catalogue.txt"
+        catalogue = "{runid,[^/]+}/{dir}/{prefix}_ray_catalogue.txt"
     log:
-        "{dir}/{prefix}_ray_catalogue.log"
+        "{runid}/{dir}/{prefix}_ray_catalogue.log"
     params:
-        prefix = "{dir}/{prefix}_ray",
+        prefix = "{runid}/{dir}/{prefix}_ray",
         sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     threads: config["THREADS_PER_JOB"]
     shell:
@@ -253,9 +280,9 @@ rule ray_catalogue:
 
 rule hp_acc_vs_length:
     input:
-        catalogue = ancient("{dir}/{prefix}_ray_catalogue.txt"),
+        catalogue = ancient("{runid}/{dir}/{prefix}_ray_catalogue.txt"),
     output:
-        hp_acc_sum = "{dir}/{prefix}_ray_summary.txt"
+        hp_acc_sum = "{runid}/{dir}/{prefix}_ray_summary.txt"
     params:
         sge = "m_mem_free=1G,gpu=0"
     run:
@@ -337,37 +364,6 @@ rule subsample_bam:
         for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
         """
 
-rule ref_guided_racon:
-    input:
-        venv = ancient(IN_POMOXIS),
-        basecalls = ancient("{dir}/basecalls.fasta"),
-        ref = ancient(config["REFERENCE"])
-    output:
-        consensus = "{dir}/ref_guided_racon{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/ref_guided_racon{suffix,[^/]*}/basecalls.fasta"
-    log:
-        "{dir}/ref_guided_racon{suffix}.log"
-    threads: config["THREADS_PER_JOB"]
-    params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
-        output_dir = lambda w: "{dir}/ref_guided_racon{suffix}".format(**dict(w)),
-        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-
-    threads: config["THREADS_PER_JOB"]
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir, mini_assemble will fail if it exists..
-        rm -r {params[output_dir]} && 
-        mini_assemble -i {input.basecalls} -r {input.ref} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
-        # rename output
-        mv {params[output_dir]}/assm_final.fa {output.consensus}
-        # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
-        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-        touch --no-dereference $PWD/{params[output_dir]}/*
-        """
-
 
 rule racon:
     input:
@@ -430,26 +426,29 @@ rule miniasm_racon:
         """
 
 rule canu:
+    # TODO can we make use of github.com/thiesgehrmann/FungalAssemblerPipeline ?
     input:
         canu = ancient(CANU_EXEC),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/basecalls.fasta"
     log:
-        "{dir}/canu{suffix}.log"
+        "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
-        output_dir = lambda w: "{dir}/canu{suffix}".format(**dict(w)),
-        genome_sz = config["CANU_GENOME_SIZE"],
+        gsz = lambda w: "genomeSize={genome_size}".format(**dict(w)),
+        output_dir = lambda w: "{dir}/canu{suffix}gsz_{genome_size}".format(**dict(w)),
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
+        mt="maxThreads={}".format(config["THREADS_PER_JOB"]),
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+    threads: config["THREADS_PER_JOB"]
     shell:
         """
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
-        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.genome_sz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} &> {log}
+        {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
         # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
@@ -466,12 +465,9 @@ rule medaka_consensus:
         basecalls = "{dir}/medaka{suffix,[^/]*}/basecalls.fasta"
     log:
         "{dir}/medaka{suffix}.log"
-    #threads: config["THREADS_PER_JOB"]
-    # medaka currently serial only
-    threads: 1
+    threads: 8
     params:
-        #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
-        sge = "m_mem_free=1G,gpu=0",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
     shell:
@@ -489,9 +485,9 @@ rule medaka_consensus:
 rule nanopolish_basecalls:
     # nanopolish index can't seem to cope with fasta headers
     input:
-        ancient("basecall/{subdir}/basecalls.fasta"),
+        ancient("{runid}/basecall/{subdir}/basecalls.fasta"),
     output:
-        "basecall/{subdir}/nanopolish/basecalls.fasta",
+        "{runid}/basecall/{subdir}/nanopolish/basecalls.fasta",
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:
@@ -502,49 +498,49 @@ rule nanopolish_basecalls:
 rule nanopolish_index:
     input:
         nanopolish = ancient(NANOPOLISH_EXEC),
-        fast5 = ancient(config["READS"]),
-        summary = ancient("basecall/{basecaller}/sequencing_summary.txt"),
-        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
+        fast5 = ancient("{runid}/reads"),
+        summary = ancient("{runid}/basecall/{basecaller}/sequencing_summary.txt"),
+        basecalls = ancient("{runid}/basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
     output:
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index",
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.fai",
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
+        "{runid}/basecall/{basecaller,[^/]+}/{subdir}/nanopolish/basecalls.fasta.index",
+        "{runid}/basecall/{basecaller,[^/]+}/{subdir}/nanopolish/basecalls.fasta.index.gzi",
+        "{runid}/basecall/{basecaller,[^/]+}/{subdir}/nanopolish/basecalls.fasta.index.fai",
+        "{runid}/basecall/{basecaller,[^/]+}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
     log:
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/nanopolish_index.log"
+        "{runid}/basecall/{basecaller}/{subdir}/nanopolish/nanopolish_index.log"
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:
-    	# create indices then synchronise time stamps
 	    """
-        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log} && sleep 5 &&
-    	touch --no-dereference {output[0]}*
+        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log}
         """
 
 rule fast5_list:
     input:
-        fast5 = ancient(config["READS"]),
+        fast5 = ancient("{runid}/reads")
     output:
-        filelist = os.path.join(config["READS"], "reads.txt")
+        filelist = "{runid}/reads/reads.txt"
     params:
         sge = "m_mem_free=1G,gpu=0" 
     shell:
-        "find -L `readlink -f {config[READS]}` -name '*.fast5' > {output.filelist}"
+        """
+        find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist}
+        """
 
 rule nanopolish_vcf:
     input:
         nanopolish = ancient(NANOPOLISH_EXEC),
-        draft = ancient("basecall/{basecaller}/{subdir}/consensus.fasta"),
-        basecalls = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta"),
-        bam = ancient("basecall/{basecaller}/{subdir}/nanopolish/calls2draft.bam"),
-        index = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index"),
-        index_gzi = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.gzi"),
-        index_fai = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.fai"),
-        index_readdb = ancient("basecall/{basecaller}/{subdir}/nanopolish/basecalls.fasta.index.readdb"),
+        draft = ancient("{dir}/consensus.fasta"),
+        basecalls = ancient("{dir}/nanopolish/basecalls.fasta"),
+        bam = ancient("{dir}/nanopolish/calls2draft.bam"),
+        index = ancient("{dir}/nanopolish/basecalls.fasta.index"),
+        index_gzi = ancient("{dir}/nanopolish/basecalls.fasta.index.gzi"),
+        index_fai = ancient("{dir}/nanopolish/basecalls.fasta.index.fai"),
+        index_readdb = ancient("{dir}/nanopolish/basecalls.fasta.index.readdb"),
     output:
-        vcf = "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf",
+        vcf = "{dir}/nanopolish/regions/{region}.vcf",
     log:
-        "basecall/{basecaller,[^/]*}/{subdir}/nanopolish/regions/{region}.vcf.log"
+        "{dir}/nanopolish/regions/{region}.vcf.log"
     params:
         sge = "m_mem_free=1G,gpu=0", 
         # wildcards in dynamic files cannot be constrained => we can't safely extract a
@@ -594,28 +590,26 @@ rule medaka_train_features:
     input:
         in_medaka = ancient(IN_MEDAKA),
         in_pomoxis = ancient(IN_POMOXIS),
-        draft = ancient("{dir}/consensus.fasta"),
-        basecalls = ancient("{dir}/basecalls.fasta"),
-        truth = ancient(config["REFERENCE"]),
+        draft = ancient("{runid}/{dir}/consensus.fasta"),
+        basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
+        truth = ancient(partial(get_reference, config=config)),
     output:
-        features = "{dir}/medaka_train{suffix,[^/]*}/medaka_train.hdf",
-        rc_features = "{dir}/medaka_train{suffix,[^/]*}/medaka_train_rc.hdf",
+        features = "{runid,[^/]+}/{dir}/medaka_train{suffix,[^/]*}/medaka_train.hdf",
+        rc_features = "{runid,[^/]+}/{dir}/medaka_train{suffix,[^/]*}/medaka_train_rc.hdf",
     log:
-        "{dir}/medaka_train{suffix}.log"
-    #threads: config["THREADS_PER_JOB"]
-    # medaka is serial at the moment
-    threads: 1 
+        "{runid}/{dir}/medaka_train{suffix}.log"
+    threads: config["THREADS_PER_JOB"]
     params:
-        output_dir = "{dir}/medaka_train",
+        output_dir = lambda w, output: os.path.dirname(output.features),
         bam = lambda w, output: os.path.join(os.path.dirname(output.features), "calls2ref"),
         truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2ref"),
         rc_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "callsrc2ref"),
         rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         rc_truth = lambda w, output: os.path.join(os.path.dirname(output.features), "truthrc.fasta"),
-        #sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
-        sge = "m_mem_free=1G,gpu=0",
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
+        truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
     shell:
         """
         set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
@@ -630,7 +624,7 @@ rule medaka_train_features:
         sleep 5
 
         echo "aligning truth to draft" >>{log}
-        mini_align -i {input.truth} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c 10000 &>> {log}
+        mini_align -i {input.truth} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
         sleep 5
 
         echo "reverse complement the draft and align reads" >> {log}
@@ -641,12 +635,8 @@ rule medaka_train_features:
         mini_align -i {input.basecalls} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
         sleep 5
 
-        echo "reverse complement the truth and align to the draft" >> {log}
-        seqkit seq --complement --reverse {input.truth} -o {params.rc_truth} &>> {log}
-        sleep 5
-
         echo "aligning truth to rc draft" >> {log}
-        mini_align -i {params.rc_truth} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c 10000 &>> {log}
+        mini_align -i {input.truth} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
         sleep 5
 
         echo "creating features" >> {log}
@@ -656,3 +646,161 @@ rule medaka_train_features:
         medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
 
         """
+
+def get_region_len(region, ref_fasta):
+    """Get region length from samtools region string, using start and end if present, else obtaining contig length from reference fasta. 
+    """
+    if ':' in region:
+        if not '-' in region:
+            raise ValueError('Regions must be specified just as contig or contig:start-end')
+        start, end = map(int, region.split(':')[1].split('-'))
+        region_len = end -start
+        if region_len < 1:
+            raise ValueError('Region length < 1, check your region specification')
+    else:
+        # we have a full contig
+        with pysam.FastaFile(ref_fasta) as fa:
+            lengths = dict(zip(fa.references, fa.lengths))
+        if region not in fa.references:
+            raise KeyError('Region {} is not a contig in the reference'.format(region))
+        region_len = lengths[region]
+        
+    return region_len
+
+
+def format_genome_len(l, fmt='{:.1f}'):
+    """Format a genome length supplied as int as string with either k, m or g suffix"""
+    ranges = [('k', 10**3), ('m', 10**6), ('g', 10**9),]
+    for suffix, scale in ranges:
+        scaled = l / scale
+        if scaled < 100 or scale == ranges[-1][1]:
+            return fmt.format(scaled) + suffix
+
+
+def get_medaka_features_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X_prop/canu_gsz_{genome_size}/racon/medaka_train/{feature_file}"
+    targets = []
+    try:
+        for runid, d in config["DATA"].items():
+            for region in d["MEDAKA_TRAIN_REGIONS"]:
+                region_size = get_region_len(region, d["REFERENCE"])  # an int
+                region_size = format_genome_len(region_size)  # as str
+                targets.extend([template.format(runid=runid,
+                                                basecaller=config["BASECALLER"],
+                                                region=region,
+                                                depth=depth,
+                                                genome_size=region_size,
+                                                feature_file=f)
+                                for depth in config["DEPTHS"] for f in ["medaka_train.hdf", "medaka_train_rc.hdf"]
+                ])
+    except:
+        pass
+
+    if config["USE_ONLY_EXISTING_MEDAKA_FEAT"]:
+        logger.run_info("WARNING: USE_ONLY_EXISTING_MEDAKA_FEAT set to true, only using existing medaka training features.")
+        n_all_feat = len(targets)
+        targets = [f for f in targets if os.path.isfile(f)]
+        if len(targets) == 0:
+            raise ValueError("USE_ONLY_EXISTING_MEDAKA_FEAT set to true in config, but no features were found")
+        logger.run_info("Found {}/{} of the medaka training feature files.".format(len(targets), n_all_feat))
+
+    return targets
+
+
+rule all_medaka_train_features:
+    input:
+        venv = ancient(IN_MEDAKA),
+        features = ancient(get_medaka_features_targets(config)),
+    log:
+        "medaka_train_features.log"
+
+
+rule train_medaka:
+    input:
+        PICK_GPU = ancient(PICK_GPU),
+        venv = ancient(IN_MEDAKA),
+        features = ancient(get_medaka_features_targets(config)),
+    output:
+        train_dir = directory("medaka_train_{suffix,[^/]*}")
+    log:
+        "medaka_train_{suffix}.log",
+    params:
+        sge = "m_mem_free=1G,gpu=1",
+        opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
+    shell:
+        """
+        echo "GPU status before" >> {log}
+        gpustat >> {log}
+
+        GPU=$({input.PICK_GPU} 2>> {log})
+
+        echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
+
+        if [ "{config[SCRATCH]}" != "" ];then
+            if [ "{config[TMPSCRATCH]}" != "" ];then
+                tmpscr={config[TMPSCRATCH]}
+                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}"
+                mkdir -p $tmpscr
+            else
+                userscr={config[SCRATCH]}/$USER
+                mkdir -p $userscr
+                tmpscr=$(mktemp -d -p $userscr)
+            fi
+            t=$(date +"%T")
+            echo "$t: Copying feature files to specified scratch directory: $tmpscr."
+            for f in {input.features}; do
+                d=$tmpscr/$f;
+                t0=$(date +"%T");
+                if [[ ! -e $d ]]; then 
+                    echo "$t0 Copying $d";
+                    mkdir -p $(dirname $d) && sleep 1 && cp $f $d; 
+                    t1=$(date +"%T");
+                    echo "$t1 Copied $d";
+                else
+                    echo "Found existing file: $d"
+                fi
+            done
+            features=$(for f in {input.features}; do echo $tmpscr/$f; done)
+        else
+            features={input.features}
+        fi
+
+        set +u; {config[SOURCE]} {input.venv} set -u;
+        medaka train $features --train_name {output.train_dir} {params.opts} --device $GPU &>> {log}
+        """
+
+rule medaka_train_replicates:
+    input:
+        ancient(expand("medaka_train_{replicate}", replicate=config["MEDAKA_TRAIN_REPLICATES"]))
+    log:
+        "medaka_train_replicates.log",
+
+
+def canu_racon_medaka_twice_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/medaka{suff}/consensus_to_truth_summ.txt"
+    targets = []
+    try:
+        for runid, d in config["DATA"].items():
+            for region in d["MEDAKA_EVAL_REGIONS"]:
+                region_size = get_region_len(region, d["REFERENCE"])  # an int
+                region_size = format_genome_len(region_size)  # as str
+                targets.extend([template.format(runid=runid,
+                                                basecaller=config["BASECALLER"],
+                                                region=region,
+                                                depth=depth,
+                                                genome_size=region_size,
+                                                suff=suffix)
+                                for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
+                ])
+    except:
+        pass
+
+    return targets
+
+
+rule all_medaka_eval:
+    input:
+        targets = ancient(canu_racon_medaka_twice_targets(config)),
+    log:
+        "medaka_eval.log"
+
