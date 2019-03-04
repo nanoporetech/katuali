@@ -2,15 +2,22 @@
 
 venv: venv/bin/activate
 IN_VENV=. ./venv/bin/activate
-SNAKEFILE=${PWD}/Snakefile
-JOBS=$(shell nproc)
 
 DATADIR=test/data
 TESTDIR=${DATADIR}/run
 CONFIGDIR=${DATADIR}/configs
 LOGDIR=${DATADIR}/logs
+UNAME := $(shell uname)
 
-TEST=${IN_VENV} && cd test/data && katuali -s ${SNAKEFILE} --configfile config.yaml --printshellcmds -j ${JOBS} --config THREADS_PER_JOB=${JOBS}
+ifeq ($(UNAME), Darwin)
+	JOBS=$(shell sysctl -n hw.physicalcpu)
+endif
+ifeq ($(UNAME), Linux)
+	JOBS=$(shell nproc)
+endif
+
+
+TEST=${IN_VENV} && cd test/data && katuali -s ${PWD}/test_Snakefile --configfile ${PWD}/test_config.yaml --printshellcmds -j ${JOBS} --config THREADS_PER_JOB=${JOBS}
 
 OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
@@ -33,31 +40,37 @@ check:
 	grep '100%' ${LOGDIR}/*.log
 	grep 'Exception' ${LOGDIR}/*.log || echo "No exceptions found"
 
-test_basecall: clean reads
+test_config.yaml:
+	${IN_VENV} && katuali_datafile config.yaml | xargs -I {} cp {} $@ 
+
+test_Snakefile:
+	${IN_VENV} && katuali_datafile Snakefile | xargs -I {} cp {} $@ 
+
+test_basecall: clean reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/basecalls.fasta
 
-test_align: reads 
+test_align: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/align/calls2ref.bam
 
-test_subsample: reads
+test_subsample: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/align/all_contigs/25X/basecalls.fasta
 
-test_canu: reads
+test_canu: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/canu_gsz_50k/consensus.fasta
 
-test_racon: reads
+test_racon: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/consensus.fasta
 
-test_medaka: reads
+test_medaka: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/medaka/consensus.fasta
 
-test_nanopolish: reads
+test_nanopolish: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/nanopolish/consensus.fasta
 
-test_miniasm_racon: reads
+test_miniasm_racon: reads test_config.yaml test_Snakefile
 	${TEST} run/basecall/scrappie/miniasm_racon/consensus.fasta
 
-test_nanopolish_from_scratch: clean test_nanopolish
+test_nanopolish_from_scratch: clean test_nanopolish test_config.yaml test_Snakefile
 
 clean:
 	rm -rf ${TESTDIR} ${LOGDIR} ${CONFIGDIR} ${DATADIR}/reads ${DATADIR}/ref.fasta.*

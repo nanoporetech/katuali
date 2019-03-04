@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-snakefile=$(katauli_datafile Snakefile)
+snakefile=$(katuali_datafile Snakefile)
 snakefile=$(katuali_datafile config.yaml)
 
 

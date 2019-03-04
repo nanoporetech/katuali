@@ -51,22 +51,18 @@ DATA:
         'REFERENCE': '/path/to/references.fasta'   
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
-        'GENOME_SIZE': '1mb'
     'MinIonRun2': 
         'REFERENCE': '/path/to/references.fasta'   
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
-        'GENOME_SIZE': '1mb'
     'GridIonRun1': 
         'REFERENCE': '/path/to/references.fasta'   
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-        'GENOME_SIZE': '1mb'
     'GridIonRun2': 
         'REFERENCE': '/path/to/references.fasta'   
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-        'GENOME_SIZE': '1mb'
 
 # Read depths at which to create assemblies for training, this should
 # span the range of depths at which the model is to be used

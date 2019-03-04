@@ -26,7 +26,7 @@ def _data_path(filename):
 def print_data_path():
     filename = _data_path(sys.argv[1])
     if filename is not None:
-        print(filepath)
+        print(filename)
     else:
         sys.exit(1)
 
@@ -71,7 +71,7 @@ def process_katuali_config():
 
     conf = yaml.load(open(args.base_configfile))
     conf.update(d)
-    yaml.dump(conf, open(args.out_config, 'w'))
+    yaml.dump(conf, open(args.out_configfile, 'w'))
 
 
 def pick_gpu():
