@@ -1,4 +1,5 @@
 gpustat
 pandas
 pysam
+setuptools
 snakemake

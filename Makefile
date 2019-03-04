@@ -21,10 +21,8 @@ venv/bin/activate:
 	${IN_VENV} && pip install -r requirements.txt
 
 
-install: venv install_scripts
-
-install_scripts:
-	cp scripts/* venv/bin/
+install: venv
+	${IN_VENV} && python setup.py install
 
 reads:
 	cd test/data && mkdir -p run && cd run && tar -xf ../reads.tgz
