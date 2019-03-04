@@ -133,7 +133,7 @@ CANU_EXEC_OPTS: "useGrid=False"
 CANU_GENOME_SIZE: "4.8M"
 CANU_OPTS:
     "": "" 
->>>>>>> config.yaml
+
 
 # Used by mini_assemble
 MINI_ASSEMBLE_OPTS: 
