@@ -60,11 +60,11 @@ rule fast_assm_polish:
 
 rule standard_assm_polish:
     input: 
-        consensus = ancient(["{runid}/basecall/guppy_flipflop/canu_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"]) for r,d in config["DATA"].items()])
+        consensus = ancient(["{runid}/basecall/guppy_flipflop/canu_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d] )
 
 rule standard_assm_nanopolish:
     input: 
-        consensus = ancient(["{runid}/basecall/{bc}/canu_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"]) for r,d in config["DATA"].items()])
+        consensus = ancient(["{runid}/basecall/{bc}/canu_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d])
 
 
 def get_reference(wildcards, config):
@@ -431,8 +431,8 @@ rule canu:
         canu = ancient(CANU_EXEC),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/canu{suffix,[^/]*}gsz_{genome_size,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/canu{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/canu{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
     log:
         "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
@@ -646,6 +646,7 @@ rule medaka_train_features:
         medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
 
         """
+
 
 def get_region_len(region, ref_fasta):
     """Get region length from samtools region string, using start and end if present, else obtaining contig length from reference fasta. 
