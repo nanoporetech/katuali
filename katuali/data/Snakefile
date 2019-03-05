@@ -242,7 +242,7 @@ rule align_to_draft:
 rule assess_consensus:
     input:
         venv = ancient(IN_POMOXIS),
-        consensus = ancient("{runid,[^/]+}/{dir}/consensus.fasta"),
+        consensus = ancient("{runid}/{dir}/consensus.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
         summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
@@ -282,7 +282,7 @@ rule hp_acc_vs_length:
     input:
         catalogue = ancient("{runid}/{dir}/{prefix}_ray_catalogue.txt"),
     output:
-        hp_acc_sum = "{runid}/{dir}/{prefix}_ray_summary.txt"
+        hp_acc_sum = "{runid,[^/]+}/{dir}/{prefix}_ray_summary.txt"
     params:
         sge = "m_mem_free=1G,gpu=0"
     run:
@@ -481,6 +481,34 @@ rule medaka_consensus:
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         """
+
+rule ref_guided_medaka_consensus:
+    input:
+        venv = ancient(IN_MEDAKA),
+        draft = ancient(partial(get_reference, config=config)),
+        basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
+    output:
+        consensus = "{runid,[^/]+}/{dir}/ref_guided_medaka{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{runid,[^/]+}/{dir}/ref_guided_medaka{suffix,[^/]*}/basecalls.fasta",
+    log:
+        "{runid}/{dir}/medaka{suffix}.log"
+    threads: 8
+    params:
+        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
+        opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir if it does not exist, remove it it exists. 
+        rm -r {params[output_dir]} 
+
+        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
+
+        # keep a link of basecalls with the consensus
+        ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
+        """
+
 
 rule nanopolish_basecalls:
     # nanopolish index can't seem to cope with fasta headers
@@ -799,9 +827,35 @@ def canu_racon_medaka_twice_targets(config):
     return targets
 
 
+def ref_guided_medaka_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/ref_guided_medaka{suff}/consensus_to_truth_summ.txt"
+    targets = []
+    try:
+        for runid, d in config["DATA"].items():
+            for region in d["MEDAKA_EVAL_REGIONS"]:
+                targets.extend([template.format(runid=runid,
+                                                basecaller=config["BASECALLER"],
+                                                region=region,
+                                                depth=depth,
+                                                suff=suffix)
+                                for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
+                ])
+    except:
+        pass
+
+    return targets
+
+
 rule all_medaka_eval:
     input:
         targets = ancient(canu_racon_medaka_twice_targets(config)),
     log:
         "medaka_eval.log"
+
+
+rule all_ref_guided_medaka_eval:
+    input:
+        targets = ancient(ref_guided_medaka_targets(config)),
+    log:
+        "ref_guided_medaka.log"
 
