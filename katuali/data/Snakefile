@@ -2,16 +2,16 @@ from functools import partial
 import itertools
 import os
 import sys
-
 import gpustat
 import pysam
 
-KATUALI_VERSION = "0.1"
+import katuali
 
-KATUALI_HOME = os.path.split(sys.exec_prefix)[0]
 
-PICK_GPU = os.path.join(KATUALI_HOME, 'scripts', 'pick_gpu.py') 
+KATUALI_VERSION = katuali.__version__
 
+
+PICK_GPU = "pick_gpu" 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
 FLAPPIE_EXEC = os.path.join(os.path.expanduser(config["FLAPPIE"]), "flappie")
@@ -40,8 +40,8 @@ rule version:
         print('katuali version {}'.format(KATUALI_VERSION))
 
 rule help:
-    run:
-        print(open(os.path.join(KATUALI_HOME, "README.md")).read())
+    shell:
+        'echo See https://nanoporetech.github.io/katuali/examples.html for help in getting started'
 
 rule environment:
     # Just output the contents of PATH and LD_LIBRARY_PATH to log
@@ -437,7 +437,7 @@ rule canu:
         "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
         gsz = lambda w: "genomeSize={genome_size}".format(**dict(w)),
-        output_dir = lambda w: "{dir}/canu{suffix}gsz_{genome_size}".format(**dict(w)),
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",

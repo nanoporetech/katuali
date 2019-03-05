@@ -48,19 +48,19 @@ BASECALLER: "guppy"
 # "yeast" and "na12878_chr21" in the reference.
 DATA:
     'MinIonRun1': 
-        'REFERENCE': '/path/to/references.fasta'   
+        'REFERENCE': 'ref.fasta'   
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
     'MinIonRun2': 
-        'REFERENCE': '/path/to/references.fasta'   
+        'REFERENCE': 'ref.fasta'   
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
     'GridIonRun1': 
-        'REFERENCE': '/path/to/references.fasta'   
+        'REFERENCE': 'ref.fasta'   
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
     'GridIonRun2': 
-        'REFERENCE': '/path/to/references.fasta'   
+        'REFERENCE': 'ref.fasta'   
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
 

@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-snakefile=$(readlink -f "$(dirname $(which snakemake))/../../Snakefile")
+snakefile=$(katuali_datafile Snakefile)
+config=$(katuali_datafile config.yaml)
 
-config=$(readlink -f "$(dirname $(which snakemake))/../../config.yaml")
 
 log_dir=logs
 config_dir=configs
 
 silent=false
-args=""
+args="--restart-times 3"
 config_opts=""
 cluster_opt=""
 cluster_parm=""
@@ -17,7 +17,6 @@ sge_parm="$(which qsub) -V -cwd -l {params.sge} -sync yes -o $log_dir -j y"
 
 for i in "$@"; 
 do
-    #echo "Processing $i"
     case "${1-}" in
         -s)
             snakefile="${2-}"
@@ -34,13 +33,11 @@ do
         --cluster*)
             cluster_opt="${1-}"
             cluster_parm="\"${2-}\""
-            #echo "cluster $cluster_opt $cluster_parm"
             shift 2
             ;;
         --sge)
             cluster_opt=$sge_opt
             cluster_parm="\"$sge_parm\""
-            #echo "cluster $cluster_opt $cluster_parm"
             shift 1
             ;;
         --config)
@@ -73,9 +70,6 @@ do
     esac
 done
 
-#echo "snakefile $snakefile"
-#echo "config opts $config_opts"
-#echo "other args $args"
 
 mkdir -p $config_dir $log_dir
 
@@ -83,15 +77,15 @@ t=$(date --rfc-3339=seconds | sed 's/ /_/')
 configout="${config_dir}/katuali_${t}.yaml"
 log="${log_dir}/katuali_${t}.log"
 
-process_config.py $config $configout $config_opts
+process_katuali_config $config $configout $config_opts
 
 cmd="snakemake -s ${snakefile} --configfile $configout $args $cluster_opt $cluster_parm"
 
 if $silent; then 
-    echo $cmd | /bin/bash &> $log
+    echo $cmd | bash &> $log
 else
     echo "Running $cmd"
     echo "Config saved to $configout"
     echo "Log saved to $log" 
-    echo $cmd | /bin/bash 2>&1 | tee $log
+    echo $cmd | bash 2>&1 | tee $log
 fi
