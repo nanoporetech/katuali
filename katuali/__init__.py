@@ -9,7 +9,7 @@ import gpustat
 import pkg_resources
 
 
-__version__ = "0.2.0" 
+__version__ = "0.2.0"
 __pkg__ = __name__
 
 
@@ -21,7 +21,7 @@ def _data_path(filename):
     if not os.path.isfile(filepath):
         filepath = None
     return filepath
-    
+
 
 def print_data_path():
     filename = _data_path(sys.argv[1])
@@ -47,10 +47,12 @@ def process_katuali_config():
     parser = argparse.ArgumentParser(
         description='Helper entry point for katuali shell wrapper.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('base_configfile', help='Input config file.')
-    parser.add_argument('out_configfile', help='Output config file.')
-    parser.add_argument('additional_config', nargs='+', help='Additional/override config values.')
+    parser.add_argument('inputs', nargs='+', help='Inputs: base_config out_config additional_config')
+
     args=parser.parse_args()
+    args.base_configfile = args.inputs[0]
+    args.out_configfile = args.inputs[1]
+    args.additional_config = args.inputs[2] if len(args.inputs) > 2 else []
 
     # sys.argv ignores quotes, so would split e.g.
     # MINI_ASSEMBLE_OPTS="-n 10" GUPPY_OPTS="--hp_correct 1"
