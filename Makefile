@@ -38,37 +38,40 @@ test/Snakefile: test/config.yaml
 	${IN_VENV} && katuali_datafile Snakefile | xargs -I {} cp {} $@ 
 
 reads:
-	mkdir -p test/run
-	${IN_VENV} && cd test/run && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
+	mkdir -p test/MinIonRun1
+	${IN_VENV} && cd test/MinIonRun1 && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
+
+test/ref.fasta: test/config.yaml
+	${IN_VENV} && cp `katuali_datafile test/ref.fasta` $@ 
 
 
 # The following targets step through a pipeline
 
-test_basecall: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/basecalls.fasta
+test_basecall: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/basecalls.fasta
 
-test_align: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/align/calls2ref.bam
+test_align: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/align/calls2ref.bam
 
-test_subsample: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/align/all_contigs/25X/basecalls.fasta
+test_subsample: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/align/all_contigs/25X/basecalls.fasta
 
-test_canu: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/canu_gsz_50k/consensus.fasta
+test_canu: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/consensus.fasta
 
-test_racon: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/consensus.fasta
+test_racon: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/consensus.fasta
 
-test_medaka: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/medaka/consensus.fasta
+test_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/medaka/consensus.fasta
 
-test_nanopolish: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/canu_gsz_50k/racon/nanopolish/consensus.fasta
+test_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/nanopolish/consensus.fasta
 
-test_miniasm_racon: reads test/config.yaml test/Snakefile
-	${TEST} run/basecall/scrappie/miniasm_racon/consensus.fasta
+test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/miniasm_racon/consensus.fasta
 
-test_nanopolish_from_scratch: clean_test test_nanopolish test/config.yaml test/Snakefile
+test_nanopolish_from_scratch: clean_test test_nanopolish 
 
 clean_test:
 	rm -rf test

@@ -437,7 +437,7 @@ rule canu:
         "{dir}/canu{suffix}gsz_{genome_size}.log"
     params:
         gsz = lambda w: "genomeSize={genome_size}".format(**dict(w)),
-        output_dir = lambda w: "{dir}/canu{suffix}gsz_{genome_size}".format(**dict(w)),
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
