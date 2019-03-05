@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 snakefile=$(katuali_datafile Snakefile)
-snakefile=$(katuali_datafile config.yaml)
+config=$(katuali_datafile config.yaml)
 
 
 log_dir=logs

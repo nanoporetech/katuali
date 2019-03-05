@@ -61,7 +61,7 @@ setup(
     python_requires='>=3.5.2, <3.7',
     packages=find_packages(exclude=['*.test', '*.test.*', 'test.*', 'test']),
     package_data={
-        __pkg_name__:['data/*']
+        __pkg_name__:['data/*', 'data/test/*']
     },
     zip_safe=False,
     entry_points={
