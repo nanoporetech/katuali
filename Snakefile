@@ -339,7 +339,7 @@ rule get_basecall_stats:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	stats_from_bam --bam {input.bam} -o {output.stats}
+    	stats_from_bam {input.bam} -o {output.stats}
         """
 
 rule subsample_bam:
