@@ -1,4 +1,4 @@
-.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
+.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
 
 UNAME := $(shell uname)
 
@@ -94,7 +94,6 @@ DOCSRC          = docs
 docs: venv/bin/activate 
 	${IN_VENV} && pip install sphinx sphinx_rtd_theme sphinx-argparse
 	${IN_VENV} && cd $(DOCSRC) && $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	rm -rf docs/modules.rst docs/medaka.rst  
 	@echo
 	@echo "Build finished. The HTML pages are in $(DOCSRC)/$(BUILDDIR)/html."
 	touch $(DOCSRC)/$(BUILDDIR)/html/.nojekyll
