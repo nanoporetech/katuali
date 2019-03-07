@@ -111,6 +111,7 @@ restrictions:
     * assembly must come before polishing (use of polishing targets to
       error correct reads is not supported).
 
+.. _starting_from_basecalls:
 
 Starting from existing basecalls
 --------------------------------
@@ -217,6 +218,7 @@ strings:
     REGIONS="ecoli_SCS110_chromosome:50000-150000 ecoli_SCS110_chromosome:200000-250000"
     katuali run1/basecall/scrappie/align/my_regions/25X/miniasm_racon/consensus.fasta --config REGIONS="$REGIONS"
 
+.. _train_medaka:
 
 Medaka training pipeline
 ------------------------
