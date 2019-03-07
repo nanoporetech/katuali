@@ -84,7 +84,6 @@ Reads can be assembled in two ways at present:
     katuali run1/basecall/scrappie/miniasm_racon/consensus.fasta  
 
 
-
 Polishing
 ---------
 
@@ -100,7 +99,6 @@ The last example requests two rounds of medaka.
     katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka_flipflop/medaka_flipflop/consensus.fasta
 
 
-
 Pipeline restrictions
 ---------------------
 
@@ -111,28 +109,42 @@ restrictions:
     * assembly must come before polishing (use of polishing targets to
       error correct reads is not supported).
 
+
 .. _starting_from_basecalls:
 
 Starting from existing basecalls
 --------------------------------
 
 If you have already basecalled your data, mocking out the working space as if
-katuali had basecalled allows any derived targets to be created. 
+katuali had basecalled allows any derived targets to be created.
 
 .. code-block:: bash
-    
-    START=${PWD}
-    BCDIR=run1/basecall/mybasecalls/
+   
+    # Input files
+    BASECALLS=/path/to/basecalls.fastq
+    SUMMARY=/path/to/sequencing_summary.txt
+
+    # These should be set as in the config.yaml file used for running the
+    workflow. RUN is # the top level key of the DATA section
+    RUN=run1
+    BASECALLER=guppy_flipflop
+    IN_POMOXIS=~/git/pomoxis/venv/bin/activate
+
+    # ...no need to edit below here
+    BCDIR=${RUN}/basecall/${BASECALLER}/
     mkdir -p ${BCDIR}
-    cd ${BCDIR}
-    source ~/git/pomoxis/venv/bin/activate
-    seqkit fq2fa /path/to/basecalls.fastq > basecalls.fasta
-    # these next two steps are only required if you wish to use nanopolish.  
-    ln -s /path/to/sequencing_summary.txt sequencing_summary.txt
-    ln -s /path/to/fast5 reads
-    cd ${START}
-    # now we can run katuali to assemble and polish
-    katuali ${BCDIR}/miniasm_racon/consensus.fasta
+    mkdir ${RUN}/reads
+    ln -s ${SUMMARY} ${BCDIR}/sequencing_summary.txt
+
+    source ${IN_POMOXIS}
+    seqkit fq2fa ${BASECALLS} > ${BCDIR}/basecalls.fasta
+
+Now katuali can be run as normal, for example:
+
+.. code-block:: bash
+
+    katuali --configfile my_config.yaml standard_assm_polish
+
 
 Calculating read coverage depth
 -------------------------------
@@ -218,15 +230,16 @@ strings:
     REGIONS="ecoli_SCS110_chromosome:50000-150000 ecoli_SCS110_chromosome:200000-250000"
     katuali run1/basecall/scrappie/align/my_regions/25X/miniasm_racon/consensus.fasta --config REGIONS="$REGIONS"
 
+
 .. _train_medaka:
 
 Medaka training pipeline
 ------------------------
 
-It is possible to train medaka models starting from
-folders of fast5s in a single command once the config has been modified to
-reflect your input data (fast5s and genomes for each run as well as training
-and evaluation region definitions).
+It is possible to train medaka models starting from folders of fast5s in a
+single command once the config has been modified to reflect your input data
+(fast5s and genomes for each run as well as training and evaluation region
+definitions).
 
 `MEDAKA_TRAIN_REGIONS` and `MEDAKA_EVAL_REGIONS` define regions for training
 and evaluation.  In the example below we train from the `minion` run using
@@ -253,7 +266,6 @@ using the contigs `ecoli`, `yeast` and `na12878_chr21` in the reference.
             'MEDAKA_TRAIN_REGIONS': []
             'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
 
-
 Running:
 
     katuali all_medaka_train_features --keep-going
@@ -266,17 +278,19 @@ will:
 * assemble those sets of basecalls
 * create medaka training features for all those sets
 
-
 Running:
 
     katuali medaka_train_replicates --keep-going
 
-will do all the tasks of `all_medaka_train_features` and additionally launch multiple medaka model-training replicates.
+will do all the tasks of `all_medaka_train_features` and additionally launch
+multiple medaka model-training replicates.
 
 If some of your input runs have insufficient coverage-depth for some of the
 training regions, some of the training feature files will not be made. In this
-case the config flag USE_ONLY_EXISTING_MEDAKA_FEAT can be set to true to allow katuali to train using only those features which exist already:
+case the config flag USE_ONLY_EXISTING_MEDAKA_FEAT can be set to true to allow
+katuali to train using only those features which exist already:
 
     USE_ONLY_EXISTING_MEDAKA_FEAT: true 
 
-Refer to comments in the config (katuali/config.yaml) to see how this process can be controlled. 
+Refer to comments in the config (katuali/config.yaml) to see how this process
+can be controlled. 
