@@ -11,7 +11,6 @@ import katuali
 KATUALI_VERSION = katuali.__version__
 
 
-PICK_GPU = "pick_gpu" 
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
 SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
 FLAPPIE_EXEC = os.path.join(os.path.expanduser(config["FLAPPIE"]), "flappie")
@@ -152,7 +151,6 @@ rule basecall_flappie:
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
-        PICK_GPU = ancient(PICK_GPU),
         fast5 = ancient("{runid}/reads"),
         venv = ancient(IN_POMOXIS),
     output:
@@ -174,7 +172,7 @@ rule basecall_guppy:
     
         sleep $(((RANDOM % 30)  + 1 ))        
 
-        GPU=$({input.PICK_GPU} 2>> {log})
+        GPU=$(pick_gpu 2>> {log})
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
@@ -746,7 +744,6 @@ rule all_medaka_train_features:
 
 rule train_medaka:
     input:
-        PICK_GPU = ancient(PICK_GPU),
         venv = ancient(IN_MEDAKA),
         features = ancient(get_medaka_features_targets(config)),
     output:
@@ -761,7 +758,7 @@ rule train_medaka:
         echo "GPU status before" >> {log}
         gpustat >> {log}
 
-        GPU=$({input.PICK_GPU} 2>> {log})
+        GPU=$(pick_gpu 2>> {log})
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 

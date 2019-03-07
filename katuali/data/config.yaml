@@ -1,8 +1,61 @@
-# Config for training and evaluating medaka models
+
+# Master katuali configuration file template
+# ------------------------------------------
 #
-# The config allows for training from fast5s obtained from multiple sequencing
-# runs and multiple genomes whilst specifying regions on which to train and
-# evaluate.
+# Having copied this file with the command:
+#     katuali_config my_config.yaml
+# it will be necessary to amend the `DATA:` dictionary in the first section below
+# to define the dataset to be processed.
+#
+# The second section containing software locations should also be checked and
+# amended if necessary.
+#
+# To run the predefined workflows: fast_assm_polish standard_assm_polish
+# standard_assm_nanopolish all_medaka_train_features starting from fast5 input,
+# nothing else need be done. If starting a workflow from basecall data
+# (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
+# basecalls should be placed under a folder as determined by the value of the
+# `BASECALLER` in the pipeline options.
+
+
+####################
+# Input data options
+
+# .fast5 files can be under top-level folders named by a RUNID (these need not
+# be actual run UUIDs). Fast5s should be in RUNID/reads.  The keys within this
+# data dictionary are RUNIDs.
+#
+# MEDAKA_TRAIN_REGIONS, MEDAKA_EVAL_REGIONS, and REFERENCE define regions for
+# training and evaluation within the medaka training workflow, and are
+# otherwise not used.
+#
+# GENOME_SIZE is required only in workflows using the canu assembler.
+#
+# In the example below we train from the "minion" run using "ecoli" and "yeast"
+# contigs in the reference and evaluate on the "gridion" run using the contigs
+# "ecoli", "yeast" and "na12878_chr21" in the reference.
+DATA:
+    'MinIonRun1': 
+        'GENOME_SIZE': '4.8M'
+        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
+        'MEDAKA_EVAL_REGIONS': []
+        'REFERENCE': 'ref.fasta'
+    'MinIonRun2': 
+        'GENOME_SIZE': '4.8M'
+        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
+        'MEDAKA_EVAL_REGIONS': []
+        'REFERENCE': 'ref.fasta'   
+    'GridIonRun1': 
+        'GENOME_SIZE': '4.8M'
+        'MEDAKA_TRAIN_REGIONS': []
+        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+        'REFERENCE': 'ref.fasta'   
+    'GridIonRun2': 
+        'GENOME_SIZE': '4.8M'
+        'MEDAKA_TRAIN_REGIONS': []
+        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+        'REFERENCE': 'ref.fasta'   
+
 
 ##############################
 # Location of various software
@@ -20,6 +73,18 @@ GUPPY: "/usr/bin/guppy_basecaller"
 SOURCE: "source"
 LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 
+
+##################
+# Pipeline options
+
+# Basecaller for predefined workflows. The `fast_assm_polish`,
+# `standard_assm_polish` `standard_assm_nanopolish` and medaka training
+# workflows use this value to determine the basecaller setup to use.
+#
+# It is recommended to set this to: guppy_flipflop
+BASECALLER: "guppy_flipflop" 
+
+
 #########################
 # Compute/cluster options
 
@@ -30,39 +95,10 @@ TMPSCRATCH: ""
 THREADS_PER_JOB: 16
 
 
-##################
-# Pipeline options
+#############################
+# Options for medaka training
 
-# currently supported options are guppy, flappie or scrappie.
-BASECALLER: "guppy" 
-
-####################
-# Input data options
-
-# .fast5 files can be under top-level folders named by a RUNID
-# (these need not be actual run UUIDs). Fast5s should be in RUNID/reads.
-# The keys within this data dict are RUNIDs.  MEDAKA_TRAIN_REGIONS and
-# MEDAKA_EVAL_REGIONS define regions for training and evaluation. In the
-# example below we train from the "minion" run using "ecoli" and "yeast" contigs
-# in the reference and evaluate on the "gridion" run using the contigs "ecoli",
-# "yeast" and "na12878_chr21" in the reference.
-DATA:
-    'MinIonRun1': 
-        'REFERENCE': 'ref.fasta'   
-        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-        'MEDAKA_EVAL_REGIONS': []
-    'MinIonRun2': 
-        'REFERENCE': 'ref.fasta'   
-        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-        'MEDAKA_EVAL_REGIONS': []
-    'GridIonRun1': 
-        'REFERENCE': 'ref.fasta'   
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-    'GridIonRun2': 
-        'REFERENCE': 'ref.fasta'   
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+# This section can be ignored if not running a medaka training workflow
 
 # Read depths at which to create assemblies for training, this should
 # span the range of depths at which the model is to be used
@@ -91,10 +127,6 @@ MEDAKA_OPTS:
     "_rep_2_best_val": "medaka_train_rep2/model.best.val.hdf5"
     "_rep_3_best_val": "medaka_train_rep3/model.best.val.hdf5"
 
-
-############################
-# Misc. options for programs
-
 # Medaka training features
 MEDAKA_TRAIN_TRUTH_CHUNK: 10000  # this sets the size of truth chunks aligned to draft to provide labels. 
 MEDAKA_TRAIN_FEAT_OPTS:
@@ -102,6 +134,19 @@ MEDAKA_TRAIN_FEAT_OPTS:
 
 MEDAKA_TRAIN_OPTS:
     "": "--mini_epochs 5 --validation_split 0.10"
+
+
+############################
+# Misc. options for programs
+#
+# For advanced users. See
+# https://nanoporetech.github.io/katuali/examples.html#examples
+# for help in contructing bespoke pipelines.
+#
+# For fully specified targets, rather than predefined workflows the below can
+# be used to manipulate how each program is run. Each key acts as a shortcut
+# for a specific parameter set (as well as functioning as a target name).
+# Default parameters are given by the `""` targets
 
 # Scrappie 
 SCRAPPIE_OPTS: 
@@ -117,25 +162,21 @@ FLAPPIE_OPTS:
 GUPPY_OPTS: 
     "": "-c dna_r9.4_450bps.cfg"
     "_flipflop": "-c dna_r9.4.1_450bps_flipflop.cfg"
-
-GUPPY_SLOTS: 20 
+GUPPY_SLOTS: 8  # for passing to SGE parallel environment
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
     "": " --all_fail"
     "_prop": "--proportional --all_fail"
     "_filtered": "--quality 6 --coverage 90 --all_fail"
- 
 
-#Canu 
+# Canu 
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 CANU_EXEC_OPTS: "useGrid=False"
-CANU_GENOME_SIZE: "4.8M"
 CANU_OPTS:
     "": "" 
 
-
-# Used by mini_assemble
+# mini_assemble
 MINI_ASSEMBLE_OPTS: 
     "": ""
     "_ce": "-c -e 10"
@@ -148,7 +189,7 @@ CANU_OPTS:
 
 # Nanopolish
 # wildcards in dynamic files cannot be constrained => we can't safely extract a
-# suffix from dynamic nanopolish targets to use to use nested config
+# suffix from dynamic nanopolish targets since they use nested config
 NANOPOLISH_OPTS: "--fix-homopolymers"
 
 # assess_assembly
