@@ -100,7 +100,7 @@ contain subdirectories of reads) within a run directory:
     mkdir -p run1
     cd run1
     ln -s /path/to/fast5 reads  # create a softlink to the fast5 data
-    cd ../
+    cd ..
     
 Then make a copy of the katuali config into your working directory,
 
@@ -112,24 +112,25 @@ and update the katuali config to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
 
-
 There are three predefined pipelines.
-    * To perform basecalling, a quick assembly with miniasm, and consensus with racon
-      and medaka it is sufficient to run:
 
-        katuali --configfile my_config.yaml fast_assm_polish
+1. To perform basecalling, a quick assembly with miniasm, and consensus with racon
+   and medaka it is sufficient to run:
 
-    * Alternatively to assemble with canu run:
+       katuali --configfile my_config.yaml fast_assm_polish
 
-        katuali --configfile my_config.yaml standard_assm_polish
+2. Alternatively to assemble with canu run:
 
-    * To polish the assembly with nanopolish (not recommended in tandem with
-    flip-flop basecalling, where medaka is preferred):
+       katuali --configfile my_config.yaml standard_assm_polish
 
-        katuali --configfile my_config.yaml standard_assm_nanopolish
+3. To polish the assembly with nanopolish (not recommended in tandem with
+   flip-flop basecalling, where medaka is preferred):
 
-The [documentation](https://nanoporetech.github.io/katuali/examples.html) describes how to create a 
-pipeline with any combination of basecallers, assemblers and polishers. 
+       katuali --configfile my_config.yaml standard_assm_nanopolish
+
+The [documentation](https://nanoporetech.github.io/katuali/examples.html)
+describes how to create a pipeline with any combination of basecallers,
+assemblers and polishers. 
     
 
 Medaka training pipeline

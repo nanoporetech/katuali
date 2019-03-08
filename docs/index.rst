@@ -12,17 +12,17 @@ Features
   * Recommended fixed `standard` and `fast` pipelines.
   * Interchange basecaller, assembler, and consensus components of the
     pipelines simply by changing the target filepath. 
-  * Medaka training pipeline including generation of training data, model training and model evaluation. 
+  * Medaka training pipeline including generation of training data, model
+    training and model evaluation. 
   * Seemless distribution of tasks over local or distributed compute.
   * Open source (Mozilla Public License 2.0).
-
 
 .. _quickstart:
 
 Quickstart
 ----------
 
-The `Katuali` :ref:`Tests` contain examples of how to basecall,
+The `Katuali` :ref:`tests` contain examples of how to basecall,
 assemble, and polish a small dataset that comes bundled with `Katuali`. 
 
 To run with other data, start by creating a directory of reads (which could
@@ -30,13 +30,16 @@ contain subdirectories of reads) within a run directory (`run1` in this example)
 
 .. code-block:: bash
 
-    mkdir -p run1 && cd run1 && ln -s /path/to/fast5 reads && cd ../
+    mkdir -p run1
+    cd run1
+    ln -s /path/to/fast5 reads  # create a softlink to the fast5 data
+    cd ..
     
 Then make a copy of the katuali config into your working directory;
 
 .. code-block:: bash
 
-    cp ~/git/katuali/config.yaml .
+    katuali_config my_config.yaml
 
 and update the katuali config to reflect your data:
 
@@ -48,21 +51,22 @@ and update the katuali config to reflect your data:
 
 There are three predefined pipelines that can be used starting from fast5 input:
 
-To basecall the reads, assemble them with miniasm, and polish the assembly with racon and medaka simply run: 
+1. To basecall the reads, assemble them with miniasm, and polish the assembly with
+   racon and medaka simply run: 
 
-.. code-block:: bash
-
-    katuali fast_assm_polish
-
-
-To basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop) run: 
-
-.. code-block:: bash
-
-    katuali standard_assm_polish
+   .. code-block:: bash
+  
+       katuali fast_assm_polish
 
 
-To basecall (flipflop), assemble with canu, then polish with racon and nanopolish run:
+2. To basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop) run: 
+
+   .. code-block:: bash
+  
+       katuali standard_assm_polish
+
+
+3. To basecall (flipflop), assemble with canu, then polish with racon and nanopolish run:
 
 .. code-block:: bash
 
@@ -76,7 +80,7 @@ Table of contents
 -----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    installation
    tests
