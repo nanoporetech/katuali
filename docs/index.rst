@@ -73,6 +73,7 @@ Table of contents
    examples
    medaka_train
    configuration
+   faq
 
 
 Indices and tables
