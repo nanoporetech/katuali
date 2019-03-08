@@ -19,24 +19,24 @@ For example, while
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/basecalls.fasta
-
-will perform basecalling with scrappie (starting from `./run1/reads`), 
-
-.. code-block:: bash
-
     katuali run1/basecall/guppy/basecalls.fasta
 
 will basecall with guppy. 
 
+.. code-block:: bash
+
+    katuali run1/basecall/scrappie/basecalls.fasta
+
+will perform basecalling with scrappie (starting from `./run1/reads`), 
+
 Each step of a multi-step pipeline stores its outputs in a subdirectory of the
 previous stage. In this way, we can define a multistep-pipeline to basecall
-with scrappie, assemble with canu, then polish with medaka, and finally run
+with guppy, assemble with canu, then polish with medaka, and finally run
 nanopolish by contructing the target: 
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/canu_gsz_4.0M/medaka/nanopolish/consensus.fasta
+    katuali run1/basecall/guppy/canu_gsz_4.0M/medaka/nanopolish/consensus.fasta
 
 This nested working directory stores the data in such a way that is it obvious
 what went into and out of each stage of the pipeline.
@@ -44,13 +44,13 @@ what went into and out of each stage of the pipeline.
 It also enables forks in the pipelines which might share basecalls (or other
 intermediate results), but differ in assembly or consensus methods.
 
-For example, if we wish to basecall with scappie, assemble with canu, run
+For example, if we wish to basecall with guppy, assemble with canu, run
 medaka on the canu assembly, and seperately run nanopolish on the canu assembly,
 we could use the targets: 
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/canu_gsz_4.0M/nanopolish/consensus.fasta run1/basecall/scrappie/canu_gsz_4.0M/medaka/consensus.fasta
+    katuali run1/basecall/guppy/canu_gsz_4.0M/nanopolish/consensus.fasta run1/basecall/guppy/canu_gsz_4.0M/medaka/consensus.fasta
 
 `Snakemake` will create a graph of tasks to perform the common basecall
 and assembly tasks, then run separately nanopolish and medaka from the same
@@ -60,13 +60,13 @@ inputs (and in parallel, given enough resource).
 Basecalling
 -----------
 
-Supported basecallers include scrappie, flappie and guppy:
+Supported basecallers include guppy, scrappie, flappie:
 
 .. code-block:: bash
 
+    katuali run1/basecall/guppy/basecalls.fasta
     katuali run1/basecall/scrappie/basecalls.fasta
     katuali run1/basecall/flappie/basecalls.fasta
-    katuali run1/basecall/guppy/basecalls.fasta
 
 
 Assembly

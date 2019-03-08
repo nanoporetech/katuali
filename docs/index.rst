@@ -8,13 +8,12 @@ polish Oxford Nanopore Technologies' sequencing data.
 Features
 --------
 
-  * Run a pipeline processing fast5s from multiple runs into multiple consensuses in a single command.
+  * fast5 to high quality consensus in a single command.
   * Recommended fixed `standard` and `fast` pipelines.
   * Interchange basecaller, assembler, and consensus components of the
     pipelines simply by changing the target filepath. 
   * Medaka training pipeline including generation of training data, model training and model evaluation. 
   * Seemless distribution of tasks over local or distributed compute.
-  * Highly configurable.  
   * Open source (Mozilla Public License 2.0).
 
 
@@ -23,7 +22,7 @@ Features
 Quickstart
 ----------
 
-The `Katuali` :ref:`tests` contain examples of how to basecall,
+The `Katuali` :ref:`Tests` contain examples of how to basecall,
 assemble, and polish a small dataset that comes bundled with `Katuali`. 
 
 To run with other data, start by creating a directory of reads (which could
@@ -47,20 +46,30 @@ and update the katuali config to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
 
-Then calculate any of the outputs the pipeline knows how to make by running e.g.:
+There are three predefined pipelines that can be used starting from fast5 input:
+
+To basecall the reads, assemble them with miniasm, and polish the assembly with racon and medaka simply run: 
 
 .. code-block:: bash
 
     katuali fast_assm_polish
 
-This will basecall the reads, assemble them with miniasm, and polish the
-assembly with racon and medaka. 
+
+To basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop) run: 
 
 .. code-block:: bash
 
     katuali standard_assm_polish
 
-will instead basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop). 
+
+To basecall (flipflop), assemble with canu, then polish with racon and nanopolish run:
+
+.. code-block:: bash
+
+    standard_assm_nanopolish 
+
+
+See :ref:`introduction` for details on creating flexible multistep pipelines.
 
 
 Table of contents
@@ -70,6 +79,7 @@ Table of contents
    :maxdepth: 2
 
    installation
+   tests
    examples
    medaka_train
    configuration

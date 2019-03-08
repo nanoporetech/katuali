@@ -57,9 +57,9 @@ instructions.
 
 **Basecalling Tools**
 
+* [guppy](https://community.nanoporetech.com/downloads): "/usr/bin/guppy_basecaller"
 * [scrappie](https://github.com/nanoporetech/scrappie): "~/git/scrappie"
 * [flappie](https://github.com/nanoporetech/flappie): "~/git/github/flappie"
-* [guppy](https://community.nanoporetech.com/downloads): "/usr/bin/guppy_basecaller"
 
 Guppy is recommended, both scrappie and flappie are research prototypes.
 
@@ -112,20 +112,25 @@ and update the katuali config to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
 
-To perform basecalling, a quick assembly with miniasm, and consensus with racon
-and medaka it is sufficient to run:
 
-    katuali --configfile my_config.yaml fast_assm_polish
+There are three predefined pipelines.
+    * To perform basecalling, a quick assembly with miniasm, and consensus with racon
+      and medaka it is sufficient to run:
 
-Alternatively to assemble with canu run:
+        katuali --configfile my_config.yaml fast_assm_polish
 
-    katuali --configfile my_config.yaml standard_assm_polish
+    * Alternatively to assemble with canu run:
 
-To polish the assembly with nanopolish (not recommended in tandem with
-flip-flop basecalling, where medaka is preferred):
+        katuali --configfile my_config.yaml standard_assm_polish
 
-    katuali --configfile my_config.yaml standard_assm_nanopolish
+    * To polish the assembly with nanopolish (not recommended in tandem with
+    flip-flop basecalling, where medaka is preferred):
 
+        katuali --configfile my_config.yaml standard_assm_nanopolish
+
+The [documentation](https://nanoporetech.github.io/katuali/examples.html) describes how to create a 
+pipeline with any combination of basecallers, assemblers and polishers. 
+    
 
 Medaka training pipeline
 ------------------------
