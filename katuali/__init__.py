@@ -53,6 +53,8 @@ def process_katuali_config():
     args.base_configfile = args.inputs[0]
     args.out_configfile = args.inputs[1]
     args.additional_config = args.inputs[2] if len(args.inputs) > 2 else []
+    if isinstance(args.additional_config, str):
+        args.additional_config = [args.additional_config]
 
     # sys.argv ignores quotes, so would split e.g.
     # MINI_ASSEMBLE_OPTS="-n 10" GUPPY_OPTS="--hp_correct 1"
