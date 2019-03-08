@@ -8,15 +8,14 @@ polish Oxford Nanopore Technologies' sequencing data.
 Features
 --------
 
-  * Run a pipeline processing fast5s from multiple runs into multiple consensuses in a single command.
+  * fast5 to high quality consensus in a single command.
   * Recommended fixed `standard` and `fast` pipelines.
   * Interchange basecaller, assembler, and consensus components of the
     pipelines simply by changing the target filepath. 
-  * Medaka training pipeline including generation of training data, model training and model evaluation. 
+  * Medaka training pipeline including generation of training data, model
+    training and model evaluation. 
   * Seemless distribution of tasks over local or distributed compute.
-  * Highly configurable.  
   * Open source (Mozilla Public License 2.0).
-
 
 .. _quickstart:
 
@@ -31,13 +30,16 @@ contain subdirectories of reads) within a run directory (`run1` in this example)
 
 .. code-block:: bash
 
-    mkdir -p run1 && cd run1 && ln -s /path/to/fast5 reads && cd ../
+    mkdir -p run1
+    cd run1
+    ln -s /path/to/fast5 reads  # create a softlink to the fast5 data
+    cd ..
     
 Then make a copy of the katuali config into your working directory;
 
 .. code-block:: bash
 
-    cp ~/git/katuali/config.yaml .
+    katuali_config my_config.yaml
 
 and update the katuali config to reflect your data:
 
@@ -47,32 +49,45 @@ and update the katuali config to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
 
-Then calculate any of the outputs the pipeline knows how to make by running e.g.:
+There are three predefined pipelines that can be used starting from fast5 input:
+
+1. To basecall the reads, assemble them with miniasm, and polish the assembly with
+   racon and medaka simply run: 
+
+   .. code-block:: bash
+  
+       katuali fast_assm_polish
+
+
+2. To basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop) run: 
+
+   .. code-block:: bash
+  
+       katuali standard_assm_polish
+
+
+3. To basecall (flipflop), assemble with canu, then polish with racon and nanopolish run:
 
 .. code-block:: bash
 
-    katuali fast_assm_polish
+    standard_assm_nanopolish 
 
-This will basecall the reads, assemble them with miniasm, and polish the
-assembly with racon and medaka. 
 
-.. code-block:: bash
-
-    katuali standard_assm_polish
-
-will instead basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop). 
+See :ref:`introduction` for details on creating flexible multistep pipelines.
 
 
 Table of contents
 -----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    installation
+   tests
    examples
    medaka_train
    configuration
+   faq
 
 
 Indices and tables

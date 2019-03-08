@@ -42,7 +42,7 @@ master_doc = 'index'
 # General information about the project.
 __pkg_name__ = u'katuali'
 project = __pkg_name__.capitalize()
-copyright = u'2018, Oxford Nanopore Technologies'
+copyright = u'2018-19, Oxford Nanopore Technologies'
 
 # Generate API documentation:
 #if subprocess.call(['sphinx-apidoc', '-o', './', "../{}".format(__pkg_name__)]) != 0:
@@ -81,7 +81,7 @@ release = __version__
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build','*test*']
+exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None

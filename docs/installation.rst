@@ -9,9 +9,9 @@ Installation
 As such, all that is required to run the pipeline is `Snakemake`. 
 
 A Makefile is provided to create a `virtual environment
-<https://docs.python.org/3/tutorial/venv.html>`_ into which to install snakemake as well the katuali convenience wrapper. 
+<https://docs.python.org/3/tutorial/venv.html>`_ into which all necessary dependencies will be installed. 
 
-Katuali has been tested on Linux, specifically Ubuntu 16.
+Katuali has been tested on Linux (specifically Ubuntu 16) and MacOS.
 
 To setup the environment run:
 
@@ -29,35 +29,42 @@ Dependencies
 ------------
 
 Katuali makes use of a number of tools to do basecalling, assembly and
-polishing that you will need to install.  
+polishing that need to be installed to perform such steps of a pipeline. 
+Katuali does not enforce that all possible tools are present; only those
+required to run a user's pipeline need be installed. If Katuali cannot
+find a tool, it will alert the user. 
 
-You only need to install what you will use.
+The list below indicates possible options for pipeline steps and the default
+filesystem location where Katuali expects to find them. These locations can be
+changed by the user, see the
+'documentation' for more information.
+Please refer to the documentation of each of these tools for installation
+instructions.
+The default config parameters can be changed in the config or on the command 
+line to point to your installations of these tools. 
 
-Tools are inputs to the targets; if something can't be found, Snakemake will tell you it is missing.
+Basecalling Tools
+^^^^^^^^^^^^^^^^^
 
-The following config default parameters can be changed in the config or on the command line to point to your installations of these tools: 
-
+    * `GUPPY <https://community.nanoporetech.com/downloads>`_: "/usr/bin/guppy_basecaller"
     * `SCRAPPIE <https://github.com/nanoporetech/scrappie>`_: "~/git/scrappie"
     * `FLAPPIE <https://github.com/nanoporetech/flappie>`_: "~/git/github/flappie"
-    * GUPPY: "/usr/bin/guppy_basecaller"
+
+    Guppy is recommended, both scrappie and flappie are research prototypes
+
+Assembly Tools
+^^^^^^^^^^^^^^
+
     * `IN_POMOXIS <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
     * `CANU_EXEC <https://github.com/marbl/canu>`_: "~/git/canu-1.7.1/Linux-amd64/bin/canu"
+
+Consensus Tools
+^^^^^^^^^^^^^^^
+
     * `NANOPOLISH <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
     * `IN_MEDAKA <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
 
-Please refer to the documentation of each of these tools for installation instructions.
+Medeka is recommended in combination witht he lastest "flip-flop" algorithm in the guppy basecaller, 
+and for rapid consensus. Nanopolish may still by preferred if using older basecallers.  
 
-
-.. _tests:
-
-Tests
------
-
-The easiest way to test the pipeline is to run the tests, which will basecall,
-assemble and polish a small dataset that comes bundled with `Katuali`. 
-The tests require scrappie, pomoxis, canu and nanopolish to be installed, and can be run with:
-
-.. code-block:: bash
-
-    make test
 
