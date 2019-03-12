@@ -39,6 +39,11 @@ do
             cluster_parm="\"${2-}\""
             shift 2
             ;;
+        --drmaa)
+            cluster_opt="${1-}"
+            cluster_parm="\"${2-}\""
+            shift 2
+            ;;
         --sge)
             cluster_opt=$sge_opt
             cluster_parm="\"$sge_parm\""
