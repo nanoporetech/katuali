@@ -1,3 +1,4 @@
+drmaa
 gpustat
 pandas
 pysam
