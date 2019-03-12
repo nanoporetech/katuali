@@ -12,8 +12,12 @@ args="--restart-times 3"
 config_opts=""
 cluster_opt=""
 cluster_parm=""
-sge_opt="--latency-wait 300 --cluster-sync"
-sge_parm="$(which qsub) -V -cwd -l {params.sge} -sync yes -o $log_dir -j y" 
+sge_opt="--latency-wait 300 --drmaa"
+# space is needed at start of sge_parm, 
+# see https://snakemake.readthedocs.io/en/stable/executable.html?highlight=DRMAA#cluster-execution
+sge_parm=" -cwd -l {params.sge} -o $log_dir -j y" 
+
+export DRMAA_LIBRARY_PATH=${SGE_ROOT}/lib/lx-amd64/libdrmaa.so
 
 for i in "$@"; 
 do
