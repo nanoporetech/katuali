@@ -98,17 +98,28 @@ Note that `--jobs` will control the total number of threads used; i.e. if
 `THREADS_PER_JOB` is set to 4 and `--jobs` is set to 8, up to two multi-threaded
 jobs can run at a time.
 
+When running on a local machine using GPUs (e.g. while basecalling with guppy
+or training medaka models), `katuali` can limit the number of concurrent GPU
+tasks scheduled so as not to saturate GPU resource by informing katuali how
+many GPUs are present on the machine:
+
+.. code-block:: bash
+
+    NSLOTS=100
+    NGPUS=$(nvidia-smi --list-gpus | wc -l)
+    katuali -j ${NSLOTS} --resources gpu=${NGPUS} ${targets}
+
 When submitting to a queuing system, the `--jobs` option will limit the number
 of queue slots used simultaneously.
 
-The `katuali` wrapper has an `--sge` option which can handle submission to a
-default sge queue using DRMAA:
+The `katuali` wrapper has an `--autocluster` option which can handle submission to a
+default cluster using DRMAA:
     
 .. code-block:: bash
 
     NSLOTS=100
     target=fast_assm_polish
-    katuali -j ${NSLOTS} --sge ${target}
+    katuali -j ${NSLOTS} --autocluster ${target}
 
 which is equivalent to running: 
 
@@ -116,10 +127,39 @@ which is equivalent to running:
 
     NSLOTS=100
     target=fast_assm_polish
-    katuali -j ${NSLOTS} --latency-wait 300 --drmaa " -cwd -l {params.sge}" ${target}
+    cluster_config=$(katuali_datafile cluster_config.yaml)
+    katuali -j ${NSLOTS} --latency-wait 300 --drmaa " {cluster.export_env} {cluster.cwd} {cluster.n_gpu}{resources.gpu} {cluster.n_cpu}{threads} {cluster.logdir}logs {cluster.misc}" --cluster-config ${cluster_config} ${target}
 
-The local snakemake task will then submit all tasks to the queue for execution.
-The `--latency-wait` parameter is useful for ensuring that pipelines don't crash
-due to output files not appearing on the node where snakemake is run due to
-latencies on networked file systems. 
+in this example, the bundled example cluster config is used to create the
+command to submit jobs. Here is an example of the cluster config: 
+
+.. code-block:: yaml
+
+    __default__:
+        n_cpu: "-pe mt "
+        n_gpu: "-l gpu="
+        export_env: "-V"
+        cwd: "-cwd"
+        logdir: "-o "
+        misc: "-j y"
+
+Using this cluster config is equivalent to running:
+
+.. code-block:: bash
+
+    NSLOTS=100
+    target=fast_assm_polish
+    katuali -j ${NSLOTS} --latency-wait 300 --drmaa "-V -cwd -l gpu={resources.gpu} -pe mt {threads} -o logs -j y"
+
+The use of cluster configs allows us to abstract away details specific to a
+given cluster, and easily switch between clusters simply by changing config.
+See the `Snakemake documentation on cluster logs for futher details
+<https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html#cluster-configuration>`_. 
+
+When running on a cluster, the local snakemake task will submit all tasks to
+the queue for execution.  The `--latency-wait` parameter is useful for ensuring
+that pipelines don't crash due to output files not appearing on the node where
+snakemake is run due to latencies on networked file systems.
+
+
 

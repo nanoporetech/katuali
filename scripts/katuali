@@ -2,6 +2,7 @@
 
 snakefile=$(katuali_datafile Snakefile)
 config=$(katuali_datafile config.yaml)
+cluster_config=$(katuali_datafile cluster_config.yaml)
 
 
 log_dir=logs
@@ -12,10 +13,13 @@ args="--restart-times 3"
 config_opts=""
 cluster_opt=""
 cluster_parm=""
-sge_opt="--latency-wait 300 --drmaa"
-# space is needed at start of sge_parm, 
+
+autocluster_opt="--latency-wait 300 --drmaa"
+# space is needed at start of autocluster_parm, 
 # see https://snakemake.readthedocs.io/en/stable/executable.html?highlight=DRMAA#cluster-execution
-sge_parm=" -cwd -l {params.sge} -o $log_dir -j y" 
+#autocluster_parm=" -cwd -l {params.sge} -o $log_dir -j y" 
+autocluster_parm=" {cluster.export_env} {cluster.cwd} {cluster.n_gpu}{resources.gpu} {cluster.n_cpu}{threads} {cluster.logdir}$log_dir {cluster.misc}"
+
 
 export DRMAA_LIBRARY_PATH=${SGE_ROOT}/lib/lx-amd64/libdrmaa.so
 
@@ -34,6 +38,10 @@ do
             config="${2-}"
             shift 2
             ;;
+        --cluster-config)
+            cluster_config="${2-}"
+            shift 2
+            ;;
         --cluster*)
             cluster_opt="${1-}"
             cluster_parm="\"${2-}\""
@@ -44,9 +52,9 @@ do
             cluster_parm="\"${2-}\""
             shift 2
             ;;
-        --sge)
-            cluster_opt=$sge_opt
-            cluster_parm="\"$sge_parm\""
+        --autocluster)
+            cluster_opt=$autocluster_opt
+            cluster_parm="\"$autocluster_parm\""
             shift 1
             ;;
         --config)
@@ -78,6 +86,10 @@ do
             ;;
     esac
 done
+
+if [ -n "$cluster_opt" ]; then
+    cluster_opt="--cluster-config $cluster_config $cluster_opt"
+fi
 
 
 mkdir -p $config_dir $log_dir

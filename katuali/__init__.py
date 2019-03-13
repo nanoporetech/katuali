@@ -98,9 +98,9 @@ def pick_gpu():
         stats = gpustat.GPUStatCollection.new_query()
         sorter = lambda s: (s.memory_used, s.utilization, s.temperature)
         gpu = sorted(stats.gpus, key=sorter)[0].index
-        logger.info('SGE_HGR_gpu was not set, setting GPU to {} based on memory and utilization'.format(gpu))
+        logger.info('{} was not set, setting GPU to {} based on memory and utilization'.format(args.env_var, gpu))
     else:
         gpu = gpu.replace('cuda', '')
-        logger.info('Using gpu {} from SGE_HGR_gpu'.format(gpu))
+        logger.info('Using gpu {} from {}'.format(gpu, args.env_var))
     print(gpu)
 

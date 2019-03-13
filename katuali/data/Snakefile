@@ -19,6 +19,7 @@ NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "nanopo
 NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "scripts", "nanopolish_makerange.py")
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
+IN_MEDAKA_TRAIN = os.path.expanduser(config["IN_MEDAKA_TRAIN"])
 IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
@@ -46,8 +47,8 @@ rule environment:
     # Just output the contents of PATH and LD_LIBRARY_PATH to log
     log:
         "katuali.sge.log",
-    params:
-        sge = "m_mem_free=1G,gpu=0", 
+    resources:
+        gpu = 0
     shell:
         'echo $PATH; echo $LD_LIBRARY_PATH'
 
@@ -112,12 +113,13 @@ rule basecall_scrappie:
     log:
         "{runid}/basecall/scrappie{suffix,[^/]*}/scrappie.log",
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         opts = partial(get_opts, config=config, config_key="SCRAPPIE_OPTS")
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
-        echo "{input.scrappie} {config[SCRAPPIE_OPTS]} "> {log}
+        echo "{input.scrappie} {params[opts]} "> {log}
         find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {params[opts]} --threads {threads} >{output.fasta} 2>> {log}
         """
 
@@ -133,9 +135,10 @@ rule basecall_flappie:
     log:
         "{runid}/basecall/flappie{suffix,[^/]*}/flappie.log",
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         opts = partial(get_opts, config=config, config_key="FLAPPIE_OPTS"),
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         export OPENBLAS_NUM_THREADS=1
@@ -159,9 +162,11 @@ rule basecall_guppy:
     log:
         "{runid}/basecall/guppy{suffix,[^/]*}.log",
     params:
-        sge = "m_mem_free=1G,gpu=1 -pe mt {}".format(config["GUPPY_SLOTS"]),
         output_dir = lambda w: "{runid}/basecall/guppy{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
+    threads: config["GUPPY_SLOTS"]
+    resources:
+        gpu = 1
     shell:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
@@ -196,8 +201,8 @@ rule scrappie_summary:
         fasta = ancient("{runid}/basecall/scrappie/basecalls.fasta"),
     output:
         summary = "{runid}/basecall/scrappie/sequencing_summary.txt"
-    params:
-        sge = "m_mem_free=1G,gpu=0"
+    resources:
+        gpu = 1
     shell:
     	"cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} &&"
     	# most tools expect read_id, not uuid
@@ -212,9 +217,10 @@ rule align_to_ref:
     output:
         bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         prefix = lambda w, output: os.path.splitext(output.bam)[0],
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -228,9 +234,9 @@ rule align_to_draft:
         draft = ancient("{dir}/consensus.fasta"),
     output:
         bam = "{dir}/{subdir}/calls2draft.bam"
-    params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -248,8 +254,9 @@ rule assess_consensus:
         stats = "{runid,[^/]+}/{dir}/consensus_to_truth_stats.txt",
     params:
         prefix = "{runid}/{dir}/consensus_to_truth",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -268,8 +275,9 @@ rule ray_catalogue:
         "{runid}/{dir}/{prefix}_ray_catalogue.log"
     params:
         prefix = "{runid}/{dir}/{prefix}_ray",
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]) 
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -281,8 +289,8 @@ rule hp_acc_vs_length:
         catalogue = ancient("{runid}/{dir}/{prefix}_ray_catalogue.txt"),
     output:
         hp_acc_sum = "{runid,[^/]+}/{dir}/{prefix}_ray_summary.txt"
-    params:
-        sge = "m_mem_free=1G,gpu=0"
+    resources:
+        gpu = 0
     run:
         from collections import defaultdict
         import pandas as pd
@@ -318,7 +326,8 @@ rule get_depth:
         depth = directory("{dir}/depth")
     params:
         contig_opt = partial(get_contig_opt, config=config),
-        sge = "m_mem_free=1G,gpu=0", 
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -332,8 +341,8 @@ rule get_basecall_stats:
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         stats = "{dir}/calls2ref_stats.txt"
-    params:
-        sge = "m_mem_free=1G,gpu=0" 
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -351,9 +360,10 @@ rule subsample_bam:
     params:
         contig_opt = partial(get_contig_opt, config=config),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
 	    """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -373,13 +383,12 @@ rule racon:
         basecalls = "{dir}/racon{suffix,[^/]*}/basecalls.fasta"
     log:
         "{dir}/racon{suffix}.log"
-    threads: config["THREADS_PER_JOB"]
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         output_dir = lambda w: "{dir}/racon{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -406,9 +415,10 @@ rule miniasm_racon:
         "{dir}/miniasm_racon{suffix}.log"
     params:
         output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w)),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]), 
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -440,8 +450,9 @@ rule canu:
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
         mt="maxThreads={}".format(config["THREADS_PER_JOB"]),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     shell:
         """
         # snakemake will create the output dir, canu will fail if it exists..
@@ -464,8 +475,12 @@ rule medaka_consensus:
     log:
         "{dir}/medaka{suffix}.log"
     threads: 8
+    resources:
+        # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
+        # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
+        # running on CPU
+        gpu = 0  
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
     shell:
@@ -491,8 +506,9 @@ rule ref_guided_medaka_consensus:
     log:
         "{runid}/{dir}/medaka{suffix}.log"
     threads: 8
+    resources:
+        gpu = 0
     params:
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
     shell:
@@ -514,8 +530,8 @@ rule nanopolish_basecalls:
         ancient("{runid}/basecall/{subdir}/basecalls.fasta"),
     output:
         "{runid}/basecall/{subdir}/nanopolish/basecalls.fasta",
-    params:
-        sge = "m_mem_free=1G,gpu=0" 
+    resources:
+        gpu = 0
     shell:
         """
         cut -d' ' -f1 < {input} > {output}
@@ -534,8 +550,8 @@ rule nanopolish_index:
         "{runid}/basecall/{basecaller,[^/]+}/{subdir}/nanopolish/basecalls.fasta.index.readdb",
     log:
         "{runid}/basecall/{basecaller}/{subdir}/nanopolish/nanopolish_index.log"
-    params:
-        sge = "m_mem_free=1G,gpu=0" 
+    resources:
+        gpu = 0
     shell:
 	    """
         {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log}
@@ -546,8 +562,8 @@ rule fast5_list:
         fast5 = ancient("{runid}/reads")
     output:
         filelist = "{runid}/reads/reads.txt"
-    params:
-        sge = "m_mem_free=1G,gpu=0" 
+    resources:
+        gpu = 0
     shell:
         """
         find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist}
@@ -568,10 +584,11 @@ rule nanopolish_vcf:
     log:
         "{dir}/nanopolish/regions/{region}.vcf.log"
     params:
-        sge = "m_mem_free=1G,gpu=0", 
         # wildcards in dynamic files cannot be constrained => we can't safely extract a
         # suffix from dynamic nanopolish targets to use to use nested config
         opts = config["NANOPOLISH_OPTS"],
+    resources:
+        gpu = 0
     shell:
 	    """
         {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
@@ -586,8 +603,8 @@ rule nanopolish_regions:
     output:
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
         regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
-    params:
-        sge = "m_mem_free=1G,gpu=0" 
+    resources:
+        gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -606,8 +623,8 @@ rule nanopolish:
         consensus = "{dir}/nanopolish/consensus.fasta",
     log:
         "{dir}/nanopolish/vcf2fasta.log"
-    params:
-        sge = "m_mem_free=1G,gpu=0", 
+    resources:
+        gpu = 0
     shell:
         "{input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2> {log}"
 
@@ -625,6 +642,8 @@ rule medaka_train_features:
     log:
         "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_train{suffix}.log"
     threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
     params:
         output_dir = lambda w, output: os.path.dirname(output.features),
         bam = lambda w, output: os.path.join(os.path.dirname(output.features), "calls2ref"),
@@ -633,7 +652,6 @@ rule medaka_train_features:
         rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         truth_region = lambda w, output: os.path.join(os.path.dirname(output.features), "truth.fasta"),
-        sge = "m_mem_free=1G,gpu=0 -pe mt {}".format(config["THREADS_PER_JOB"]),
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
         truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
     shell:
@@ -748,15 +766,16 @@ rule all_medaka_train_features:
 
 rule train_medaka:
     input:
-        venv = ancient(IN_MEDAKA),
+        venv = ancient(IN_MEDAKA_TRAIN),
         features = ancient(get_medaka_features_targets(config)),
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")
     log:
         "medaka_train_{suffix}.log",
     params:
-        sge = "m_mem_free=1G,gpu=1",
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
+    resources:
+        gpu = 1
     shell:
         """
         echo "GPU status before" >> {log}
