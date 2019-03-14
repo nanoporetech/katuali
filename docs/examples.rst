@@ -268,6 +268,8 @@ using the contigs `ecoli`, `yeast` and `na12878_chr21` in the reference.
 
 Running:
 
+.. code-block:: bash
+
     katuali all_medaka_train_features --keep-going
 
 will:
@@ -280,17 +282,21 @@ will:
 
 Running:
 
+.. code-block:: bash
+
     katuali medaka_train_replicates --keep-going
 
-will do all the tasks of `all_medaka_train_features` and additionally launch
+will do all the tasks of ``all_medaka_train_features`` and additionally launch
 multiple medaka model-training replicates.
 
 If some of your input runs have insufficient coverage-depth for some of the
 training regions, some of the training feature files will not be made. In this
-case the config flag USE_ONLY_EXISTING_MEDAKA_FEAT can be set to true to allow
+case the config flag ``USE_ONLY_EXISTING_MEDAKA_FEAT`` can be set to true to allow
 katuali to train using only those features which exist already:
+
+.. code-block:: yaml
 
     USE_ONLY_EXISTING_MEDAKA_FEAT: true 
 
-Refer to comments in the config (katuali/config.yaml) to see how this process
+Refer to comments in the config (katuali/data/config.yaml) to see how this process
 can be controlled. 

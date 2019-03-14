@@ -62,7 +62,12 @@ DATA:
 #
 # Configuration for software is found toward the end of this config.
 
-IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+# Katuali supports running medaka consensus only on CPU and training only on
+# GPU. If you wish to train and run consensus it is easiest to create two
+# medaka virtual environemnts - one for GPU (with tensorflow-gpu installed) and
+# one for CPU (with just tensorflow installed). 
+IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # medaka used for consensus - should only have tensorflow installed
+IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 IN_RAY: "~/git/ray/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
@@ -135,6 +140,8 @@ MEDAKA_TRAIN_FEAT_OPTS:
 MEDAKA_TRAIN_OPTS:
     "": "--mini_epochs 5 --validation_split 0.10"
 
+# Medaka training can be IO-limited - using mult-threading to load data can speed things up
+MEDAKA_TRAIN_THREADS_IO: 8
 
 ############################
 # Misc. options for programs
@@ -160,7 +167,7 @@ FLAPPIE_OPTS:
 
 # Guppy        
 GUPPY_OPTS: 
-    "": "-c dna_r9.4_450bps.cfg"
+    "": "-c dna_r9.4.1_450bps.cfg"
     "_flipflop": "-c dna_r9.4.1_450bps_flipflop.cfg"
 GUPPY_SLOTS: 8  # for passing to SGE parallel environment
 
