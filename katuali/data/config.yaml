@@ -67,7 +67,7 @@ DATA:
 # medaka virtual environemnts - one for GPU (with tensorflow-gpu installed) and
 # one for CPU (with just tensorflow installed). 
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # medaka used for consensus - should only have tensorflow installed
-IN_MEDAKA_TRAIN: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
+IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 IN_RAY: "~/git/ray/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"

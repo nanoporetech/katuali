@@ -19,7 +19,7 @@ NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "nanopo
 NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "scripts", "nanopolish_makerange.py")
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
-IN_MEDAKA_TRAIN = os.path.expanduser(config["IN_MEDAKA_TRAIN"])
+IN_MEDAKA_GPU = os.path.expanduser(config["IN_MEDAKA_GPU"])
 IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 
@@ -766,7 +766,7 @@ rule all_medaka_train_features:
 
 rule train_medaka:
     input:
-        venv = ancient(IN_MEDAKA_TRAIN),
+        venv = ancient(IN_MEDAKA_GPU),
         features = ancient(get_medaka_features_targets(config)),
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")
