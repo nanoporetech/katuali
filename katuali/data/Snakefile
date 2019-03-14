@@ -204,9 +204,9 @@ rule scrappie_summary:
     resources:
         gpu = 1
     shell:
-    	"cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} &&"
-    	# most tools expect read_id, not uuid
-	    "sed -i '1 s/uuid/read_id/' {output.summary}"
+        "cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} &&"
+        # most tools expect read_id, not uuid
+        "sed -i '1 s/uuid/read_id/' {output.summary}"
 
 
 rule align_to_ref:
@@ -224,7 +224,7 @@ rule align_to_ref:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads}
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads}
         """
 
 rule align_to_draft:
@@ -240,7 +240,7 @@ rule align_to_draft:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads}
+        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads}
         """
 
 rule assess_consensus:
@@ -331,7 +331,7 @@ rule get_depth:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
+        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
         """
 
 
@@ -341,12 +341,14 @@ rule get_basecall_stats:
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         stats = "{dir}/calls2ref_stats.txt"
+    log:
+        "{dir}/basecall_stats.log"
     resources:
         gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-    	stats_from_bam {input.bam} -o {output.stats}
+        stats_from_bam {input.bam} -o {output.stats}
         """
 
 rule subsample_bam:
@@ -365,7 +367,7 @@ rule subsample_bam:
     resources:
         gpu = 0
     shell:
-	    """
+        """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>{log};
         sleep 5;
