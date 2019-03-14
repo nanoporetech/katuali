@@ -110,7 +110,7 @@ allow katuali to train using only those features which exist already.
 
     
 .. note:: Note that you need to first attempt to create all features with the
-    `all_medaka_train_features` rule with `USE_ONLY_EXISTING_MEDAKA_FEAT` set to
-    false, and then run `medaka_train_replicates` with the flag set to true. 
+    ``all_medaka_train_features`` rule with ``USE_ONLY_EXISTING_MEDAKA_FEAT`` set to
+    false, and then run ``medaka_train_replicates`` with the flag set to true. 
 
 Refer to comments in the config (katuali/config.yaml) for further details. 
