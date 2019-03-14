@@ -1,11 +1,10 @@
 
-
 .. _configuration:
 
 Pipeline configuration
 ======================
 
-`Snakemake` allows pipeline parameters to be provided in a `config file, or on
+`Snakemake` allows pipeline parameters to be provided in a config file, or on
 the command line
 <https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html>`_ .
 
@@ -13,17 +12,16 @@ If you use the `katuali` wrapper script (rather than running `Snakemake`
 directly), by default your pipeline will use the yaml config provided with
 `katuali`.
 
-The default config file can be overridden using the `--configfile`` option, and
+The default config file can be overridden using the ``--configfile`` option, and
 individual config parameters can be overwriddden with the ``--config`` option:
 
 .. code-block:: bash
 
-    # use a custom config katuali
-    basecall/scrappie/miniasm_racon/consensus.fasta --configfile myconfig.yaml
+    # use a custom config
+    katuali basecall/scrappie/miniasm_racon/consensus.fasta --configfile myconfig.yaml
 
-    # override MINI_ASSEMBLE_OPTS config on the command line katuali
-    basecall/scrappie/miniasm_racon/consensus.fasta --config
-    MINI_ASSEMBLE_OPTS="-c"
+    # override MINI_ASSEMBLE_OPTS config on the command line
+    katuali basecall/scrappie/miniasm_racon/consensus.fasta --config MINI_ASSEMBLE_OPTS="-c"
 
 
 Nested configuration
@@ -47,6 +45,7 @@ options:
 
     # use default MINI_ASSEMBLE_OPTS (suffix is empty string "")
     katuali basecall/scrappie/miniasm_racon/consensus.fasta
+    
     # use MINI_ASSEMBLE_OPTS specified by suffix "_ce"
     katuali basecall/scrappie/miniasm_racon_ce/consensus.fasta
 
@@ -62,21 +61,9 @@ Further, settings in the config file can be overridden on the command line:
 
     katuali fast_assm_polish --config MINI_ASSEMBLE_OPTS="-c -e 5"
 
-However, this only works if you use the katuali wrapper, not if you run
-Snakemake directly; a nested config entry cannot be changed on the command line
-using `Snakemake`.
-
-The wrapper achieves this merging command line ``--config`` options with the
-input `--configfile` and saving the merged YAML config before running snakemake
-with the merged config. 
-
-
-Automatic saving of logs and configuration
-------------------------------------------
-
-If you use the convenience wrapper `katuali` rather than calling snakemake
-directly, the `katuali` wrapper will write a copy of all logs to the directory
-`./logs` and all katuali configs to `./configs`. 
+The ``katuali`` program achieves this merging command line ``--config`` options
+with the input ``--configfile`` and saving the merged YAML config before running
+snakemake. 
 
 
 Processing and resource
@@ -84,14 +71,14 @@ Processing and resource
 
 The pipeline can be used on the local machine, or submitted to a cluster.
 
-There are two parameters which control cpu usage:
+There are two parameters which control CPU usage:
 
     * the ``--cores N`` option, which limits the totol number of threads which can be simultaneously used by all Snakemake tasks.
     
     * the ``--config THREADS_PER_JOB=n`` config parameter, determines the maximum
       number of `threads
       <https://snakemake.readthedocs.io/en/stable/tutorial/advanced.html#step-1-specifying-the-number-of-used-threads>`_
-      that a single multi-threaded rule will use.  When less cores than threads
+      that a single multi-threaded rule will use. When fewer cores than threads
       are provided, the number of threads a task uses will be reduced to the
       number of given cores.
 
@@ -113,7 +100,8 @@ many GPUs are present on the machine:
     NGPUS=$(nvidia-smi --list-gpus | wc -l)  # how many GPUs available on the machine
     katuali --cores ${NCPUS} --resources gpu=${NGPUS} ${targets}
 
-here ``--resources gpu=${NGPUS}`` specifies the maximum number of GPUs which can be used.
+here ``--resources gpu=${NGPUS}`` specifies the maximum number of GPUs which can be used
+simultaneously by concurrent tasks.
 
 .. note:: Note that if ``--cores`` is not specified, it defaults to 1, while if
     ``--resources`` it defaults to 0 (unlimited) and that Snakemake manages
