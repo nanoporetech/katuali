@@ -93,25 +93,24 @@ BASECALLER: "guppy_flipflop"
 #########################
 # Compute/cluster options
 
-# location of scratch space on cluster nodes This is currently only used for
+# Location of scratch space on cluster nodes. This is currently only used for
 # medaka training where latency on an networked filesystem can significantly
-# slow things down.  To have katuali copy medaka features to scratch space
-# before training set SCRATCH to the path to the scratch space, 
-# e.g. SCRATCH: "/scratch"
+# slow things down. To have katuali copy medaka features to scratch space
+# before training set SCRATCH and optionally TMPSCRATCH.
+#
+# If TMPSCRATCH is given the resultant path will be:
+#     /SCRATCH/$USER/TMPSCRATCH
+# whereas if it is not given the resultant path will be:
+#    /SCRATCH/$USER/<generated unique name>
+#
+# TMPSCRATCH is useful in the case of restarting a training job on a node to
+# which features have already been copied; in this case, simply set TMPSCRATCH
+# to the directory under which the features were copied and katuali will skip
+# copying the data and use the existing data.
+#
+# Note that katuali does not delete the data in scratch, so users must do this
+# manually.
 SCRATCH: ""
-# If SCRATCH is set, by default katuali will not copy features directly into
-# SCRATCH, but will create a temporary subdirectory with a unique name
-# e.g. /SCRATCH/$USER/<temporary_directory/.
-# This is so that different training jobs do not copy data to the same path.
-# TMPSCRATCH enables the user to specify exactly where the data should be copied to / read from. 
-# e.g. /scratch/$USER/existing_scr_dir
-# This is useful if you wish to restart a training job on a node to which feautures have already been copied; 
-# in this case, simply set TMPSCRATCH to the directory under which the features
-# were copied and katuali will skip copying the data and use the existing data.
-# Note that for TMPSCRATCH to be used, SCRATCH must also be set (i.e. it must
-# not be an empty string).  
-# Note also that katuali does not delete the data in scratch, so users must do
-# this manually.
 TMPSCRATCH: ""
 
 # default number of threads/cores/slots to use per multi-threaded task.

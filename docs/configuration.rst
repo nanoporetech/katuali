@@ -4,9 +4,9 @@
 Pipeline configuration
 ======================
 
-`Snakemake` allows pipeline parameters to be provided in a config file, or on
-the command line
-<https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html>`_ .
+`Katuali` uses `Snakemake` which allows pipeline 
+`parameters <https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html>`_
+to be provided in a file, or on the command line.
 
 If you use the `katuali` wrapper script (rather than running `Snakemake`
 directly), by default your pipeline will use the yaml config provided with
@@ -110,6 +110,8 @@ simultaneously by concurrent tasks.
     separately from other `resources
     <https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#snakefiles-resources>`_. 
 
+
+.. _using_cluster:
 
 Submitting tasks to a cluster
 -----------------------------

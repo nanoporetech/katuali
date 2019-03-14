@@ -1,8 +1,8 @@
 
 .. _introduction:
 
-Examples
-========
+Custom pipelines
+================
 
 One of the main aims of `Katuali` is to enable the bolting-together of any
 number of basecallers, assemblers, and polishers into flexible (i.e. not
