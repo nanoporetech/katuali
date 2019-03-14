@@ -764,7 +764,7 @@ rule all_medaka_train_features:
         "medaka_train_features.log"
 
 
-rule train_medaka:
+rule medaka_train:
     input:
         venv = ancient(IN_MEDAKA_GPU),
         features = ancient(get_medaka_features_targets(config)),
@@ -774,6 +774,7 @@ rule train_medaka:
         "medaka_train_{suffix}.log",
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
+    threads: config["MEDAKA_TRAIN_THREADS_IO"]
     resources:
         gpu = 1
     shell:
@@ -815,7 +816,7 @@ rule train_medaka:
         fi
 
         set +u; {config[SOURCE]} {input.venv} set -u;
-        medaka train $features --train_name {output.train_dir} {params.opts} --device $GPU &>> {log}
+        CUDA_VISIBLE_DEVICES=${GPU} medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
         """
 
 rule medaka_train_replicates:

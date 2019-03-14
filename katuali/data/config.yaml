@@ -140,6 +140,8 @@ MEDAKA_TRAIN_FEAT_OPTS:
 MEDAKA_TRAIN_OPTS:
     "": "--mini_epochs 5 --validation_split 0.10"
 
+# Medaka training can be IO-limited - using mult-threading to load data can speed things up
+MEDAKA_TRAIN_THREADS_IO: 8
 
 ############################
 # Misc. options for programs
