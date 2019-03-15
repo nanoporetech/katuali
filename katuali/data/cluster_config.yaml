@@ -1,0 +1,7 @@
+__default__:
+    n_cpu: "-pe mt "
+    n_gpu: "-l gpu="
+    export_env: "-V"
+    cwd: "-cwd"
+    logdir: "-o "
+    misc: "-j y"
