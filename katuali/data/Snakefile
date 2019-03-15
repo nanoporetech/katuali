@@ -201,12 +201,16 @@ rule scrappie_summary:
         fasta = ancient("{runid}/basecall/scrappie/basecalls.fasta"),
     output:
         summary = "{runid}/basecall/scrappie/sequencing_summary.txt"
+    log:
+        "{runid}/basecall/scrappie/scrappie_summary.log"
     resources:
         gpu = 1
     shell:
-        "cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} &&"
+        """
+        cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} 2> {log}
         # most tools expect read_id, not uuid
-        "sed -i '1 s/uuid/read_id/' {output.summary}"
+        sed -i '1 s/uuid/read_id/' {output.summary} &>> {log}
+        """
 
 
 rule align_to_ref:
@@ -216,6 +220,8 @@ rule align_to_ref:
         ref = ancient(partial(get_reference, config=config)),
     output:
         bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
+    log:
+        "{runid}/basecall/{bc_dir}/align/align_to_ref.log"
     params:
         prefix = lambda w, output: os.path.splitext(output.bam)[0],
     threads: config["THREADS_PER_JOB"]
@@ -224,7 +230,7 @@ rule align_to_ref:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads}
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads} &> {log}
         """
 
 rule align_to_draft:
@@ -234,13 +240,15 @@ rule align_to_draft:
         draft = ancient("{dir}/consensus.fasta"),
     output:
         bam = "{dir}/{subdir}/calls2draft.bam"
+    log:
+        "{dir}/{subdir}/align_to_draft.log"
     threads: config["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads}
+        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads} &> {log}
         """
 
 rule assess_consensus:
@@ -252,6 +260,8 @@ rule assess_consensus:
         summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
         bam = "{runid,[^/]+}/{dir}/consensus_to_truth.bam",
         stats = "{runid,[^/]+}/{dir}/consensus_to_truth_stats.txt",
+    log:
+        "{runid}/{dir}/assess_consensus.log"
     params:
         prefix = "{runid}/{dir}/consensus_to_truth",
     threads: config["THREADS_PER_JOB"]
@@ -260,7 +270,7 @@ rule assess_consensus:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} 
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &> {log}
         """
 
 
@@ -324,6 +334,8 @@ rule get_depth:
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         depth = directory("{dir}/depth")
+    log:
+        "{dir}/depth/get_depth.log"
     params:
         contig_opt = partial(get_contig_opt, config=config),
     resources:
@@ -331,7 +343,7 @@ rule get_depth:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>{output.depth}/depth.log
+        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &> {log}
         """
 
 
@@ -348,7 +360,7 @@ rule get_basecall_stats:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        stats_from_bam {input.bam} -o {output.stats}
+        stats_from_bam {input.bam} -o {output.stats} &> {log}
         """
 
 rule subsample_bam:
@@ -400,9 +412,7 @@ rule racon:
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
-        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-        touch --no-dereference $PWD/{params[output_dir]}/*
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
 
@@ -430,9 +440,7 @@ rule miniasm_racon:
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
-        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-        touch --no-dereference $PWD/{params[output_dir]}/*
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
 rule canu:
@@ -461,9 +469,7 @@ rule canu:
         #rm -r {params[output_dir]}
         {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta &&
-        # sync timestamps, without following basecalls link (otherwise consensus will be older than basecalls)
-        touch --no-dereference $PWD/{output.consensus} $PWD/{output.basecalls}
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
 rule medaka_consensus:
@@ -532,11 +538,13 @@ rule nanopolish_basecalls:
         ancient("{runid}/basecall/{subdir}/basecalls.fasta"),
     output:
         "{runid}/basecall/{subdir}/nanopolish/basecalls.fasta",
+    log:
+        "{runid}/basecall/{subdir}/nanopolish/nanopolish_basecalls.log"
     resources:
         gpu = 0
     shell:
         """
-        cut -d' ' -f1 < {input} > {output}
+        cut -d' ' -f1 < {input} > {output} 2> {log}
         """
 
 rule nanopolish_index:
@@ -564,11 +572,13 @@ rule fast5_list:
         fast5 = ancient("{runid}/reads")
     output:
         filelist = "{runid}/reads/reads.txt"
+    log:
+        "{runid}/reads/fast5_list.log"
     resources:
         gpu = 0
     shell:
         """
-        find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist}
+        find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist} &> {log}
         """
 
 rule nanopolish_vcf:
@@ -605,13 +615,16 @@ rule nanopolish_regions:
     output:
         # Number of regions is unknown ahead of time, so use dynamic keyword to delay evaluation
         regions = dynamic("{dir}/nanopolish/regions/{region}.region"),
+    params:
+        # seemingly to have a regular log, we would need one per region..
+        log = "{dir}/nanopolish/regions/nanopolish_regions.log"
     resources:
         gpu = 0
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list &&
-        for i in `cat {wildcards.dir}/nanopolish/regions.list`; do touch {wildcards.dir}/nanopolish/regions/$i.region; done
+        python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list 2> {params.log} &&
+        for i in `cat {wildcards.dir}/nanopolish/regions.list`; do touch {wildcards.dir}/nanopolish/regions/$i.region; done 2>> {params.log}
         """
 
 rule nanopolish:
@@ -670,7 +683,7 @@ rule medaka_train_features:
         sleep 5
 
         echo "Extracting truth region {wildcards.region} from reference" >>{log}
-        samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 
+        samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 2>> {log}
         sleep 5
 
         echo "aligning truth to draft" >>{log}
@@ -791,25 +804,25 @@ rule medaka_train:
         if [ "{config[SCRATCH]}" != "" ];then
             if [ "{config[TMPSCRATCH]}" != "" ];then
                 tmpscr={config[TMPSCRATCH]}
-                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}"
-                mkdir -p $tmpscr
+                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}" >> {log}
+                mkdir -p $tmpscr &>> {log}
             else
                 userscr={config[SCRATCH]}/$USER
-                mkdir -p $userscr
-                tmpscr=$(mktemp -d -p $userscr)
+                mkdir -p $userscr 2>> {log}
+                tmpscr=$(mktemp -d -p $userscr) &>> {log}
             fi
             t=$(date +"%T")
-            echo "$t: Copying feature files to specified scratch directory: $tmpscr."
+            echo "$t: Copying feature files to specified scratch directory: $tmpscr." >> {log}
             for f in {input.features}; do
-                d=$tmpscr/$f;
-                t0=$(date +"%T");
+                d=$tmpscr/$f
+                t0=$(date +"%T")
                 if [[ ! -e $d ]]; then 
-                    echo "$t0 Copying $d";
-                    mkdir -p $(dirname $d) && sleep 1 && cp $f $d; 
-                    t1=$(date +"%T");
-                    echo "$t1 Copied $d";
+                    echo "$t0 Copying $d" >> {log}
+                    mkdir -p $(dirname $d) && sleep 1 && cp $f $d &>> {log}
+                    t1=$(date +"%T")
+                    echo "$t1 Copied $d" >> {log}
                 else
-                    echo "Found existing file: $d"
+                    echo "Found existing file: $d" >> {log}
                 fi
             done
             features=$(for f in {input.features}; do echo $tmpscr/$f; done)

@@ -92,21 +92,26 @@ if [ -n "$cluster_opt" ]; then
 fi
 
 
-mkdir -p $config_dir $log_dir
+mkdir -p $config_dir 
+
+# make snakemake logs more visible by creating a symlink to the hidden
+# .snakemake/log dir
+
+if [[ ! -e ${log_dir} ]]; then
+    ln -s .snakemake/log ${log_dir}
+fi
 
 t=$(date --rfc-3339=seconds | sed 's/ /_/')
 configout="${config_dir}/katuali_${t}.yaml"
-log="${log_dir}/katuali_${t}.log"
 
 process_katuali_config $config $configout $config_opts
 
 cmd="snakemake -s ${snakefile} --configfile $configout $args $cluster_opt $cluster_parm"
 
 if $silent; then 
-    echo $cmd | bash &> $log
+    echo $cmd | bash &> /dev/null
 else
     echo "Running $cmd"
     echo "Config saved to $configout"
-    echo "Log saved to $log" 
-    echo $cmd | bash 2>&1 | tee $log
+    echo $cmd | bash 
 fi
