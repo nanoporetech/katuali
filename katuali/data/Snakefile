@@ -841,8 +841,8 @@ rule medaka_train_replicates:
         "medaka_train_replicates.log",
 
 
-def canu_racon_medaka_twice_targets(config):
-    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/medaka{suff}/consensus_to_truth_summ.txt"
+def canu_racon_medaka_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/consensus_to_truth_summ.txt"
     targets = []
     try:
         for runid, d in config["DATA"].items():
@@ -884,7 +884,7 @@ def ref_guided_medaka_targets(config):
 
 rule all_medaka_eval:
     input:
-        targets = ancient(canu_racon_medaka_twice_targets(config)),
+        targets = ancient(canu_racon_medaka_targets(config)),
     log:
         "medaka_eval.log"
 
