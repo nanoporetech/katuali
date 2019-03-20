@@ -1,4 +1,3 @@
-
 # Master katuali configuration file template
 # ------------------------------------------
 #
@@ -193,12 +192,6 @@ SUBSAMPLE_BAM_OPTS:
     "": " --all_fail"
     "_prop": "--proportional --all_fail"
     "_filtered": "--quality 6 --coverage 90 --all_fail"
-
-# Canu 
-CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
-CANU_EXEC_OPTS: "useGrid=False"
-CANU_OPTS:
-    "": "" 
 
 # mini_assemble
 MINI_ASSEMBLE_OPTS: 
