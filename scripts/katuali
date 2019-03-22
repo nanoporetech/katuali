@@ -9,7 +9,7 @@ log_dir=logs
 config_dir=configs
 
 silent=false
-args="--restart-times 3"
+args="--restart-times 3 --keep-going"
 config_opts=""
 cluster_opt=""
 cluster_parm=""
