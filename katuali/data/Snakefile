@@ -490,7 +490,7 @@ rule medaka_consensus:
         gpu = 0  
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
-        output_dir = lambda w: "{dir}/medaka{suffix}".format(**dict(w))
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
@@ -501,6 +501,38 @@ rule medaka_consensus:
 
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
+        """
+
+rule medaka_variant:
+    input:
+        venv = ancient(IN_MEDAKA),
+        bam = ancient("{runid}/{dir}/calls2ref.bam"),
+        bai = ancient("{runid}/{dir}/calls2ref.bam.bai"),
+        ref = ancient(partial(get_reference, config=config)),
+    output:
+        vcf = "{runid,[^/]+}/{dir}/{contig,[^/]+}/medaka_variant{suffix,[^/]*}/medaka.vcf",
+    log:
+        "{runid}/{dir}/{contig}/medaka_variant{suffix}.log"
+    threads: 8
+    resources:
+        # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
+        # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
+        # running on CPU
+        gpu = 0  
+    params:
+        opts = partial(get_opts, config=config, config_key="MEDAKA_VARIANT_OPTS"),
+        contig_opt = partial(get_contig_opt, config=config),
+        output_dir = lambda w, output: os.path.dirname(output.vcf),
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir if it does not exist, remove it it exists. 
+        rm -r {params.output_dir} 
+
+        medaka_variant -b {input.bam} -f {input.ref} -o {params.output_dir} -t {threads} {params.contig_opt} {params.opts} &> {log}
+    
+        mv {params.output_dir}/round_2_final_unphased.vcf {output.vcf}
+
         """
 
 rule ref_guided_medaka_consensus:
@@ -881,6 +913,23 @@ def ref_guided_medaka_targets(config):
 
     return targets
 
+def medaka_variant_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/medaka_variant{suff}/medaka.vcf"
+    targets = []
+    try:
+        for runid, d in config["DATA"].items():
+            for region in d["MEDAKA_VARIANT_REGIONS"]:
+                targets.extend([template.format(runid=runid,
+                                                basecaller=config["BASECALLER"],
+                                                region=region,
+                                                suff=suffix)
+                                for suffix in config["MEDAKA_VARIANT_SUFFIXES"]
+                ])
+    except:
+        pass
+
+    return targets
+
 
 rule all_medaka_eval:
     input:
@@ -895,3 +944,8 @@ rule all_ref_guided_medaka_eval:
     log:
         "ref_guided_medaka.log"
 
+rule all_medaka_variant:
+    input:
+        targets = ancient(medaka_variant_targets(config)),
+    log:
+        "medaka_variant.log"
