@@ -4,25 +4,26 @@
 Medaka training pipeline
 ========================
 
-It is possible to train and evaluate medaka models starting from
-folders of fast5s in a single command once the config has been modified to
-reflect your input data (fast5s and genomes for each run as well as training
-and evaluation region definitions).
+It is possible to train and evaluate medaka models starting from folders of
+``.fast5`` or ``.fasta/q`` files in a single command.
 
 
 Input data specification
 ------------------------
 
-Read .fast5 files can be under top-level folders named by a `RUNID` (these need
-not be actual run UUIDs). Fast5s should be in `RUNID`/reads.  The keys within
-this data dictionary are `RUNIDs`.
+Read ``.fast5`` files should be placed under top-level folders. Multiple top-level
+folders can be used, perhaps corresponding to multiple runs.
 
-`MEDAKA_TRAIN_REGIONS` and `MEDAKA_EVAL_REGIONS` define regions for training
+Within the ``DATA`` section of a katuali configuration file, these top-level
+folders should be listed along with details of reference sequence files and sequences.
+`MEDAKA_TRAIN_REGIONS` and `MEDAKA_EVAL_REGIONS` define genomic regions for training
 and evaluation.
 
-In the example below we train from the `minion` run using
-`ecoli` and `yeast` contigs in the reference and evaluate on the `gridion` run
-using the contigs `ecoli`, `yeast` and `na12878_chr21` in the reference.
+In the example below data from the first two top-level directories
+(``MinIonRun1`` and ``MinIonRun2``) will be used for training using ``ecoli``
+and ``yeast`` reference sequences. Evaluation of the trained models will be
+performed using the third and fourth top-level directories using the ``ecoli``,
+``yeast``, and ``na12878_chr21`` sequences.
 
 .. code-block:: yaml
 
@@ -45,14 +46,12 @@ using the contigs `ecoli`, `yeast` and `na12878_chr21` in the reference.
             'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
 
 
-
 Coverage depths specification
 -----------------------------
 
-Read depths at which to create assemblies for training, this should
-span the range of depths at which the model is to be used
-Use the --keep-going option of Snakemake if you are happy the relax
-the constraint of requiring all depths for all reference sequences. 
+Read depths at which to create assemblies for training are specified by the
+``DEPTH`` key of the katuali configuration. This list should span the range of
+depths at which the model is to be used.
 
 .. code-block:: yaml
 
@@ -60,48 +59,67 @@ the constraint of requiring all depths for all reference sequences.
         [25, 50, 75, 100, 125, 150, 175, 200]
 
 
+For some datasets it my not be possible to create assemblies for all reference
+sequences at all depths. To avoid katuali exiting early when such trivial failures
+occur the ``--keep-going`` option can be used. This allows tasks to continue
+unaffected by the failure of unrelated tasks.
+
+
 Creating training features
 --------------------------
 
-Running:
+To create training data ("features") for medaka, ``katuali`` must:
+
+* basecall data from all top-level directories (if ``.fast5`` s are provided),
+* align all basecalls to the specified reference sequences,
+* create subsampled sets of basecalls over the desired regions and depths,
+* form draft assemblies from these read sets, and finally
+* create medaka training features data and labels.
+
+There is a single medaka target to perform the above tasks:
 
 .. code-block:: bash
 
     katuali all_medaka_train_features --keep-going  --restart-times 3
 
-will:
+The `--keep-going` flag instructs ``katuali`` to continue processing tasks when
+unrelated tasks fail, while `--restart-times` option tells ``katuali`` to
+attempt each target a maximum of three times. When building hundreds of targets
+on a cluster this can be useful if tasks fail due to issues outside of the
+control of ``katuali``.
 
-* basecall all the runs
-* align each run to its reference
-* create subsampled sets of basecalls over the desired regions and depths
-* assemble those sets of basecalls
-* create medaka training features for all those sets
+Having run the ``all_medaka_train_features`` target, two files will be produced for
+every valid combination of dataset (top-level folder), coverage depth, and reference
+sequence. For example the files:
 
-The `--keep-going` flag tells Snakemake to continue with remaining tasks even
-if some tasks fail (e.g. to insufficient coverage depth) while the
-`--restart-times` option tells Snakemake to attempt each target a maximum of
-three times. When building hundreds of targets on a cluster, we have observed
-that some targets error out on the first attempt, only to succeed on later
-attempts. 
+.. code-block:: bash
+
+    4bf50792/basecall/guppy_flipflop/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train.hdf
+    4bf50792/basecall/guppy_flipflop/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train_rc.hdf
+
+will be produced for a top-level folder named ``4bf5079``, a reference sequence
+``senterica1`` at coverage of ``25``-fold.
+
 
 Training models
 ---------------
 
-Running:
+When the production of all the training data is complete, training can be commenced
+by running:
 
 .. code-block:: bash
 
     katuali medaka_train_replicates --keep-going
 
-will do all the tasks of `all_medaka_train_features` and additionally launch
-multiple medaka model-training replicates.
+This step requires the the use of GPUs to run efficiently. 
+
 
 Coping with missing feature files
 ---------------------------------
 
-If some of your input runs have insufficient coverage-depth for some of the
-training regions, some of the training feature files will not be made. In this
-case the config flag `USE_ONLY_EXISTING_MEDAKA_FEAT` can be set to true to
+If input datasets have insufficient coverage-depth for some of the
+training regions, some training feature files will not be produced. In this
+case the config flag ``USE_ONLY_EXISTING_MEDAKA_FEAT`` can be set to ``true`` to
 allow katuali to train using only those features which exist already.
 
 .. code-block:: yaml
@@ -113,4 +131,4 @@ allow katuali to train using only those features which exist already.
     ``all_medaka_train_features`` rule with ``USE_ONLY_EXISTING_MEDAKA_FEAT`` set to
     false, and then run ``medaka_train_replicates`` with the flag set to true. 
 
-Refer to comments in the config (katuali/config.yaml) for further details. 
+Refer to comments in the katuali configuration file for further details. 
