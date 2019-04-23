@@ -144,9 +144,9 @@ MEDAKA_EVAL_SUFFIXES: ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
 MEDAKA_OPTS: 
     "": ""
     "_flipflop": "-m r941_flip235"
-    "_rep_1_best_val": "medaka_train_rep1/model.best.val.hdf5"
-    "_rep_2_best_val": "medaka_train_rep2/model.best.val.hdf5"
-    "_rep_3_best_val": "medaka_train_rep3/model.best.val.hdf5"
+    "_rep_1_best_val": "-m medaka_train_rep1/model.best.val.hdf5"
+    "_rep_2_best_val": "-m medaka_train_rep2/model.best.val.hdf5"
+    "_rep_3_best_val": "-m medaka_train_rep3/model.best.val.hdf5"
 
 # Medaka training features
 MEDAKA_TRAIN_TRUTH_CHUNK: 10000  # this sets the size of truth chunks aligned to draft to provide labels. 
