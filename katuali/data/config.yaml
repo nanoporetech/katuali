@@ -24,9 +24,15 @@
 # be actual run UUIDs). Fast5s should be in RUNID/reads.  The keys within this
 # data dictionary are RUNIDs.
 #
-# MEDAKA_TRAIN_REGIONS, MEDAKA_EVAL_REGIONS, and REFERENCE define regions for
+# REFERENCE is required for the medaka training workflows, and in general any
+# time reads need to be aligned to a reference (e.g. for for subsampling)
+# and for calling variants. 
+#   
+# MEDAKA_TRAIN_REGIONS and MEDAKA_EVAL_REGIONS define regions for
 # training and evaluation within the medaka training workflow, and are
-# otherwise not used.
+# otherwise not used. 
+#
+# MEDAKA_VARIANT_REGIONS is used in the medaka_all_variant workflow. 
 #
 # GENOME_SIZE is required only in workflows using the canu assembler.
 #
@@ -38,21 +44,25 @@ DATA:
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
+        'MEDAKA_VARIANT_REGIONS': []
         'REFERENCE': 'ref.fasta'
     'MinIonRun2': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
+        'MEDAKA_VARIANT_REGIONS': []
         'REFERENCE': 'ref.fasta'   
     'GridIonRun1': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+        'MEDAKA_VARIANT_REGIONS': []
         'REFERENCE': 'ref.fasta'   
     'GridIonRun2': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+        'MEDAKA_VARIANT_REGIONS': []
         'REFERENCE': 'ref.fasta'   
 
 
@@ -158,6 +168,12 @@ MEDAKA_TRAIN_OPTS:
 
 # Medaka training can be IO-limited - using mult-threading to load data can speed things up
 MEDAKA_TRAIN_THREADS_IO: 8
+
+MEDAKA_VARIANT_OPTS:
+    "_flipflop": "-m r941_flip235 -d"
+
+MEDAKA_VARIANT_SUFFIXES: ["_flipflop"]
+
 
 ############################
 # Misc. options for programs
