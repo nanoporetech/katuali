@@ -831,7 +831,7 @@ rule medaka_train:
         fi
 
         set +u; {config[SOURCE]} {input.venv} set -u;
-        CUDA_VISIBLE_DEVICES=${GPU} medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
+        CUDA_VISIBLE_DEVICES=$GPU medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
         """
 
 rule medaka_train_replicates:
