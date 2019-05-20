@@ -873,6 +873,26 @@ rule medaka_train_replicates:
         "medaka_train_replicates.log",
 
 
+def canu_racon_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/consensus_to_truth_summ.txt"
+    targets = []
+    try:
+        for runid, d in config["DATA"].items():
+            for region in d["MEDAKA_EVAL_REGIONS"]:
+                region_size = get_region_len(region, d["REFERENCE"])  # an int
+                region_size = format_genome_len(region_size)  # as str
+                targets.extend([template.format(runid=runid,
+                                                basecaller=config["BASECALLER"],
+                                                region=region,
+                                                depth=depth,
+                                                genome_size=region_size)
+                                for depth in config["DEPTHS"]
+                ])
+    except:
+        pass
+
+    return targets
+
 def canu_racon_medaka_targets(config):
     template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/consensus_to_truth_summ.txt"
     targets = []
@@ -930,6 +950,12 @@ def medaka_variant_targets(config):
 
     return targets
 
+
+rule all_racon_eval:
+    input:
+        targets = ancient(canu_racon_targets(config)),
+    log:
+        "racon_eval.log"
 
 rule all_medaka_eval:
     input:
