@@ -595,7 +595,7 @@ rule nanopolish_index:
     resources:
         gpu = 0
     shell:
-	    """
+        """
         {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log}
         """
 
@@ -634,7 +634,7 @@ rule nanopolish_vcf:
     resources:
         gpu = 0
     shell:
-	    """
+        """
         {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
         """
 
