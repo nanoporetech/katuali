@@ -65,7 +65,7 @@ Guppy is recommended, both scrappie and flappie are research prototypes.
 
 **Assembly Tools**
 
-* [canu](https://github.com/marbl/canu): "~/git/canu-1.7.1/Linux-amd64/bin/canu"
+* [canu](https://github.com/marbl/canu): "~/git/canu-1.8/Linux-amd64/bin/canu"
 * [pomoxis](https://github.com/nanoporetech/pomoxis): "~/git/pomoxis/venv/bin/activate"
 
 In the context of Katuali, pomoxis functions as a wrapper to
