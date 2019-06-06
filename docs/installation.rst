@@ -37,14 +37,24 @@ changed by the user as appropriate.
 
 Refer to the documentation of each of these tools for installation instructions.
 
+General Tools
+^^^^^^^^^^^^^
+
+.. parsed-literal::
+
+    `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
+
+Pomoxis is used as a general utility throughout much of katuali, its
+installation is required for most functionality.
+
 Basecalling Tools
 ^^^^^^^^^^^^^^^^^
 
 .. parsed-literal::
 
-    `GUPPY <https://community.nanoporetech.com/downloads>`_: "/usr/bin/guppy_basecaller"
-    `SCRAPPIE <https://github.com/nanoporetech/scrappie>`_: "~/git/scrappie"
-    `FLAPPIE <https://github.com/nanoporetech/flappie>`_: "~/git/github/flappie"
+    `guppy <https://community.nanoporetech.com/downloads>`_: "/usr/bin/guppy_basecaller"
+    `scrappie <https://github.com/nanoporetech/scrappie>`_: "~/git/scrappie"
+    `flappie <https://github.com/nanoporetech/flappie>`_: "~/git/github/flappie"
 
 Guppy is recommended, both scrappie and flappie are research prototypes.
 
@@ -53,8 +63,8 @@ Assembly Tools
 
 .. parsed-literal::
 
-    `IN_POMOXIS <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
-    `CANU_EXEC <https://github.com/marbl/canu>`_: "~/git/canu-1.8/Linux-amd64/bin/canu"
+    `canu <https://github.com/marbl/canu>`_: "~/git/canu-1.8/Linux-amd64/bin/canu"
+    `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
 
 In the context of Katuali, pomoxis functions as a wrapper to
 `miniasm <https://github.com/lh3/miniasm>`_. Canu is utilised in the standard

@@ -55,6 +55,13 @@ changed by the user, see the
 Please refer to the documentation of each of these tools for installation
 instructions.
 
+**General Tools**
+
+* [pomoxis](https://github.com/nanoporetech/pomoxis): "~/git/pomoxis/venv/bin/activate"
+
+Pomoxis is used as a general utility throughout much of katuali, its
+installation is required for most functionality.
+
 **Basecalling Tools**
 
 * [guppy](https://community.nanoporetech.com/downloads): "/usr/bin/guppy_basecaller"
