@@ -28,7 +28,7 @@ update: venv/bin/activate
 	${IN_VENV} && pip install -r requirements.txt
 
 
-test: install clean_test test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
+test: install test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
 
 test/config.yaml:
 	mkdir -p test
