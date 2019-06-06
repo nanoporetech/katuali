@@ -39,9 +39,11 @@ rule version:
     run:
         print('katuali version {}'.format(KATUALI_VERSION))
 
+
 rule help:
     shell:
         'echo See https://nanoporetech.github.io/katuali/examples.html for help in getting started'
+
 
 rule environment:
     # Just output the contents of PATH and LD_LIBRARY_PATH to log
@@ -58,12 +60,14 @@ rule fast_assm_polish:
     input:
         consensus = ancient(["{runid}/basecall/guppy/miniasm_racon/medaka/consensus.fasta".format(runid=r) for r in config["DATA"].keys()])
 
+
 rule standard_assm_polish:
-    input: 
+    input:
         consensus = ancient(["{runid}/basecall/guppy_flipflop/canu_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d] )
 
+
 rule standard_assm_nanopolish:
-    input: 
+    input:
         consensus = ancient(["{runid}/basecall/{bc}/canu_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d])
 
 
@@ -102,8 +106,8 @@ def get_opts(wildcards, config, config_key):
         logger.run_info("Using default {} parameters".format(config_key))
 
     return opts
-    
-    
+
+
 rule basecall_scrappie:
     input:
         scrappie = ancient(SCRAPPIE_EXEC),
@@ -171,11 +175,11 @@ rule basecall_guppy:
         """
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
- 
+
         echo "GPU status before" >> {log}
         gpustat >> {log}
-    
-        sleep $(((RANDOM % 30)  + 1 ))        
+
+        sleep $(((RANDOM % 30)  + 1 ))
 
         GPU=$(pick_gpu 2>> {log})
 
@@ -233,6 +237,7 @@ rule align_to_ref:
         mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads} &> {log}
         """
 
+
 rule align_to_draft:
     input:
         venv = ancient(IN_POMOXIS),
@@ -250,6 +255,7 @@ rule align_to_draft:
         set +u; {config[SOURCE]} {input.venv}; set -u;
         mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads} &> {log}
         """
+
 
 rule assess_consensus:
     input:
@@ -294,6 +300,7 @@ rule ray_catalogue:
         ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
         """
 
+
 rule hp_acc_vs_length:
     input:
         catalogue = ancient("{runid}/{dir}/{prefix}_ray_catalogue.txt"),
@@ -326,7 +333,7 @@ rule hp_acc_vs_length:
         for ref, d in df.groupby('record_name'):
             out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
             get_summ(d).to_csv(out, sep=',', index=False)
-            
+
 
 rule get_depth:
     input:
@@ -362,6 +369,7 @@ rule get_basecall_stats:
         set +u; {config[SOURCE]} {input.venv}; set -u;
         stats_from_bam {input.bam} -o {output.stats} &> {log}
         """
+
 
 rule subsample_bam:
     input:
@@ -407,7 +415,7 @@ rule racon:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
-        rm -r {params[output_dir]} && 
+        rm -r {params[output_dir]} &&
         mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
@@ -435,13 +443,14 @@ rule miniasm_racon:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
-        rm -r {params[output_dir]} && 
+        rm -r {params[output_dir]} &&
         mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
+
 
 rule canu:
     # TODO can we make use of github.com/thiesgehrmann/FungalAssemblerPipeline ?
@@ -472,6 +481,7 @@ rule canu:
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
+
 rule medaka_consensus:
     input:
         venv = ancient(IN_MEDAKA),
@@ -487,21 +497,22 @@ rule medaka_consensus:
         # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
         # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
         # running on CPU
-        gpu = 0  
+        gpu = 0
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists. 
-        rm -r {params[output_dir]} 
+        # snakemake will create the output dir if it does not exist, remove it it exists.
+        rm -r {params[output_dir]}
 
         medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
 
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         """
+
 
 rule medaka_variant:
     input:
@@ -518,7 +529,7 @@ rule medaka_variant:
         # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
         # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
         # running on CPU
-        gpu = 0  
+        gpu = 0
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_VARIANT_OPTS"),
         contig_opt = partial(get_contig_opt, config=config),
@@ -526,14 +537,15 @@ rule medaka_variant:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists. 
-        rm -r {params.output_dir} 
+        # snakemake will create the output dir if it does not exist, remove it it exists.
+        rm -r {params.output_dir}
 
         medaka_variant -b {input.bam} -f {input.ref} -o {params.output_dir} -t {threads} {params.contig_opt} {params.opts} &> {log}
-    
+
         mv {params.output_dir}/round_2_final_unphased.vcf {output.vcf}
 
         """
+
 
 rule ref_guided_medaka_consensus:
     input:
@@ -554,8 +566,8 @@ rule ref_guided_medaka_consensus:
     shell:
         """
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists. 
-        rm -r {params[output_dir]} 
+        # snakemake will create the output dir if it does not exist, remove it it exists.
+        rm -r {params[output_dir]}
 
         medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
 
@@ -579,6 +591,7 @@ rule nanopolish_basecalls:
         cut -d' ' -f1 < {input} > {output} 2> {log}
         """
 
+
 rule nanopolish_index:
     input:
         nanopolish = ancient(NANOPOLISH_EXEC),
@@ -599,6 +612,7 @@ rule nanopolish_index:
         {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log}
         """
 
+
 rule fast5_list:
     input:
         fast5 = ancient("{runid}/reads")
@@ -612,6 +626,7 @@ rule fast5_list:
         """
         find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist} &> {log}
         """
+
 
 rule nanopolish_vcf:
     input:
@@ -638,10 +653,11 @@ rule nanopolish_vcf:
         {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
         """
 
+
 rule nanopolish_regions:
     input:
         # use pomoxis python as this has all requirements of the script
-        venv = ancient(IN_POMOXIS), 
+        venv = ancient(IN_POMOXIS),
         make_range = ancient(NANOPOLISH_MAKE_RANGE),
         draft = ancient("{dir}/consensus.fasta"),
     output:
@@ -658,6 +674,7 @@ rule nanopolish_regions:
         python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list 2> {params.log} &&
         for i in `cat {wildcards.dir}/nanopolish/regions.list`; do touch {wildcards.dir}/nanopolish/regions/$i.region; done 2>> {params.log}
         """
+
 
 rule nanopolish:
     input:
@@ -706,7 +723,7 @@ rule medaka_train_features:
         set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
 
         # keep a link of basecalls with the consensus
-        
+
         ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         sleep 1
 
@@ -744,7 +761,7 @@ rule medaka_train_features:
 
 
 def get_region_len(region, ref_fasta):
-    """Get region length from samtools region string, using start and end if present, else obtaining contig length from reference fasta. 
+    """Get region length from samtools region string, using start and end if present, else obtaining contig length from reference fasta.
     """
     if ':' in region:
         if not '-' in region:
@@ -760,7 +777,7 @@ def get_region_len(region, ref_fasta):
         if region not in fa.references:
             raise KeyError('Region {} is not a contig in the reference'.format(region))
         region_len = lengths[region]
-        
+
     return region_len
 
 
@@ -781,13 +798,14 @@ def get_medaka_features_targets(config):
             for region in d["MEDAKA_TRAIN_REGIONS"]:
                 region_size = get_region_len(region, d["REFERENCE"])  # an int
                 region_size = format_genome_len(region_size)  # as str
-                targets.extend([template.format(runid=runid,
-                                                basecaller=config["BASECALLER"],
-                                                region=region,
-                                                depth=depth,
-                                                genome_size=region_size,
-                                                feature_file=f)
-                                for depth in config["DEPTHS"] for f in ["medaka_train.hdf", "medaka_train_rc.hdf"]
+                targets.extend([
+                    template.format(runid=runid,
+                        basecaller=config["BASECALLER"],
+                        region=region,
+                        depth=depth,
+                        genome_size=region_size,
+                        feature_file=f
+                    ) for depth in config["DEPTHS"] for f in ["medaka_train.hdf", "medaka_train_rc.hdf"]
                 ])
     except:
         pass
@@ -848,7 +866,7 @@ rule medaka_train:
             for f in {input.features}; do
                 d=$tmpscr/$f
                 t0=$(date +"%T")
-                if [[ ! -e $d ]]; then 
+                if [[ ! -e $d ]]; then
                     echo "$t0 Copying $d" >> {log}
                     mkdir -p $(dirname $d) && sleep 1 && cp $f $d &>> {log}
                     t1=$(date +"%T")
@@ -866,6 +884,7 @@ rule medaka_train:
         CUDA_VISIBLE_DEVICES=$GPU medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
         """
 
+
 rule medaka_train_replicates:
     input:
         ancient(expand("medaka_train_{replicate}", replicate=config["MEDAKA_TRAIN_REPLICATES"]))
@@ -881,17 +900,19 @@ def canu_racon_targets(config):
             for region in d["MEDAKA_EVAL_REGIONS"]:
                 region_size = get_region_len(region, d["REFERENCE"])  # an int
                 region_size = format_genome_len(region_size)  # as str
-                targets.extend([template.format(runid=runid,
-                                                basecaller=config["BASECALLER"],
-                                                region=region,
-                                                depth=depth,
-                                                genome_size=region_size)
-                                for depth in config["DEPTHS"]
+                targets.extend([
+                    template.format(runid=runid,
+                        basecaller=config["BASECALLER"],
+                        region=region,
+                        depth=depth,
+                        genome_size=region_size
+                    ) for depth in config["DEPTHS"]
                 ])
     except:
         pass
 
     return targets
+
 
 def canu_racon_medaka_targets(config):
     template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/consensus_to_truth_summ.txt"
@@ -901,13 +922,14 @@ def canu_racon_medaka_targets(config):
             for region in d["MEDAKA_EVAL_REGIONS"]:
                 region_size = get_region_len(region, d["REFERENCE"])  # an int
                 region_size = format_genome_len(region_size)  # as str
-                targets.extend([template.format(runid=runid,
-                                                basecaller=config["BASECALLER"],
-                                                region=region,
-                                                depth=depth,
-                                                genome_size=region_size,
-                                                suff=suffix)
-                                for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
+                targets.extend([
+                    template.format(runid=runid,
+                        basecaller=config["BASECALLER"],
+                        region=region,
+                        depth=depth,
+                        genome_size=region_size,
+                        suff=suffix
+                    ) for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
                 ])
     except:
         pass
@@ -921,17 +943,19 @@ def ref_guided_medaka_targets(config):
     try:
         for runid, d in config["DATA"].items():
             for region in d["MEDAKA_EVAL_REGIONS"]:
-                targets.extend([template.format(runid=runid,
-                                                basecaller=config["BASECALLER"],
-                                                region=region,
-                                                depth=depth,
-                                                suff=suffix)
-                                for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
+                targets.extend([
+                    template.format(runid=runid,
+                        basecaller=config["BASECALLER"],
+                        region=region,
+                        depth=depth,
+                        suff=suffix
+                    ) for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
                 ])
     except:
         pass
 
     return targets
+
 
 def medaka_variant_targets(config):
     template = "{runid}/basecall/{basecaller}/align/{region}/medaka_variant{suff}/medaka.vcf"
@@ -939,11 +963,13 @@ def medaka_variant_targets(config):
     try:
         for runid, d in config["DATA"].items():
             for region in d["MEDAKA_VARIANT_REGIONS"]:
-                targets.extend([template.format(runid=runid,
-                                                basecaller=config["BASECALLER"],
-                                                region=region,
-                                                suff=suffix)
-                                for suffix in config["MEDAKA_VARIANT_SUFFIXES"]
+                targets.extend([
+                    template.format(
+                        runid=runid,
+                        basecaller=config["BASECALLER"],
+                        region=region,
+                        suff=suffix
+                    ) for suffix in config["MEDAKA_VARIANT_SUFFIXES"]
                 ])
     except:
         pass
@@ -957,6 +983,7 @@ rule all_racon_eval:
     log:
         "racon_eval.log"
 
+
 rule all_medaka_eval:
     input:
         targets = ancient(canu_racon_medaka_targets(config)),
@@ -969,6 +996,7 @@ rule all_ref_guided_medaka_eval:
         targets = ancient(ref_guided_medaka_targets(config)),
     log:
         "ref_guided_medaka.log"
+
 
 rule all_medaka_variant:
     input:
