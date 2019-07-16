@@ -1,4 +1,4 @@
-.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_flye test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
+.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
 
 UNAME := $(shell uname)
 
@@ -28,7 +28,7 @@ update: venv/bin/activate
 	${IN_VENV} && pip install -r requirements.txt
 
 
-test: install test_basecall test_align test_subsample test_canu test_flye test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
+test: install test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
 
 test/config.yaml:
 	mkdir -p test
