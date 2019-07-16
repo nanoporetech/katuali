@@ -1,4 +1,4 @@
-.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
+.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_flye test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
 
 UNAME := $(shell uname)
 
@@ -14,7 +14,7 @@ TEST=${IN_VENV} && cd test && katuali -s Snakefile --configfile config.yaml --pr
 OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
 venv/bin/activate:
-	test -d venv || virtualenv venv --prompt '(katuali) ' --python=python3
+	test -d venv || virtualenv venv --prompt '(katuali) ' --python=/usr/bin/python3
 	${IN_VENV} && pip install pip --upgrade
 	${IN_VENV} && pip install -r requirements.txt
 
@@ -28,7 +28,7 @@ update: venv/bin/activate
 	${IN_VENV} && pip install -r requirements.txt
 
 
-test: install test_basecall test_align test_subsample test_canu test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
+test: install test_basecall test_align test_subsample test_canu test_flye test_racon test_medaka test_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
 
 test/config.yaml:
 	mkdir -p test
@@ -59,13 +59,25 @@ test_subsample: reads test/ref.fasta test/config.yaml test/Snakefile
 test_canu: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/consensus.fasta
 
-test_racon: reads test/ref.fasta test/config.yaml test/Snakefile
+test_flye: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/consensus.fasta
+
+test_flye_racon: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/consensus.fasta
+
+test_flye_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/medaka/consensus.fasta
+
+test_flye_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/nanopolish/consensus.fasta
+
+test_canu_racon: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/consensus.fasta
 
-test_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
+test_canu_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/medaka/consensus.fasta
 
-test_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
+test_canu_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/nanopolish/consensus.fasta
 
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile

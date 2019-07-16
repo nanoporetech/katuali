@@ -34,7 +34,7 @@
 #
 # MEDAKA_VARIANT_REGIONS is used in the medaka_all_variant workflow. 
 #
-# GENOME_SIZE is required only in workflows using the canu assembler.
+# GENOME_SIZE is required only in workflows using the canu or flye assembler.
 #
 # In the example below we train from the "minion" run using "ecoli" and "yeast"
 # contigs in the reference and evaluate on the "gridion" run using the contigs
@@ -80,6 +80,7 @@ IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training 
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 IN_RAY: "~/git/ray/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
+FLYE_EXEC: "~/git/Flye/bin/flye"
 NANOPOLISH: "~/git/nanopolish" 
 SCRAPPIE: "~/git/scrappie"
 FLAPPIE: "~/git/github/flappie"
@@ -97,6 +98,12 @@ LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 #
 # It is recommended to set this to: guppy_flipflop
 BASECALLER: "guppy_flipflop" 
+
+# Assembler for predefined workflows ("flye" or canu""). The `fast_assm_polish`,
+# `standard_assm_polish` `standard_assm_nanopolish` and medaka training
+# workflows use this value to determine the asembler setup to use.
+
+ASSEMBLER: "canu"
 
 
 #########################
@@ -218,6 +225,10 @@ MINI_ASSEMBLE_OPTS:
 # Canu 
 CANU_EXEC_OPTS: "useGrid=False" # this shouldn't be changed, snakemake will be confused
 CANU_OPTS:
+    "": "" 
+
+# Flye 
+FLYE_OPTS:
     "": "" 
 
 # Nanopolish
