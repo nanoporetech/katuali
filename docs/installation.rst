@@ -65,6 +65,7 @@ Assembly Tools
 
     `canu <https://github.com/marbl/canu>`_: "~/git/canu-1.8/Linux-amd64/bin/canu"
     `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
+    `flye <https://github.com/fenderglass/Flye>`_: "~/git/Flye/bin/flye"
 
 In the context of Katuali, pomoxis functions as a wrapper to
 `miniasm <https://github.com/lh3/miniasm>`_. Canu is utilised in the standard
