@@ -14,7 +14,7 @@ TEST=${IN_VENV} && cd test && katuali -s Snakefile --configfile config.yaml --pr
 OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
 venv/bin/activate:
-	test -d venv || virtualenv venv --prompt '(katuali) ' --python=/usr/bin/python3
+	test -d venv || virtualenv venv --prompt '(katuali) ' --python=python3
 	${IN_VENV} && pip install pip --upgrade
 	${IN_VENV} && pip install -r requirements.txt
 
