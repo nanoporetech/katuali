@@ -28,7 +28,7 @@ update: venv/bin/activate
 	${IN_VENV} && pip install -r requirements.txt
 
 
-test: install test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon test_nanopolish_from_scratch check
+test: install test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon check test_nanopolish_from_scratch
 
 test/config.yaml:
 	mkdir -p test
@@ -83,7 +83,7 @@ test_canu_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/miniasm_racon/consensus.fasta
 
-test_nanopolish_from_scratch: clean_test test_nanopolish 
+test_nanopolish_from_scratch: clean_test test_canu_nanopolish 
 
 clean_test:
 	rm -rf test
