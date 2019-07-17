@@ -22,6 +22,7 @@ IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_MEDAKA_GPU = os.path.expanduser(config["IN_MEDAKA_GPU"])
 IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
+FLYE_EXEC = os.path.expanduser(config["FLYE_EXEC"])
 
 # Always set the environment
 LD_LIBRARY_PATH = config.get("LD_LIBRARY_PATH")
@@ -63,12 +64,12 @@ rule fast_assm_polish:
 
 rule standard_assm_polish:
     input:
-        consensus = ancient(["{runid}/basecall/guppy_flipflop/canu_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d] )
+        consensus = ancient(["{runid}/basecall/guppy_flipflop/{assembler}_gsz_{gs}/racon/medaka_flipflop/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], assembler=config["ASSEMBLER"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d])
 
 
 rule standard_assm_nanopolish:
     input:
-        consensus = ancient(["{runid}/basecall/{bc}/canu_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d])
+        consensus = ancient(["{runid}/basecall/{bc}/{assembler}_gsz_{gs}/racon/nanopolish_hp/consensus.fasta".format(runid=r, gs=d["GENOME_SIZE"], bc=config["BASECALLER"], assembler=config["ASSEMBLER"]) for r,d in config["DATA"].items() if "GENOME_SIZE" in d])
 
 
 def get_reference(wildcards, config):
@@ -481,6 +482,33 @@ rule canu:
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
+rule flye:
+    input:
+        flye = ancient(FLYE_EXEC),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+    output:
+        consensus = "{dir}/flye{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/flye{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/flye{suffix}gsz_{genome_size}.log"
+    params:
+        gsz = lambda w: "{genome_size}".format(**dict(w)),
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
+        opts = partial(get_opts, config=config, config_key="FLYE_OPTS"),
+        prefix = "flye",
+        mt=config["THREADS_PER_JOB"],
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        # snakemake will create the output dir, flye will fail if it exists..
+        #rm -r {params[output_dir]}
+        {input.flye} --nano-raw {input.basecalls} --genome-size {params.gsz} --out-dir {params.output_dir} --threads {params.mt} {params[opts]} &> {log}
+        mv {params.output_dir}/assembly.fasta {output.consensus} &&
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        """
+
 
 rule medaka_consensus:
     input:
@@ -791,7 +819,7 @@ def format_genome_len(l, fmt='{:.1f}'):
 
 
 def get_medaka_features_targets(config):
-    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X_prop/canu_gsz_{genome_size}/racon/medaka_train/{feature_file}"
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X_prop/{assembler}_gsz_{genome_size}/racon/medaka_train/{feature_file}"
     targets = []
     try:
         for runid, d in config["DATA"].items():
@@ -803,6 +831,7 @@ def get_medaka_features_targets(config):
                         basecaller=config["BASECALLER"],
                         region=region,
                         depth=depth,
+                        assembler=config[""],
                         genome_size=region_size,
                         feature_file=f
                     ) for depth in config["DEPTHS"] for f in ["medaka_train.hdf", "medaka_train_rc.hdf"]
@@ -892,8 +921,8 @@ rule medaka_train_replicates:
         "medaka_train_replicates.log",
 
 
-def canu_racon_targets(config):
-    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/consensus_to_truth_summ.txt"
+def assembler_racon_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/{assembler}_gsz_{genome_size}/racon/consensus_to_truth_summ.txt"
     targets = []
     try:
         for runid, d in config["DATA"].items():
@@ -905,6 +934,7 @@ def canu_racon_targets(config):
                         basecaller=config["BASECALLER"],
                         region=region,
                         depth=depth,
+                        assembler=config["ASSEMBLER"],
                         genome_size=region_size
                     ) for depth in config["DEPTHS"]
                 ])
@@ -914,8 +944,8 @@ def canu_racon_targets(config):
     return targets
 
 
-def canu_racon_medaka_targets(config):
-    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/canu_gsz_{genome_size}/racon/medaka{suff}/consensus_to_truth_summ.txt"
+def assembler_racon_medaka_targets(config):
+    template = "{runid}/basecall/{basecaller}/align/{region}/{depth}X/{assembler}_gsz_{genome_size}/racon/medaka{suff}/consensus_to_truth_summ.txt"
     targets = []
     try:
         for runid, d in config["DATA"].items():
@@ -927,6 +957,7 @@ def canu_racon_medaka_targets(config):
                         basecaller=config["BASECALLER"],
                         region=region,
                         depth=depth,
+                        assembler=config["ASSEMBLER"],
                         genome_size=region_size,
                         suff=suffix
                     ) for depth in config["DEPTHS"] for suffix in config["MEDAKA_EVAL_SUFFIXES"]
@@ -979,14 +1010,14 @@ def medaka_variant_targets(config):
 
 rule all_racon_eval:
     input:
-        targets = ancient(canu_racon_targets(config)),
+        targets = ancient(assembler_racon_targets(config)),
     log:
         "racon_eval.log"
 
 
 rule all_medaka_eval:
     input:
-        targets = ancient(canu_racon_medaka_targets(config)),
+        targets = ancient(assembler_racon_medaka_targets(config)),
     log:
         "medaka_eval.log"
 

@@ -6,7 +6,7 @@ Basic Usage and Tests
 
 The easiest way to test the pipeline is to run the tests, which will basecall,
 assemble and polish a small dataset that comes bundled with `Katuali`.  The
-tests require scrappie, pomoxis, canu and nanopolish to be installed, and can
+tests require scrappie, pomoxis, canu, flye and nanopolish to be installed, and can
 be run with:
 
 .. code-block:: bash
@@ -56,7 +56,7 @@ and update this file to reflect your data:
 
     DATA:
         'run1':
-            'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
+            'GENOME_SIZE': '4.0M'  # for canu/flye we need to specify genome size
 
 There are three standard workflows available:
 
@@ -67,7 +67,7 @@ There are three standard workflows available:
   
        katuali --configfile my_config.yaml fast_assm_polish
 
-2. Alternatively to assemble with canu run:
+2. Alternatively to assemble with canu/flye (depending on ASSEMBLER option in my_config.yaml) run:
 
    .. code-block:: bash
   

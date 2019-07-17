@@ -60,7 +60,7 @@ and update the katuali config to reflect your data:
 
     DATA:
         'run1':
-            'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
+            'GENOME_SIZE': '4.0M'  # for canu/flye we need to specify genome size
 
 There are three predefined pipelines that can be used starting from fast5 input:
 
@@ -72,14 +72,14 @@ There are three predefined pipelines that can be used starting from fast5 input:
        katuali fast_assm_polish
 
 
-2. To basecall (flipflop), assemble with canu, then polish with racon and medaka (flipflop) run: 
+2. To basecall (flipflop), assemble with canu/flye (depending on ASSEMBLER option in config), then polish with racon and medaka (flipflop) run: 
 
    .. code-block:: bash
   
        katuali standard_assm_polish
 
 
-3. To basecall (flipflop), assemble with canu, then polish with racon and nanopolish run:
+3. To basecall (flipflop), assemble with canu/flye (depending on ASSEMBLER option in config), then polish with racon and nanopolish run:
 
 .. code-block:: bash
 

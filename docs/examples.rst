@@ -72,7 +72,7 @@ Supported basecallers include guppy, scrappie, flappie:
 Assembly
 --------
 
-Reads can be assembled in two ways at present:
+Reads can be assembled in three ways at present:
 
 .. code-block:: bash
 
@@ -82,6 +82,9 @@ Reads can be assembled in two ways at present:
     # use pomoxis mini_assemble to assemble with miniasm, then form consensus
     # with racon
     katuali run1/basecall/scrappie/miniasm_racon/consensus.fasta  
+
+    # assemble with flye, specifying the genome size in the target name. 
+    katuali run1/basecall/scrappie/flye_gsz_4.0M/consensus.fasta
 
 
 Polishing
