@@ -1,17 +1,24 @@
 import argparse
+import collections
+import itertools
 import logging
+import operator
 import os
+import re
 import shutil
 import sys
 import yaml
 
 import gpustat
 import pkg_resources
+import pysam
 
 
 __version__ = "0.2.0"
 __pkg__ = __name__
 
+
+Unit = collections.namedtuple('Unit', ('symbol', 'unit'))
 
 
 def _data_path(filename):
@@ -104,3 +111,162 @@ def pick_gpu():
         logger.info('Using gpu {} from {}'.format(gpu, args.env_var))
     print(gpu)
 
+
+class SafeDict(dict):
+     def __missing__(self, key):
+        return '{' + key + '}'
+
+
+def partial_format(s, **kwargs):
+    """Partially format a string leaving unused named placeholder unchanged
+
+    >>> partial_format('{a}/{b}', b=1)
+    '{a}/1'
+    """
+    return s.format_map(SafeDict(**kwargs))
+
+
+def product_dict(**kwargs):
+    """Given a dictionary of iterables, yield a dictionary for each combination in the product of all the iterables.
+
+    Strings are not treated as iterables.
+
+    >>> list(product_dict(**{'a': [25, 50], 'b': [1, 2], 'c': 'foo'}))
+    [{'a': 25, 'b': 1, 'c': 'foo'},
+     {'a': 25, 'b': 2, 'c': 'foo'},
+     {'a': 50, 'b': 1, 'c': 'foo'},
+     {'a': 50, 'b': 2, 'c': 'foo'}]
+    """
+    keys, values = zip(*kwargs.items())
+    vals = [[v] if isinstance(v, str) or not hasattr(v, '__iter__')
+             else v for v in values]
+    for value_product in itertools.product(*vals):
+        yield dict(zip(keys, value_product))
+
+
+def int_to_formatted_string(i, fmt='{:.1f}'):
+    """Convert int to formatted string with either k, m or g suffix
+
+    >>> int_to_formatted_string(1.5e3)
+    '1.5k'
+    >>> int_to_formatted_string(4.86e6)
+    '4.9m'
+    >>> int_to_formatted_string(3e9)
+    '3.0g'
+    >>> int_to_formatted_string(1e12)
+    '1000.0g'
+    """
+    units = (Unit('k', 1e3), Unit('m', 1e6), Unit('g', 1e9))
+    units = sorted(units, key=operator.attrgetter('unit'))
+    max_unit = max(u.unit for u in units)
+    for u in units:
+        scaled = round(i / u.unit, 1)
+        if scaled < 100 or u.unit == max_unit:
+            return fmt.format(scaled) + u.symbol
+
+
+def get_region_len(region, ref_fasta):
+    """Get region length from samtools region string, using start and end if present, else obtaining contig length from reference fasta.
+    """
+    if ':' in region:
+        if not '-' in region:
+            raise ValueError('Regions must be specified just as contig or contig:start-end')
+        start, end = map(int, region.split(':')[1].split('-'))
+        region_len = end -start
+        if region_len < 1:
+            raise ValueError('Region length < 1, check your region specification')
+    else:
+        # we have a full contig
+        with pysam.FastaFile(ref_fasta) as fa:
+            lengths = dict(zip(fa.references, fa.lengths))
+        if region not in fa.references:
+            raise KeyError('Region {} is not a contig in the reference'.format(region))
+        region_len = lengths[region]
+
+    return region_len
+
+
+def expand_target_template(template, config):
+    """Create target strings by formatting the template with all combinations of referenced config variables.
+
+    Similar to snakemake's expand, but fills with config variables rather than wildcards.
+    Also handles variables defined per dataset and the special variable GENOME_SIZE.
+
+    >>> config = {
+        'DATA': {'run1': {'REGIONS': ['a1', 'a1'], 'GENOME_SIZE': '4.8m'},
+                 'run2': {'REGIONS': ['b1', 'b2'], 'GENOME_SIZE': '10m'}},
+        'DEPTH': [25, 50],
+        'BASECALLER': 'guppy'
+        }
+    >>> template = '{DATA}/basecall/guppy/align/{REGIONS}/{DEPTH}X/basecalls.fasta'
+    >>> expand_target_template(template, config)
+    ['run2/basecall/guppy/align/b2/25X/basecalls.fasta',
+     'run2/basecall/guppy/align/b1/25X/basecalls.fasta',
+     'run1/basecall/guppy/align/a1/25X/basecalls.fasta',
+     'run2/basecall/guppy/align/b2/25X/basecalls.fasta',
+     'run2/basecall/guppy/align/b1/25X/basecalls.fasta',
+     'run1/basecall/guppy/align/a1/25X/basecalls.fasta',
+     'run2/basecall/guppy/align/b2/50X/basecalls.fasta',
+     'run2/basecall/guppy/align/b1/50X/basecalls.fasta',
+     'run1/basecall/guppy/align/a1/50X/basecalls.fasta',
+     'run2/basecall/guppy/align/b2/50X/basecalls.fasta',
+     'run2/basecall/guppy/align/b1/50X/basecalls.fasta',
+     'run1/basecall/guppy/align/a1/50X/basecalls.fasta']
+    """
+
+    to_expand = set(re.findall('\{(.*?)\}', template))
+    datasets = tuple(config['DATA'])
+    # get parameters which are coupled to the dataset and are in the template
+    # e.g. not all genomes/regions are present in all datasets/runs
+    dataset_params = set(itertools.chain(*[config['DATA'][v] for v in config['DATA']]))
+    dataset_params = dataset_params & to_expand
+    # get parameters which are not coupled to the dataset
+    non_dataset_params = to_expand - dataset_params
+    non_dataset_params = {k: config[k] for k in non_dataset_params}
+
+    templates = []
+    for dataset in datasets:
+        # use partial_format to format only the DATA curly brace in the template
+        dataset_tmp = partial_format(template, DATA=dataset)
+        # handle genome size if it's in the template
+        if 'GENOME_SIZE' in to_expand:
+            if 'GENOME_SIZE' in config['DATA'][dataset]:
+                # use single genome size defined in config
+                genome_sz = config['DATA'][dataset]['GENOME_SIZE']
+                dataset_templates = [partial_format(dataset_tmp, GENOME_SIZE=genome_sz)]
+            elif 'REFERENCE' in config['DATA'][dataset] and 'REGION' in template:
+                # we match any parameter containing 'REGION', e.g.
+                # MEDAKA_EVAL_REGIONS, MEDAKA_TRAIN_REGIONS etc
+                # get reference lengths per region based either on full samtools
+                # region str with start and end, or using reference fasta to
+                # pull out contig length
+                region_params = [k for k in dataset_params if 'REGION' in k]
+
+                # check we don't have more than one region parameter
+                if len(region_params) > 1:
+                    raise ValueError('Found more than one region paramter in {}'.format(template))
+
+                region_param = region_params[0]
+                if not config['DATA'][dataset][region_param]:
+                    # the list of regions is empty, skip this dataset
+                    continue
+
+                regions = config['DATA'][dataset][region_param]
+                ref = config['DATA'][dataset]['REFERENCE']
+                dataset_templates = []
+                for region in regions:
+                    region_sz = int_to_formatted_string(get_region_len(region, ref))
+                    d = { 'GENOME_SIZE': region_sz, region_param: region}
+                    dataset_templates.append(partial_format(dataset_tmp, **d))
+        else:
+            dataset_templates = [dataset_tmp]
+
+        # kwargs is dict name: list of values which will be expanded wit product_dict
+        kwargs = {k: config['DATA'][dataset][k] for k in dataset_params if k in config['DATA'][dataset]}
+        dataset_templates = list(set([partial_format(t, **k) for t in
+                                      dataset_templates for k in product_dict(**kwargs)]))
+        templates.extend(dataset_templates)
+    # expand dataset-specific templates with non_dataset_params to create targets
+    # this will fail if there are any {} still present
+    targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
+    return targets

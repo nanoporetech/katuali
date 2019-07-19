@@ -113,6 +113,79 @@ restrictions:
       error correct reads is not supported).
 
 
+Automatic generation of custom pipeline targets
+-----------------------------------------------
+
+If your pipeline involves the creation of many targets by looping over some
+variable(s), for example datasets, regions, basecallers, assemblers, you can get
+katuali to automatically generate all the targets for you by creating a
+template of the target containing named
+placeholders of the config variable(s) that will be looped over. 
+
+The fast_assm_polish workflow is implemented with the following target template:
+
+.. code-block:: yaml
+
+    PIPELINES:
+        fast_assm_polish: [
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+        ]
+
+Running
+
+.. code-block:: bash
+
+    katuali fast_assm_polish
+
+will expand all the variables in the target template. ``{DATA}`` will be expanded
+to all the datsets defined in ``config[DATA]``. As ``{BASECALLER}`` and
+``{BASECALLER_SUFFIX}`` are single-entries in the config (rather than being a
+list of strings), their placeholders are simply replaced with their values.
+
+You can use any config parameter as a placeholder, however there are some rules
+concerning variables which are dataset-specific:
+
+
+1. Dataset-specific variables are defined within the config section for that
+   dataset (e.g. the ``MEDAKA_EVAL_REGIONS`` for dataset ``MinIonRun1`` are
+   defined in ``config[DATA][MinIonRun1][MEDAKA_EVAL_REGIONS]``), so that pipelines can be 
+   customised in a data-set specific way. 
+
+2. The ``{GENOME_SIZE}`` placeholder, used to provide some assemblers an
+   estimate of genome size,  is treated differently from other placholders. If
+   the ``GENOME_SIZE`` variable is present in the config section of a dataset,
+   this value will be used. However,
+   if you have a reference and wish to assemble contigs independently (as is
+   done in e.g. the medaka training pipeline), if ``config[DATA][MinIonRun1][GENOME_SIZE]``
+   is not present, but ``config[DATA][MinIonRun1][REFERENCE]`` is present,
+   ``{GENOME_SIZE}`` will be automatically calculated from the reference
+   sequence for each of the contigs/regions defined for that dataset. Any
+   placeholder containing the string ``REGION`` will be used in this way to
+   calculate genome/region sizes.  The region definitions can be contig names
+   or full samtools region strings with start and end. 
+
+Config pipeline entries are lists so that multiple target templates can be used in a single pipeline. 
+
+As an example, the ``medaka_eval`` pipeline contains two target templates, to
+evaluate both the pre- and post-medaka consensus accuracy, in this case over a range of
+datasets, regions, depths, and medaka models, generating hundreds of targets in the process. 
+
+.. code-block:: yaml
+
+    PIPELINES:
+        medaka_eval: [
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
+        ]
+
+The final step of each pipeline is to create an empty file with the name of the
+pipeline (e.g. ``standard_assm_polish``) which indicates the pipeline has
+finished.  If you wish to rerun the pipeline after changing config variables
+which affect the pipeline targets, the empty file needs to
+be deleted before rerunning the pipeline; without deleting it, `katuali` will
+not create the new targets.
+
+
 .. _starting_from_basecalls:
 
 Starting from existing basecalls
@@ -273,7 +346,7 @@ Running:
 
 .. code-block:: bash
 
-    katuali all_medaka_train_features --keep-going
+    katuali medaka_train_features --keep-going
 
 will:
 
@@ -289,7 +362,7 @@ Running:
 
     katuali medaka_train_replicates --keep-going
 
-will do all the tasks of ``all_medaka_train_features`` and additionally launch
+will do all the tasks of ``medaka_train_features`` and additionally launch
 multiple medaka model-training replicates.
 
 If some of your input runs have insufficient coverage-depth for some of the

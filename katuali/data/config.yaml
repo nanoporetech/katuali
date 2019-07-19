@@ -96,14 +96,44 @@ LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 # `standard_assm_polish` `standard_assm_nanopolish` and medaka training
 # workflows use this value to determine the basecaller setup to use.
 #
-# It is recommended to set this to: guppy_flipflop
-BASECALLER: "guppy_flipflop" 
+# It is recommended to set this to: guppy to use the guppy basecaller
+BASECALLER: "guppy"
+# BASECALLER_SUFFIX controls which guppy suffix and medaka suffix gets used in pipeline targets
+# it is recommended to set this to either _hac (high accuracy minion) or _hac_prom (high accuracy promethion)
+BASECALLER_SUFFIX: "_hac" 
 
 # Assembler for predefined workflows ("flye" or canu""). The `fast_assm_polish`,
 # `standard_assm_polish` `standard_assm_nanopolish` and medaka training
 # workflows use this value to determine the asembler setup to use.
-
 ASSEMBLER: "canu"
+
+
+# Pipeline target template definitions containing other config parameters that
+# will be filled in with config variables to generate targets, see
+# documentation for full details.  
+
+PIPELINES:
+    fast_assm_polish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+    ]
+    standard_assm_polish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+    ]
+    standard_assm_nanopolish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish_hp/consensus.fasta"
+    ]
+    medaka_eval: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
+    ]
+    medaka_feat: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train.hdf",
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train_rc.hdf"
+    ]
+    medaka_train: [
+        "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
+    ]
+
 
 
 #########################
@@ -151,16 +181,23 @@ DEPTHS:
 # (after having already created the features with the flag set to false) 
 USE_ONLY_EXISTING_MEDAKA_FEAT: false
 
-# Run multiple training replicates - output will be in medaka_train_{suffix}
+# Run multiple training replicates - output will be in medaka_train_{key}, values should be a key of PIPELINES
+# This allows training of multiple models each using different training features 
 MEDAKA_TRAIN_REPLICATES:
-    ["rep_1", "rep_2", "rep_3"]
+    "rep_1": "medaka_feat" 
+    "rep_2": "medaka_feat"
+    "rep_3": "medaka_feat"
+
 
 # to test multiple trained models, use multiple suffixes. 
 # The suffix should be a key within MEDAKA_OPTS specifying the path of a trained model 
 MEDAKA_EVAL_SUFFIXES: ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
 MEDAKA_OPTS: 
-    "": ""
-    "_flipflop": "-m r941_flip235"
+    "": "-m r941_min_high"
+    "_hac": "-m r941_min_high"
+    "_hac_prom": "-m r941_prom_high"
+    "_fast": "-m r941_min_fast"
+    "_fast_prom": "-m r941_prom_fast"
     "_rep_1_best_val": "-m medaka_train_rep1/model.best.val.hdf5"
     "_rep_2_best_val": "-m medaka_train_rep2/model.best.val.hdf5"
     "_rep_3_best_val": "-m medaka_train_rep3/model.best.val.hdf5"
@@ -177,9 +214,9 @@ MEDAKA_TRAIN_OPTS:
 MEDAKA_TRAIN_THREADS_IO: 8
 
 MEDAKA_VARIANT_OPTS:
-    "_flipflop": "-m r941_flip235 -d"
+    "_hac": "-m r941_min_high -d"
 
-MEDAKA_VARIANT_SUFFIXES: ["_flipflop"]
+MEDAKA_VARIANT_SUFFIXES: ["_hac"]
 
 
 ############################
@@ -206,8 +243,12 @@ FLAPPIE_OPTS:
 
 # Guppy        
 GUPPY_OPTS: 
-    "": "-c dna_r9.4.1_450bps.cfg"
-    "_flipflop": "-c dna_r9.4.1_450bps_flipflop.cfg"
+    "": "-c dna_r9.4.1_450bps_hac.cfg"
+    "_hac": "-c dna_r9.4.1_450bps_hac.cfg"
+    "_hac_prom": "-c dna_r9.4.1_450bps_hac_prom.cfg"
+    "_fast": "-c dna_r9.4.1_450bps_fast.cfg"
+    "_fast_prom": "-c dna_r9.4.1_450bps_fast_prom.cfg"
+
 GUPPY_SLOTS: 8  # for passing to SGE parallel environment
 
 # subsample_bam
