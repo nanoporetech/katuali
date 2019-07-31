@@ -222,7 +222,7 @@ def expand_target_template(template, config):
     dataset_params = dataset_params & to_expand
     # get parameters which are not coupled to the dataset
     non_dataset_params = to_expand - dataset_params
-    non_dataset_params = {k: config[k] for k in non_dataset_params}
+    non_dataset_params = {k: config[k] for k in non_dataset_params if k != 'DATA'}
 
     templates = []
     for dataset in datasets:
@@ -261,7 +261,7 @@ def expand_target_template(template, config):
         else:
             dataset_templates = [dataset_tmp]
 
-        # kwargs is dict name: list of values which will be expanded wit product_dict
+        # kwargs is dict name: list of values which will be expanded with product_dict
         kwargs = {k: config['DATA'][dataset][k] for k in dataset_params if k in config['DATA'][dataset]}
         dataset_templates = list(set([partial_format(t, **k) for t in
                                       dataset_templates for k in product_dict(**kwargs)]))
