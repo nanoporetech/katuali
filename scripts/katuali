@@ -9,7 +9,7 @@ log_dir=logs
 config_dir=configs
 
 silent=false
-args="--restart-times 3 --keep-going"
+args="--restart-times 0 --keep-going"
 config_opts=""
 cluster_opt=""
 cluster_parm=""
@@ -20,6 +20,7 @@ autocluster_opt="--latency-wait 300 --drmaa"
 #autocluster_parm=" -cwd -l {params.sge} -o $log_dir -j y" 
 autocluster_parm=" {cluster.export_env} {cluster.cwd} {cluster.n_gpu}{resources.gpu} {cluster.n_cpu}{threads} {cluster.logdir}$log_dir {cluster.misc}"
 
+echo $config
 
 export DRMAA_LIBRARY_PATH=${SGE_ROOT}/lib/lx-amd64/libdrmaa.so
 
