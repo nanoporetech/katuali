@@ -466,6 +466,8 @@ rule canu:
         {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        # remove canu intermediates we don't use
+        rm -rf {params.output_dir}/{params.prefix}.* {params.output_dir}/correction {params.output_dir}/haplotyping {params.output_dir}/trimming {params.output_dir}/unitigging
         """
 
 rule flye:
@@ -525,6 +527,8 @@ rule medaka_consensus:
 
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
+        # rm large intermediates
+        rm {params[output_dir]}/calls_to_draft.bam* {params[output_dir]}/consensus_probs.hdf
         """
 
 
