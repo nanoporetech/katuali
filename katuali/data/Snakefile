@@ -183,6 +183,7 @@ rule basecall_guppy:
         ls {params[output_dir]}/*.fastq >> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
+        rm {params.output_dir}/*.fastq 
         """
 
 
