@@ -59,7 +59,7 @@ Further, settings in the config file can be overridden on the command line:
 
 .. code-block:: bash
 
-    katuali fast_assm_polish --config MINI_ASSEMBLE_OPTS="-c -e 5"
+    katuali all_fast_assm_polish --config MINI_ASSEMBLE_OPTS="-c -e 5"
 
 The ``katuali`` program achieves this merging command line ``--config`` options
 with the input ``--configfile`` and saving the merged YAML config before running
@@ -125,7 +125,7 @@ default cluster using DRMAA:
 .. code-block:: bash
 
     NSLOTS=100
-    target=fast_assm_polish
+    target=all_fast_assm_polish
     katuali --cores ${NSLOTS} --autocluster ${target}
 
 The ``--autocluster`` option makes us of the default `katuali` `cluster config
@@ -141,7 +141,7 @@ Using the default `katuali` cluster config in conjuction with the ``--autocluste
 .. code-block:: bash
 
     NSLOTS=100
-    target=fast_assm_polish
+    target=all_fast_assm_polish
     katuali --cores ${NSLOTS} --latency-wait 300 --drmaa "-V -cwd -l gpu={resources.gpu} -pe mt {threads} -o logs -j y"
 
 Here, ``"-V -cwd -l gpu={resources.gpu} -pe mt {threads} -o logs -j y"`` are the
@@ -171,7 +171,7 @@ The ``--autocluster`` option implements:
 .. code-block:: bash
 
     NSLOTS=100
-    target=fast_assm_polish
+    target=all_fast_assm_polish
     cluster_config=$(katuali_datafile cluster_config.yaml)
     katuali --cores ${NSLOTS} --latency-wait 300 --drmaa " {cluster.export_env} {cluster.cwd} {cluster.n_gpu}{resources.gpu} {cluster.n_cpu}{threads} {cluster.logdir}logs {cluster.misc}" --cluster-config ${cluster_config} ${target}
 
@@ -184,7 +184,7 @@ cluster-config, then running:
 .. code-block:: bash
 
     NSLOTS=100
-    target=fast_assm_polish
+    target=all_fast_assm_polish
     katuali --cores ${NSLOTS} --latency-wait 300 --autocluster --cluster-config my_cluster_config.yaml ${target}
 
 

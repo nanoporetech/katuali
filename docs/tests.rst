@@ -65,20 +65,20 @@ There are three standard workflows available:
    
    .. code-block:: bash
   
-       katuali --configfile my_config.yaml fast_assm_polish
+       katuali --configfile my_config.yaml all_fast_assm_polish
 
 2. Alternatively to assemble with canu/flye (depending on ASSEMBLER option in my_config.yaml) run:
 
    .. code-block:: bash
   
-       katuali --configfile my_config.yaml standard_assm_polish
+       katuali --configfile my_config.yaml all_standard_assm_polish
 
 3. To polish the assembly with nanopolish (not recommended in tandem with
    flip-flop basecalling, where medaka is preferred):
 
    .. code-block:: bash
   
-       katuali --configfile my_config.yaml standard_assm_nanopolish
+       katuali --configfile my_config.yaml all_standard_assm_nanopolish
 
 
 The :ref:`introduction` section describes how to create a pipeline with any

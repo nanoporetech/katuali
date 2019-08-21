@@ -1,4 +1,4 @@
-.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon test_nanopolish_from_scratch check docs
+.PHONY: install update reads clean_test test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon check docs test_pipeline_all_fast_assm_polish test_pipeline_all_standard_assm_polish test_pipeline_all_medaka_eval test_pipeline_all_medaka_feat test_pipeline_all_medaka_train test_pipeline_standard_assm_nanopolish test_nanopolish_from_scratch
 
 UNAME := $(shell uname)
 
@@ -28,7 +28,7 @@ update: venv/bin/activate
 	${IN_VENV} && pip install -r requirements.txt
 
 
-test: install test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon check test_nanopolish_from_scratch
+test: install test_basecall test_align test_subsample test_canu test_flye test_flye_racon test_flye_medaka test_flye_nanopolish test_canu_racon test_canu_medaka test_canu_nanopolish test_miniasm_racon check test_pipeline_all_fast_assm_polish test_pipeline_all_standard_assm_polish test_pipeline_all_medaka_eval test_pipeline_all_medaka_feat test_pipeline_all_medaka_train test_pipeline_standard_assm_nanopolish test_nanopolish_from_scratch 
 
 test/config.yaml:
 	mkdir -p test
@@ -40,6 +40,12 @@ test/Snakefile: test/config.yaml
 reads:
 	mkdir -p test/MinIonRun1
 	${IN_VENV} && cd test/MinIonRun1 && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
+	mkdir -p test/MinIonRun2
+	${IN_VENV} && cd test/MinIonRun2 && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
+	mkdir -p test/GridIonRun1
+	${IN_VENV} && cd test/GridIonRun1 && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
+	mkdir -p test/GridIonRun2
+	${IN_VENV} && cd test/GridIonRun2 && katuali_datafile test/reads.tgz | xargs -I {} tar -xf {}
 
 test/ref.fasta: test/config.yaml
 	${IN_VENV} && cp `katuali_datafile test/ref.fasta` $@ 
@@ -82,6 +88,24 @@ test_canu_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
 
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/scrappie/miniasm_racon/consensus.fasta
+
+test_pipeline_all_fast_assm_polish: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_fast_assm_polish --dryrun
+
+test_pipeline_all_standard_assm_polish: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_standard_assm_polish --dryrun
+
+test_pipeline_all_medaka_eval: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_medaka_eval --dryrun
+
+test_pipeline_all_medaka_feat: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_medaka_feat --dryrun
+
+test_pipeline_all_medaka_train: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_medaka_train --dryrun
+
+test_pipeline_all_standard_assm_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
+	${TEST} all_standard_assm_nanopolish --dryrun
 
 test_nanopolish_from_scratch: clean_test test_canu_nanopolish 
 

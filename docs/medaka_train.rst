@@ -80,7 +80,7 @@ There is a single medaka target to perform the above tasks:
 
 .. code-block:: bash
 
-    katuali medaka_train_features --keep-going  --restart-times 3
+    katuali all_medaka_feat --keep-going  --restart-times 3
 
 The `--keep-going` flag instructs ``katuali`` to continue processing tasks when
 unrelated tasks fail, while `--restart-times` option tells ``katuali`` to
@@ -88,7 +88,7 @@ attempt each target a maximum of three times. When building hundreds of targets
 on a cluster this can be useful if tasks fail due to issues outside of the
 control of ``katuali``.
 
-Having run the ``medaka_train_features`` target, two files will be produced for
+Having run the ``all_medaka_feat`` target, two files will be produced for
 every valid combination of dataset (top-level folder), coverage depth, and reference
 sequence. For example the files:
 
@@ -109,7 +109,7 @@ by running:
 
 .. code-block:: bash
 
-    katuali medaka_train_replicates --keep-going
+    katuali all_medaka_train --keep-going
 
 This step requires the the use of GPUs to run efficiently. 
 
@@ -128,7 +128,7 @@ allow katuali to train using only those features which exist already.
 
     
 .. note:: Note that you need to first attempt to create all features with the
-    ``medaka_train_features`` rule with ``USE_ONLY_EXISTING_MEDAKA_FEAT`` set to
+    ``medaka_train_feat`` rule with ``USE_ONLY_EXISTING_MEDAKA_FEAT`` set to
     false, and then run ``medaka_train_replicates`` with the flag set to true. 
 
 Refer to comments in the katuali configuration file for further details. 

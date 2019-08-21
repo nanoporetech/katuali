@@ -786,7 +786,7 @@ def get_medaka_train_features(wildcards, config=config):
     feature_templates = config["PIPELINES"][features_pipeline]
     targets = []
     for template in feature_templates:
-        targets.extend(katuali.expand_target_template(template, wildcards, config))
+        targets.extend(katuali.expand_target_template(template, config))
 
     if config["USE_ONLY_EXISTING_MEDAKA_FEAT"]:
         logger.run_info("WARNING: USE_ONLY_EXISTING_MEDAKA_FEAT set to true, only using existing medaka training features.")
@@ -867,10 +867,4 @@ rule pipeline:
     input:
         targets = partial(pipeline_targets, config=config)
     output:
-        # match anything which is not another named rule (e.g. help / version) or contains a '/' indicating an explicit target
         "{pipeline,[^/]*}"
-    shell:
-        """
-        # create an empty stub, otherwise snakemake will raise an error saying expected output has not appeared
-        touch {output}
-        """ 
