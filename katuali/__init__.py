@@ -263,9 +263,12 @@ def expand_target_template(template, config):
 
         # kwargs is dict name: list of values which will be expanded with product_dict
         kwargs = {k: config['DATA'][dataset][k] for k in dataset_params if k in config['DATA'][dataset]}
-        dataset_templates = list(set([partial_format(t, **k) for t in
-                                      dataset_templates for k in product_dict(**kwargs)]))
-        templates.extend(dataset_templates)
+        if len(kwargs) > 0:
+            dataset_templates = list(set([partial_format(t, **k) for t in
+                                          dataset_templates for k in product_dict(**kwargs)]))
+            templates.extend(dataset_templates)
+        else:
+            templates=dataset_templates
     # expand dataset-specific templates with non_dataset_params to create targets
     # this will fail if there are any {} still present
     targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]

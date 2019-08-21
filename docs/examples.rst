@@ -127,7 +127,7 @@ The fast_assm_polish workflow is implemented with the following target template:
 .. code-block:: yaml
 
     PIPELINES:
-        fast_assm_polish: [
+        all_fast_assm_polish: [
             "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
         ]
 
@@ -135,7 +135,7 @@ Running
 
 .. code-block:: bash
 
-    katuali fast_assm_polish
+    katuali all_fast_assm_polish
 
 will expand all the variables in the target template. ``{DATA}`` will be expanded
 to all the datsets defined in ``config[DATA]``. As ``{BASECALLER}`` and
@@ -166,20 +166,20 @@ concerning variables which are dataset-specific:
 
 Config pipeline entries are lists so that multiple target templates can be used in a single pipeline. 
 
-As an example, the ``medaka_eval`` pipeline contains two target templates, to
+As an example, the ``all_medaka_eval`` pipeline contains two target templates, to
 evaluate both the pre- and post-medaka consensus accuracy, in this case over a range of
 datasets, regions, depths, and medaka models, generating hundreds of targets in the process. 
 
 .. code-block:: yaml
 
     PIPELINES:
-        medaka_eval: [
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
+        all_medaka_eval: [
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
         ]
 
 The final step of each pipeline is to create an empty file with the name of the
-pipeline (e.g. ``standard_assm_polish``) which indicates the pipeline has
+pipeline (e.g. ``all_standard_assm_polish``) which indicates the pipeline has
 finished.  If you wish to rerun the pipeline after changing config variables
 which affect the pipeline targets, the empty file needs to
 be deleted before rerunning the pipeline; without deleting it, `katuali` will
@@ -219,7 +219,7 @@ Now katuali can be run as normal, for example:
 
 .. code-block:: bash
 
-    katuali --configfile my_config.yaml standard_assm_polish
+    katuali --configfile my_config.yaml all_standard_assm_polish
 
 
 Calculating read coverage depth
@@ -346,7 +346,7 @@ Running:
 
 .. code-block:: bash
 
-    katuali medaka_train_features --keep-going
+    katuali all_medaka_feat --keep-going
 
 will:
 
@@ -360,9 +360,9 @@ Running:
 
 .. code-block:: bash
 
-    katuali medaka_train_replicates --keep-going
+    katuali all_medaka_train --keep-going
 
-will do all the tasks of ``medaka_train_features`` and additionally launch
+will do all the tasks of ``all_medaka_feat`` and additionally launch
 multiple medaka model-training replicates.
 
 If some of your input runs have insufficient coverage-depth for some of the

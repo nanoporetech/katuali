@@ -9,8 +9,8 @@
 # The second section containing software locations should also be checked and
 # amended if necessary.
 #
-# To run the predefined workflows: fast_assm_polish standard_assm_polish
-# standard_assm_nanopolish all_medaka_train_features starting from fast5 input,
+# To run the predefined workflows: all_fast_assm_polish all_standard_assm_polish
+# all_standard_assm_nanopolish all_medaka_train_features starting from fast5 input,
 # nothing else need be done. If starting a workflow from basecall data
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
 # basecalls should be placed under a folder as determined by the value of the
@@ -113,24 +113,23 @@ ASSEMBLER: "canu"
 # documentation for full details.  
 
 PIPELINES:
-    fast_assm_polish: [
+    all_fast_assm_polish: [
         "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
     ]
-    standard_assm_polish: [
+    all_standard_assm_polish: [
         "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
     ]
-    standard_assm_nanopolish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish_hp/consensus.fasta"
+    all_standard_assm_nanopolish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish/consensus.fasta"
     ]
-    medaka_eval: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
+    all_medaka_eval: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
-    medaka_feat: [
+    all_medaka_feat: [
         "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train.hdf",
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train_rc.hdf"
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train_rc.hdf"
     ]
-    medaka_train: [
+    all_medaka_train: [
         "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
     ]
 
@@ -184,9 +183,9 @@ USE_ONLY_EXISTING_MEDAKA_FEAT: false
 # Run multiple training replicates - output will be in medaka_train_{key}, values should be a key of PIPELINES
 # This allows training of multiple models each using different training features 
 MEDAKA_TRAIN_REPLICATES:
-    "rep_1": "medaka_feat" 
-    "rep_2": "medaka_feat"
-    "rep_3": "medaka_feat"
+    "rep_1": "all_medaka_feat" 
+    "rep_2": "all_medaka_feat"
+    "rep_3": "all_medaka_feat"
 
 
 # to test multiple trained models, use multiple suffixes. 
@@ -198,9 +197,9 @@ MEDAKA_OPTS:
     "_hac_prom": "-m r941_prom_high"
     "_fast": "-m r941_min_fast"
     "_fast_prom": "-m r941_prom_fast"
-    "_rep_1_best_val": "-m medaka_train_rep1/model.best.val.hdf5"
-    "_rep_2_best_val": "-m medaka_train_rep2/model.best.val.hdf5"
-    "_rep_3_best_val": "-m medaka_train_rep3/model.best.val.hdf5"
+    "_rep_1_best_val": "-m medaka_train_rep1/model.best.val_cat_acc.hdf5"
+    "_rep_2_best_val": "-m medaka_train_rep2/model.best.val_cat_acc.hdf5"
+    "_rep_3_best_val": "-m medaka_train_rep3/model.best.val_cat_acc.hdf5"
 
 # Medaka training features
 MEDAKA_TRAIN_TRUTH_CHUNK: 10000  # this sets the size of truth chunks aligned to draft to provide labels. 
