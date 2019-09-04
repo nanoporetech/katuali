@@ -183,7 +183,7 @@ rule basecall_guppy:
         ls {params[output_dir]}/*.fastq >> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
-        rm {params.output_dir}/*.fastq 
+        rm {params.output_dir}/*.fastq
         """
 
 
@@ -720,10 +720,10 @@ rule medaka_train_features:
         basecalls = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_train{suffix,[^/]*}/medaka_train.hdf",
-        rc_features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_train{suffix,[^/]*}/medaka_train_rc.hdf",
+        features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train.hdf",
+        rc_features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train_rc.hdf",
     log:
-        "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_train{suffix}.log"
+        "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_features{suffix}.log"
     threads: config["THREADS_PER_JOB"]
     resources:
         gpu = 0
@@ -779,9 +779,13 @@ rule medaka_train_features:
         """
 
 
-
 def get_medaka_train_features(wildcards, config=config):
-    
+    # The `MEDAKA_TRAIN_REPLICATES` section of the config specifies
+    # a set of training replicates and the PIPELINE required to create the
+    # features for these replicates. The PIPELINE itself is simply a list of
+    # target templates. The function `expand_target_template` used below
+    # fills in the template using values from the DATA section of the config
+    # in all possible ways.
     features_pipeline = config["MEDAKA_TRAIN_REPLICATES"][wildcards["suffix"]]
     feature_templates = config["PIPELINES"][features_pipeline]
     targets = []
