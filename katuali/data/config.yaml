@@ -9,8 +9,8 @@
 # The second section containing software locations should also be checked and
 # amended if necessary.
 #
-# To run the predefined workflows: all_fast_assm_polish all_standard_assm_polish
-# all_standard_assm_nanopolish all_medaka_train_features starting from fast5 input,
+# To run the predefined workflows: `all_fast_assm_polish`, `all_standard_assm_polish`
+# `all_standard_assm_nanopolish`, `all_medaka_train_features` starting from fast5 input,
 # nothing else need be done. If starting a workflow from basecall data
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
 # basecalls should be placed under a folder as determined by the value of the
@@ -97,42 +97,21 @@ LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 # workflows use this value to determine the basecaller setup to use.
 #
 # It is recommended to set this to: guppy to use the guppy basecaller
-BASECALLER: "guppy"
-# BASECALLER_SUFFIX controls which guppy suffix and medaka suffix gets used in pipeline targets
-# it is recommended to set this to either _hac (high accuracy minion) or _hac_prom (high accuracy promethion)
-BASECALLER_SUFFIX: "_hac" 
+BASECALLER:
+    "guppy"
+# The basecaller variant to use within predefined workflows pipeline.  It is
+# recommended to set this to either _hac (high accuracy minion) or _hac_prom
+# (high accuracy promethion). The value here should be a key of option dictionary,
+# corresponding to the selected basecaller, in the miscellaneous options part
+# of this config.
+BASECALLER_SUFFIX:
+    "_hac" 
 
-# Assembler for predefined workflows ("flye" or canu""). The `fast_assm_polish`,
-# `standard_assm_polish` `standard_assm_nanopolish` and medaka training
-# workflows use this value to determine the asembler setup to use.
-ASSEMBLER: "canu"
-
-
-# Pipeline target template definitions containing other config parameters that
-# will be filled in with config variables to generate targets, see
-# documentation for full details.  
-
-PIPELINES:
-    all_fast_assm_polish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
-    ]
-    all_standard_assm_polish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
-    ]
-    all_standard_assm_nanopolish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish/consensus.fasta"
-    ]
-    all_medaka_eval: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
-    ]
-    all_medaka_feat: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train.hdf",
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_train/medaka_train_rc.hdf"
-    ]
-    all_medaka_train: [
-        "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
-    ]
-
+# Assembler for predefined workflows ("flye" or canu""). The
+# `standard_assm_polish` and `standard_assm_nanopolish` and medaka training
+# workflows use this value to determine the assembler setup to use.
+ASSEMBLER:
+    "canu"
 
 
 #########################
@@ -159,7 +138,7 @@ SCRATCH: ""
 TMPSCRATCH: ""
 
 # default number of threads/cores/slots to use per multi-threaded task.
-THREADS_PER_JOB: 16
+THREADS_PER_JOB: 8
 
 
 #############################
@@ -174,23 +153,30 @@ THREADS_PER_JOB: 16
 DEPTHS:
     [25, 50, 75, 100, 125, 150, 175, 200]
 
-# if any of your medaka feature files are misssing (e.g. due to insufficient coverage for some runs / contigs)
-# the medaka training step will not find all the features it expects and will not run. 
-# If you want to just train on the feauture files which did get created, you can set this flag to true
-# (after having already created the features with the flag set to false) 
-USE_ONLY_EXISTING_MEDAKA_FEAT: false
+# If any medaka feature files are missing (e.g. due to insufficient coverage
+# for some runs / contigs) the medaka training step will not find all the files
+# it expects and will not run. To train on the feauture files which were
+# created, set this flag to true (after having already created the features
+# with the flag set to false) 
+USE_ONLY_EXISTING_MEDAKA_FEAT:
+    false
 
-# Run multiple training replicates - output will be in medaka_train_{key}, values should be a key of PIPELINES
-# This allows training of multiple models each using different training features 
+# Run multiple training replicates - output will be in medaka_train_{key},
+# values should be a key of the PIPELINES dictionary in this file. In simple
+# cases this allows running technical replicates of the training, but also
+# allows the pipeline to be changed to for example create features in a
+# different manner. For the latter change the value component to an alternative
+# user defined pipeline.
 MEDAKA_TRAIN_REPLICATES:
     "rep_1": "all_medaka_feat" 
     "rep_2": "all_medaka_feat"
     "rep_3": "all_medaka_feat"
 
-
-# to test multiple trained models, use multiple suffixes. 
-# The suffix should be a key within MEDAKA_OPTS specifying the path of a trained model 
-MEDAKA_EVAL_SUFFIXES: ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
+# Evaluation of trained models, entries in this list should be keys
+# of MEDAKA_OPTS, the values of which need to specify the path of the
+# trained model using the `-m option`.
+MEDAKA_EVAL_SUFFIXES:
+    ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
 MEDAKA_OPTS: 
     "": "-m r941_min_high"
     "_hac": "-m r941_min_high"
@@ -202,20 +188,55 @@ MEDAKA_OPTS:
     "_rep_3_best_val": "-m medaka_train_rep3/model.best.val_cat_acc.hdf5"
 
 # Medaka training features
-MEDAKA_TRAIN_TRUTH_CHUNK: 10000  # this sets the size of truth chunks aligned to draft to provide labels. 
+MEDAKA_TRAIN_TRUTH_CHUNK:
+    10000  # size of truth chunks aligned to draft to provide labels. 
 MEDAKA_TRAIN_FEAT_OPTS:
     "": "--chunk_len 1000 --chunk_ovlp 0"
 
 MEDAKA_TRAIN_OPTS:
     "": "--mini_epochs 5 --validation_split 0.10"
 
-# Medaka training can be IO-limited - using mult-threading to load data can speed things up
-MEDAKA_TRAIN_THREADS_IO: 8
+# Medaka training can be IO-limited - using multi-threading to load data
+MEDAKA_TRAIN_THREADS_IO:
+    8
 
 MEDAKA_VARIANT_OPTS:
     "_hac": "-m r941_min_high -d"
 
-MEDAKA_VARIANT_SUFFIXES: ["_hac"]
+MEDAKA_VARIANT_SUFFIXES:
+    ["_hac"]
+
+
+############################
+# Definitions of standard pipelines
+#
+# For advanced users, these act as shortcuts for creating batches of similar
+# targets en-masse.
+#
+# Pipeline target template definitions containing other config parameters that
+# will be filled in with config variables to generate targets, see
+# documentation for full details.  
+
+PIPELINES:
+    all_fast_assm_polish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+    ]
+    all_standard_assm_polish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+    ]
+    all_standard_assm_nanopolish: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish/consensus.fasta"
+    ]
+    all_medaka_eval: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+    ]
+    all_medaka_feat: [
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
+    ]
+    all_medaka_train: [
+        "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
+    ]
 
 
 ############################
@@ -263,7 +284,8 @@ MINI_ASSEMBLE_OPTS:
     "_ces": "-c -e 10 -n 10"
  
 # Canu 
-CANU_EXEC_OPTS: "useGrid=False" # this shouldn't be changed, snakemake will be confused
+CANU_EXEC_OPTS:
+    "useGrid=False" # this shouldn't be changed, snakemake will be confused
 CANU_OPTS:
     "": "" 
 
@@ -274,8 +296,10 @@ FLYE_OPTS:
 # Nanopolish
 # wildcards in dynamic files cannot be constrained => we can't safely extract a
 # suffix from dynamic nanopolish targets since they use nested config
-NANOPOLISH_OPTS: "--fix-homopolymers"
+NANOPOLISH_OPTS:
+    "--fix-homopolymers"
 
 # assess_assembly
-ASSESS_ASSM_OPTS: "-C"
+ASSESS_ASSM_OPTS:
+    "-C" # runs cataloguing of errors
 
