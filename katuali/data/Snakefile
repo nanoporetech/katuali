@@ -483,8 +483,8 @@ rule ref_as_assembly:
         gpu = 0
     shell:
         """
-        ln -s {input.truth} {output.consensus}
-        ln -s {input.basecalls} {params.output_dir}/basecalls.fasta
+        ln -s $PWD/{input.truth} $PWD/{output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         """
 
 rule canu:
