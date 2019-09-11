@@ -440,6 +440,53 @@ rule miniasm_racon:
         """
 
 
+rule ref_as_assembly_region:    
+    # Replace consensus with extracted reference for region.
+    # 'region' must be in target 
+    input:
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{runid}/{dir}/align/{region}/{depth}/basecalls.fasta"),
+        truth = ancient(partial(get_reference, config=config)),
+    output:
+        basecalls = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly_gsz_{genome_size,[^/]*}/basecalls.fasta",
+        consensus = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly_gsz_{genome_size,[^/]*}/consensus.fasta",
+    log:
+        "{runid}/{dir}/align/{region}/{depth}/ref_assembly_gsz_{genome_size}.log",
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.basecalls),
+    resources:
+        gpu = 0
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        echo "Pulling region {wildcards.region} from {input.truth}" >>{log}
+        samtools faidx {input.truth} {wildcards.region} > {output.consensus}
+        sleep 5
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        """
+
+
+rule ref_as_assembly:
+    # Replace consensus with full reference 
+    input:
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
+        truth = ancient(partial(get_reference, config=config)),
+    output:
+        consensus = "{runid,[^/]+}/{dir}/full_ref_assembly_gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{runid,[^/]+}/{dir}/full_ref_assembly_gsz_{genome_size,[^/]*}/basecalls.fasta"
+    log:
+        "{runid}/{dir}/full_ref_assembly_gsz_{genome_size}.log"
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.basecalls),
+    resources:
+        gpu = 0
+    shell:
+        """
+        ln -s $PWD/{input.truth} $PWD/{output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
+        """
+
 rule canu:
     # TODO can we make use of github.com/thiesgehrmann/FungalAssemblerPipeline ?
     input:
