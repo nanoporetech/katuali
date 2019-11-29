@@ -14,7 +14,7 @@ import pkg_resources
 import pysam
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0-alpha.1"
 __pkg__ = __name__
 
 
