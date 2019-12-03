@@ -32,7 +32,7 @@ config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
 # so any activation commands must be wrapped as such:
-#      set +u; {config[IN_MEDAKA]}; set -u; 
+#      set +u; {config[IN_MEDAKA]}; set -u;
 
 rule version:
     run:
@@ -58,7 +58,7 @@ rule environment:
 def get_reference(wildcards, config):
     # return the absolute path so that a reference in the working directory
     # e.g. ref.fasta is not confused for a pipeline target, which is
-    # distinguished from an explicit target by the lack of a '/' in pipeline targets.  
+    # distinguished from an explicit target by the lack of a '/' in pipeline targets.
     return os.path.abspath(config["DATA"][wildcards["runid"]]["REFERENCE"])
 
 
@@ -440,9 +440,9 @@ rule miniasm_racon:
         """
 
 
-rule ref_as_assembly_region:    
+rule ref_as_assembly_region:
     # Replace consensus with extracted reference for region.
-    # 'region' must be in target 
+    # 'region' must be in target
     input:
         venv = ancient(IN_POMOXIS),
         basecalls = ancient("{runid}/{dir}/align/{region}/{depth}/basecalls.fasta"),
@@ -467,7 +467,7 @@ rule ref_as_assembly_region:
 
 
 rule ref_as_assembly:
-    # Replace consensus with full reference 
+    # Replace consensus with full reference
     input:
         venv = ancient(IN_POMOXIS),
         basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
@@ -786,42 +786,62 @@ rule medaka_train_features:
         truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
     shell:
         """
-        set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
-
-        # keep a link of basecalls with the consensus
-
-        ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
-        sleep 1
-
-        echo "aligning basecalls to draft" >{log}
-        mini_align -i {input.basecalls} -r {input.draft} -p {params.bam} -t {threads} -P -m &>> {log}
-        sleep 5
+        set +u; {config[SOURCE]} {input.in_medaka}; set -u;
 
         echo "Extracting truth region {wildcards.region} from reference" >>{log}
         samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 2>> {log}
         sleep 5
 
-        echo "aligning truth to draft" >>{log}
-        mini_align -i {params.truth_region} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        if [[ "{wildcards.suffix}" == *"_compressed"* ]]; then
+          echo "RLE compressing inputs" >{log}
+          labelscheme='--label_scheme RLELabelScheme --feature_encoder HardRLEFeatureEncoder'
+
+          basecalls=$PWD/{params.output_dir}/basecalls.fastrle.gz
+          medaka fastrle {input.basecalls} | gzip > $basecalls
+
+          draft=$PWD/{params.output_dir}/draft.fastrle.gz
+          medaka fastrle {input.draft} | gzip > $draft
+
+          truth=$PWD/{params.output_dir}/truth.fastrle.gz
+          medaka fastrle {params.truth_region} | gzip > $truth
+
+        else
+          echo "Using vanilla inputs" >{log}
+          labelscheme=''
+          basecalls={input.basecalls}
+          draft={input.draft}
+          truth={params.truth_region}
+        fi
+
+        set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
+
+        echo "aligning basecalls to draft" >>{log}
+        mini_align -i $basecalls -r $draft -p {params.bam} -t {threads} -P -m &>> {log}
         sleep 5
 
+        echo "aligning truth to draft" >>{log}
+        mini_align -i $truth -r $draft -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        sleep 5
+
+
         echo "reverse complement the draft and align reads" >> {log}
-        seqkit seq --complement --reverse {input.draft} -o {params.rc_draft} &>> {log}
+        seqkit seq --complement --reverse $draft -o {params.rc_draft} &>> {log}
         sleep 5
 
         echo "aligning basecalls to rc draft" >>{log}
-        mini_align -i {input.basecalls} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
+        mini_align -i $basecalls -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
         sleep 5
 
         echo "aligning truth to rc draft" >> {log}
-        mini_align -i {params.truth_region} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        mini_align -i $truth -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
         sleep 5
+
 
         echo "creating features" >> {log}
         set +u; {config[SOURCE]} {input.in_medaka} set -u;
-        medaka features {params.bam}.bam {output.features} --truth {params.truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+        medaka features {params.bam}.bam {output.features} $labelscheme --truth {params.truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
         echo "creating rc features"
-        medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+        medaka features {params.rc_bam}.bam {output.rc_features} $labelscheme --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
 
         """
 
