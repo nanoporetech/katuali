@@ -14,7 +14,8 @@ config_opts=""
 cluster_opt=""
 cluster_parm=""
 
-autocluster_opt="--latency-wait 300 --jobname k.{name}.{jobid}.sh --drmaa"
+
+autocluster_opt="--latency-wait 600 --jobname k.{name}.{jobid}.sh --drmaa"
 # space is needed at start of autocluster_parm, 
 # see https://snakemake.readthedocs.io/en/stable/executable.html?highlight=DRMAA#cluster-execution
 #autocluster_parm=" -cwd -l {params.sge} -o $log_dir -j y" 

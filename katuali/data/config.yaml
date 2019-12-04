@@ -138,6 +138,18 @@ TMPSCRATCH: ""
 # default number of threads/cores/slots to use per multi-threaded task.
 THREADS_PER_JOB: 8
 
+# Snakemake checks for the existence of input files on the submission node.  On
+# systems with a high-latency distributed file system, the existence of a file
+# on the submission node may not guarantee its presence on a compute node.
+# Katuali checks that all input files exist on the machine where a rule is
+# about to run.  Note that if the file is not found, katuali will attempt to
+# force an NFS cache update by changing the owner of the file to the current
+# user (using chown). If the file is still not found, execution terminates.
+# Verbose logging of the file checking can by setting CHECK_FILES_EXIST_OPTS to
+# '--debug'. 
+#CHECK_FILES_EXIST_OPTS: '--debug'  # activate logging of file-checking
+CHECK_FILES_EXIST_OPTS: '--quiet'  # check files silently
+
 
 #############################
 # Options for medaka training
@@ -292,4 +304,3 @@ NANOPOLISH_OPTS:
 # assess_assembly
 ASSESS_ASSM_OPTS:
     "-C" # runs cataloguing of errors
-

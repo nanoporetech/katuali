@@ -66,6 +66,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
+            'check_files_exist = {}:check_files_exist'.format(__pkg_name__),
             'process_katuali_config = {}:process_katuali_config'.format(__pkg_name__),
             'pick_gpu = {}:pick_gpu'.format(__pkg_name__),
             'katuali_datafile = {}:print_data_path'.format(__pkg_name__),
