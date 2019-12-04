@@ -5,22 +5,17 @@ import sys
 
 import katuali
 
-
 KATUALI_VERSION = katuali.__version__
 
-
 GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
-SCRAPPIE_EXEC = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "build", "scrappie")
-FLAPPIE_EXEC = os.path.join(os.path.expanduser(config["FLAPPIE"]), "flappie")
-SCRAPPIE_JSON_TO_TSV = os.path.join(os.path.expanduser(config["SCRAPPIE"]), "misc", "json_to_tsv.py")
 NANOPOLISH_EXEC = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "nanopolish")
 NANOPOLISH_MAKE_RANGE = os.path.join(os.path.expanduser(config["NANOPOLISH"]), "scripts", "nanopolish_makerange.py")
 IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
 IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
 IN_MEDAKA_GPU = os.path.expanduser(config["IN_MEDAKA_GPU"])
-IN_RAY = os.path.expanduser(config["IN_RAY"])
 CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
 FLYE_EXEC = os.path.expanduser(config["FLYE_EXEC"])
+SHASTA_EXEC = os.path.expanduser(config["FLYE_EXEC"])
 
 # Always set the environment
 LD_LIBRARY_PATH = config.get("LD_LIBRARY_PATH")
@@ -33,6 +28,7 @@ config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
 # so any activation commands must be wrapped as such:
 #      set +u; {config[IN_MEDAKA]}; set -u; 
+
 
 rule version:
     run:
@@ -52,7 +48,6 @@ rule environment:
         gpu = 0
     shell:
         'echo $PATH; echo $LD_LIBRARY_PATH'
-
 
 
 def get_reference(wildcards, config):
@@ -95,53 +90,6 @@ def get_opts(wildcards, config, config_key):
     return opts
 
 
-rule basecall_scrappie:
-    input:
-        scrappie = ancient(SCRAPPIE_EXEC),
-        fast5 = ancient("{runid}/reads"),
-    output:
-        fasta = "{runid}/basecall/scrappie{suffix,[^/]*}/basecalls.fasta",
-    log:
-        "{runid}/basecall/scrappie{suffix,[^/]*}/scrappie.log",
-    params:
-        opts = partial(get_opts, config=config, config_key="SCRAPPIE_OPTS")
-    threads: config["THREADS_PER_JOB"]
-    resources:
-        gpu = 0
-    shell:
-        """
-        echo "{input.scrappie} {params[opts]} "> {log}
-        find -L {input.fast5} -name '*.fast5' | xargs {input.scrappie} {params[opts]} --threads {threads} >{output.fasta} 2>> {log}
-        """
-
-
-rule basecall_flappie:
-    input:
-        flappie = ancient(FLAPPIE_EXEC),
-        fast5 = ancient("{runid}/reads"),
-        venv = ancient(IN_POMOXIS),
-    output:
-        fastq = "{runid}/basecall/flappie{suffix,[^/]*}/basecalls.fastq",
-        fasta = "{runid}/basecall/flappie{suffix,[^/]*}/basecalls.fasta",
-    log:
-        "{runid}/basecall/flappie{suffix,[^/]*}/flappie.log",
-    params:
-        opts = partial(get_opts, config=config, config_key="FLAPPIE_OPTS"),
-    threads: config["THREADS_PER_JOB"]
-    resources:
-        gpu = 0
-    shell:
-        """
-        export OPENBLAS_NUM_THREADS=1
-        echo "{input.flappie} {params[opts]} "> {log}
-        #find -L {input.fast5} -name '*.fast5' | parallel -P {threads} -X {input.flappie} {params[opts]} >{output.fastq} 2>> {log}
-        find -L {input.fast5} -name '*.fast5' | parallel -j {threads} -n 10 -X {input.flappie} {params[opts]} >{output.fastq} 2>> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        sleep 5
-        seqkit fq2fa {output.fastq} > {output.fasta}
-        """
-
-
 rule basecall_guppy:
     input:
         guppy = ancient(GUPPY_EXEC),
@@ -155,7 +103,7 @@ rule basecall_guppy:
     params:
         output_dir = lambda w: "{runid}/basecall/guppy{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
-    threads: config["GUPPY_SLOTS"]
+    threads: 4
     resources:
         gpu = 1
     shell:
@@ -184,24 +132,6 @@ rule basecall_guppy:
         set +u; {config[SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
         rm {params.output_dir}/*.fastq
-        """
-
-
-rule scrappie_summary:
-    input:
-        json_to_tsv = ancient(SCRAPPIE_JSON_TO_TSV),
-        fasta = ancient("{runid}/basecall/scrappie/basecalls.fasta"),
-    output:
-        summary = "{runid}/basecall/scrappie/sequencing_summary.txt"
-    log:
-        "{runid}/basecall/scrappie/scrappie_summary.log"
-    resources:
-        gpu = 1
-    shell:
-        """
-        cat {input.fasta} | grep '^>' | cut -d ' ' -f 2- | python {input.json_to_tsv} > {output.summary} 2> {log}
-        # most tools expect read_id, not uuid
-        sed -i '1 s/uuid/read_id/' {output.summary} &>> {log}
         """
 
 
@@ -268,61 +198,6 @@ rule assess_consensus:
         """
 
 
-rule ray_catalogue:
-    input:
-        venv = ancient(IN_RAY),
-        bam = ancient("{runid}/{dir}/{prefix}.bam"),
-        truth = ancient(partial(get_reference, config=config)),
-    output:
-        catalogue = "{runid,[^/]+}/{dir}/{prefix}_ray_catalogue.txt"
-    log:
-        "{runid}/{dir}/{prefix}_ray_catalogue.log"
-    params:
-        prefix = "{runid}/{dir}/{prefix}_ray",
-    threads: config["THREADS_PER_JOB"]
-    resources:
-        gpu = 0
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        ray call {input.bam} {input.truth} --threads {threads} --output_prefix {params.prefix} --catalogue &> {log}
-        """
-
-
-rule hp_acc_vs_length:
-    input:
-        catalogue = ancient("{runid}/{dir}/{prefix}_ray_catalogue.txt"),
-    output:
-        hp_acc_sum = "{runid,[^/]+}/{dir}/{prefix}_ray_summary.txt"
-    resources:
-        gpu = 0
-    run:
-        from collections import defaultdict
-        import pandas as pd
-
-        def get_acc(df):
-            correct = df['ref_hp_len'] == df['q_hp_len']
-            return 100 * float(len(df[correct])) / len(df)
-
-        def get_summ(df):
-            accs = defaultdict(dict)
-            for hp_len, df_l in df.groupby('ref_hp_len'):
-                   accs['acc_all_bases'][hp_len] = get_acc(df_l)
-                   accs['n_all_bases'][hp_len] = len(df_l)
-                   for base, df_b in df_l.groupby('ref_base'):
-                       accs['acc_{}'.format(base)][hp_len] = get_acc(df_b)
-                       accs['n_{}'.format(base)][hp_len] = len(df_b)
-            summ = pd.DataFrame(accs).reset_index().rename(columns={'index': 'hp_len'})
-            return summ
-
-        df = pd.read_table(input.catalogue)
-        # create a summary over all refs, and one per reference
-        get_summ(df).to_csv(output.hp_acc_sum, sep=',', index=False)
-        for ref, d in df.groupby('record_name'):
-            out = output.hp_acc_sum.replace('_ray_summary.txt', '_{}_ray_summary.txt'.format(ref))
-            get_summ(d).to_csv(out, sep=',', index=False)
-
-
 rule get_depth:
     input:
         venv = ancient(IN_POMOXIS),
@@ -371,7 +246,6 @@ rule subsample_bam:
         contig_opt = partial(get_contig_opt, config=config),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
-    threads: config["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
@@ -412,35 +286,7 @@ rule racon:
         """
 
 
-rule miniasm_racon:
-    input:
-        venv = ancient(IN_POMOXIS),
-        basecalls = ancient("{dir}/basecalls.fasta"),
-    output:
-        consensus = "{dir}/miniasm_racon{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/miniasm_racon{suffix,[^/]*}/basecalls.fasta"
-    log:
-        "{dir}/miniasm_racon{suffix}.log"
-    params:
-        output_dir = lambda w: "{dir}/miniasm_racon{suffix}".format(**dict(w)),
-        opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-    threads: config["THREADS_PER_JOB"]
-    resources:
-        gpu = 0
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir, mini_assemble will fail if it exists..
-        rm -r {params[output_dir]} &&
-        mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
-        # rename output
-        mv {params[output_dir]}/assm_final.fa {output.consensus}
-        # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
-        """
-
-
-rule ref_as_assembly_region:    
+rule ref_as_assembly_region:
     # Replace consensus with extracted reference for region.
     # 'region' must be in target 
     input:
@@ -518,6 +364,7 @@ rule canu:
         rm -rf {params.output_dir}/{params.prefix}.* {params.output_dir}/correction {params.output_dir}/haplotyping {params.output_dir}/trimming {params.output_dir}/unitigging
         """
 
+
 rule flye:
     input:
         flye = ancient(FLYE_EXEC),
@@ -538,13 +385,36 @@ rule flye:
         gpu = 0
     shell:
         """
-        # snakemake will create the output dir, flye will fail if it exists..
-        #rm -r {params[output_dir]}
         {input.flye} --nano-raw {input.basecalls} --genome-size {params.gsz} --out-dir {params.output_dir} --threads {params.mt} {params[opts]} &> {log}
         mv {params.output_dir}/assembly.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
 
+
+rule shasta:
+    input:
+        shasta = ancient(FLYE_EXEC),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+    output:
+        consensus = "{dir}/shasta{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/shasta{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/shasta{suffix}gsz_{genome_size}.log"
+    params:
+        gsz = lambda w: "{genome_size}".format(**dict(w)),
+        output_dir = lambda w, output: os.path.dirname(output.consensus),
+        opts = partial(get_opts, config=config, config_key="SHASTA_OPTS"),
+        prefix = "shasta",
+        mt=config["THREADS_PER_JOB"],
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params[opts] &> {log}
+        mv {params.output_dir}/Assembly.fasta {output.consensus} &&
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        """
 
 rule medaka_consensus:
     input:
@@ -577,68 +447,6 @@ rule medaka_consensus:
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         # rm large intermediates
         rm {params[output_dir]}/calls_to_draft.bam* {params[output_dir]}/consensus_probs.hdf
-        """
-
-
-rule medaka_variant:
-    input:
-        venv = ancient(IN_MEDAKA),
-        bam = ancient("{runid}/{dir}/calls2ref.bam"),
-        bai = ancient("{runid}/{dir}/calls2ref.bam.bai"),
-        ref = ancient(partial(get_reference, config=config)),
-    output:
-        vcf = "{runid,[^/]+}/{dir}/{contig,[^/]+}/medaka_variant{suffix,[^/]*}/medaka.vcf",
-    log:
-        "{runid}/{dir}/{contig}/medaka_variant{suffix}.log"
-    threads: 8
-    resources:
-        # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
-        # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
-        # running on CPU
-        gpu = 0
-    params:
-        opts = partial(get_opts, config=config, config_key="MEDAKA_VARIANT_OPTS"),
-        contig_opt = partial(get_contig_opt, config=config),
-        output_dir = lambda w, output: os.path.dirname(output.vcf),
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists.
-        rm -r {params.output_dir}
-
-        medaka_variant -b {input.bam} -f {input.ref} -o {params.output_dir} -t {threads} {params.contig_opt} {params.opts} &> {log}
-
-        mv {params.output_dir}/round_2_final_unphased.vcf {output.vcf}
-
-        """
-
-
-rule ref_guided_medaka_consensus:
-    input:
-        venv = ancient(IN_MEDAKA),
-        draft = ancient(partial(get_reference, config=config)),
-        basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
-    output:
-        consensus = "{runid,[^/]+}/{dir}/ref_guided_medaka{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{runid,[^/]+}/{dir}/ref_guided_medaka{suffix,[^/]*}/basecalls.fasta",
-    log:
-        "{runid}/{dir}/medaka{suffix}.log"
-    threads: 8
-    resources:
-        gpu = 0
-    params:
-        opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
-        output_dir = lambda w, output: os.path.dirname(output.consensus),
-    shell:
-        """
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists.
-        rm -r {params[output_dir]}
-
-        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
-
-        # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         """
 
 

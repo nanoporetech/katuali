@@ -53,10 +53,7 @@ Basecalling Tools
 .. parsed-literal::
 
     `guppy <https://community.nanoporetech.com/downloads>`_: "/usr/bin/guppy_basecaller"
-    `scrappie <https://github.com/nanoporetech/scrappie>`_: "~/git/scrappie"
-    `flappie <https://github.com/nanoporetech/flappie>`_: "~/git/github/flappie"
 
-Guppy is recommended, both scrappie and flappie are research prototypes.
 
 Assembly Tools
 ^^^^^^^^^^^^^^
@@ -64,8 +61,9 @@ Assembly Tools
 .. parsed-literal::
 
     `canu <https://github.com/marbl/canu>`_: "~/git/canu-1.8/Linux-amd64/bin/canu"
-    `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
     `flye <https://github.com/fenderglass/Flye>`_: "~/git/Flye/bin/flye"
+    `shasta <https://github.com/chanzuckerberg/shasta>`_: "~/git/shasta-Linux-0.3.0"
+    `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
 
 In the context of Katuali, pomoxis functions as a wrapper to
 `miniasm <https://github.com/lh3/miniasm>`_. Canu is utilised in the standard
@@ -76,11 +74,11 @@ Consensus Tools
 
 .. parsed-literal::
 
-    `NANOPOLISH <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
-    `IN_MEDAKA <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
+    `medaka <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
+    `nanopolish <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
 
-Medeka is recommended in combination with he lastest "flip-flop" algorithm in
+Medaka is recommended in combination with the latest "flip-flop" algorithm in
 the guppy basecaller, and for rapid consensus. Nanopolish may still by
-preferred if using older basecallers.  
+preferred if using older basecallers. 
 
 

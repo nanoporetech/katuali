@@ -11,7 +11,6 @@ endif
 
 IN_VENV=. ./venv/bin/activate
 TEST=${IN_VENV} && cd test && katuali -s Snakefile --configfile config.yaml --printshellcmds -j ${JOBS} --config THREADS_PER_JOB=${JOBS}
-OPT='--config SCRAPPIE_OPTS="raw -H mean --model rgrgr_r94 --local 10.0 --uuid --temperature1 0.65 --temperature2 1.7"'
 
 venv/bin/activate:
 	test -d venv || virtualenv venv --prompt '(katuali) ' --python=python3
@@ -54,40 +53,40 @@ test/ref.fasta: test/config.yaml
 # The following targets step through a pipeline
 
 test_basecall: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/basecalls.fasta
+	${TEST} MinIonRun1/basecall/guppy/basecalls.fasta
 
 test_align: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/align/calls2ref.bam
+	${TEST} MinIonRun1/basecall/guppy/align/calls2ref.bam
 
 test_subsample: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/align/all_contigs/25X/basecalls.fasta
+	${TEST} MinIonRun1/basecall/guppy/align/all_contigs/25X/basecalls.fasta
 
 test_canu: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/consensus.fasta
 
 test_flye: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/consensus.fasta
 
 test_flye_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/racon/consensus.fasta
 
 test_flye_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/racon/medaka/consensus.fasta
 
 test_flye_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/flye_gsz_50k/racon/nanopolish/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/racon/nanopolish/consensus.fasta
 
 test_canu_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/racon/consensus.fasta
 
 test_canu_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/racon/medaka/consensus.fasta
 
 test_canu_nanopolish: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/canu_gsz_50k/racon/nanopolish/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/racon/nanopolish/consensus.fasta
 
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/scrappie/miniasm_racon/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/miniasm_racon/consensus.fasta
 
 test_pipeline_all_fast_assm_polish: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} all_fast_assm_polish --dryrun
