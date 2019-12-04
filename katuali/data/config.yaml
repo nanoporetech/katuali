@@ -78,12 +78,10 @@ DATA:
 IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # medaka used for consensus - should only have tensorflow installed
 IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
-IN_RAY: "~/git/ray/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 FLYE_EXEC: "~/git/Flye/bin/flye"
+SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
 NANOPOLISH: "~/git/nanopolish" 
-SCRAPPIE: "~/git/scrappie"
-FLAPPIE: "~/git/github/flappie"
 GUPPY: "/usr/bin/guppy_basecaller"
 SOURCE: "source"
 LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
@@ -251,16 +249,6 @@ PIPELINES:
 # for a specific parameter set (as well as functioning as a target name).
 # Default parameters are given by the `""` targets
 
-# Scrappie 
-SCRAPPIE_OPTS: 
-    "": "raw --model rgrgr_r94 --uuid"
-    "_hp": "raw -H mean --model rgrgr_r94 --uuid"
-        
-# Flappie 
-FLAPPIE_OPTS: 
-    "": "raw --model rgrgr_r94 --uuid"
-    "_r10c_pcr": "--model=r10c_pcr"
-
 # Guppy        
 GUPPY_OPTS: 
     "": "-c dna_r9.4.1_450bps_hac.cfg"
@@ -268,8 +256,6 @@ GUPPY_OPTS:
     "_hac_prom": "-c dna_r9.4.1_450bps_hac_prom.cfg"
     "_fast": "-c dna_r9.4.1_450bps_fast.cfg"
     "_fast_prom": "-c dna_r9.4.1_450bps_fast_prom.cfg"
-
-GUPPY_SLOTS: 8  # for passing to SGE parallel environment
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
@@ -282,7 +268,7 @@ MINI_ASSEMBLE_OPTS:
     "": ""
     "_ce": "-c -e 10"
     "_ces": "-c -e 10 -n 10"
- 
+
 # Canu 
 CANU_EXEC_OPTS:
     "useGrid=False" # this shouldn't be changed, snakemake will be confused
@@ -292,6 +278,10 @@ CANU_OPTS:
 # Flye 
 FLYE_OPTS:
     "": "" 
+
+# Shasta 
+SHASTA_OPTS:
+    "": "--Reads.minReadLength 2000"
 
 # Nanopolish
 # wildcards in dynamic files cannot be constrained => we can't safely extract a

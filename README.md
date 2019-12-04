@@ -65,14 +65,14 @@ installation is required for most functionality.
 **Basecalling Tools**
 
 * [guppy](https://community.nanoporetech.com/downloads): "/usr/bin/guppy_basecaller"
-* [scrappie](https://github.com/nanoporetech/scrappie): "~/git/scrappie"
-* [flappie](https://github.com/nanoporetech/flappie): "~/git/github/flappie"
 
 Guppy is recommended, both scrappie and flappie are research prototypes.
 
 **Assembly Tools**
 
 * [canu](https://github.com/marbl/canu): "~/git/canu-1.8/Linux-amd64/bin/canu"
+* [flye](https://github.com/fenderglass/Flye): "~/git/Flye/bin/flye"
+* [shasta](https://github.com/chanzuckerberg/shasta): "~/git/shasta-Linux-0.3.0"
 * [pomoxis](https://github.com/nanoporetech/pomoxis): "~/git/pomoxis/venv/bin/activate"
 
 In the context of Katuali, pomoxis functions as a wrapper to
