@@ -19,7 +19,10 @@ SHASTA_EXEC = os.path.expanduser(config["FLYE_EXEC"])
 
 # Always set the environment
 LD_LIBRARY_PATH = config.get("LD_LIBRARY_PATH")
-shell.prefix("export LD_LIBRARY_PATH=\"%s\"; " % (LD_LIBRARY_PATH))
+shell.prefix("""
+set -euo pipefail; 
+export LD_LIBRARY_PATH=\"{LD_LIBRARY_PATH}\";
+""".format(LD_LIBRARY_PATH=LD_LIBRARY_PATH))
 
 config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
 
@@ -108,6 +111,7 @@ rule basecall_guppy:
         gpu = 1
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
 
@@ -151,8 +155,9 @@ rule align_to_ref:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads} &> {log}
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads} &>> {log}
         """
 
 
@@ -170,8 +175,9 @@ rule align_to_draft:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads} &> {log}
+        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads} &>> {log}
         """
 
 
@@ -193,8 +199,9 @@ rule assess_consensus:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &> {log}
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &>> {log}
         """
 
 
@@ -212,8 +219,9 @@ rule get_depth:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &> {log}
+        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>> {log}
         """
 
 
@@ -229,8 +237,9 @@ rule get_basecall_stats:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        stats_from_bam {input.bam} -o {output.stats} &> {log}
+        stats_from_bam {input.bam} -o {output.stats} &>> {log}
         """
 
 
@@ -250,8 +259,9 @@ rule subsample_bam:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>{log};
+        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>>{log};
         sleep 5;
         for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
         """
@@ -275,10 +285,11 @@ rule racon:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} &&
-        mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &> {log}
+        mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &>> {log}
         # rename output
         mv {params[output_dir]}/assm_final.fa {output.consensus}
         # keep a link of basecalls with the consensus
@@ -304,6 +315,7 @@ rule ref_as_assembly_region:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         echo "Pulling region {wildcards.region} from {input.truth}" >>{log}
         samtools faidx {input.truth} {wildcards.region} > {output.consensus}
@@ -329,6 +341,7 @@ rule ref_as_assembly:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         ln -s $PWD/{input.truth} $PWD/{output.consensus}
         ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         """
@@ -355,9 +368,10 @@ rule canu:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
-        {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &> {log}
+        {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &>> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         # remove canu intermediates we don't use
@@ -437,11 +451,12 @@ rule medaka_consensus:
         output_dir = lambda w, output: os.path.dirname(output.consensus),
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir if it does not exist, remove it it exists.
         rm -r {params[output_dir]}
 
-        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &> {log}
+        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &>> {log}
 
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
@@ -462,7 +477,8 @@ rule nanopolish_basecalls:
         gpu = 0
     shell:
         """
-        cut -d' ' -f1 < {input} > {output} 2> {log}
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        cut -d' ' -f1 < {input} > {output} 2>> {log}
         """
 
 
@@ -483,7 +499,8 @@ rule nanopolish_index:
         gpu = 0
     shell:
         """
-        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &> {log}
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        {input.nanopolish} index -d {input.fast5} -s {input.summary} {input.basecalls} &>> {log}
         """
 
 
@@ -498,7 +515,8 @@ rule fast5_list:
         gpu = 0
     shell:
         """
-        find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist} &> {log}
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        find -L `readlink -f {input.fast5}` -name '*.fast5' > {output.filelist} &>> {log}
         """
 
 
@@ -524,7 +542,8 @@ rule nanopolish_vcf:
         gpu = 0
     shell:
         """
-        {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &> {log}
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        {input.nanopolish} variants --consensus -o {output.vcf} -w {wildcards.region} -r {input.basecalls} -b {input.bam} -g {input.draft} -t 1 {params.opts} &>> {log}
         """
 
 
@@ -544,8 +563,9 @@ rule nanopolish_regions:
         gpu = 0
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {params.log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list 2> {params.log} &&
+        python {input.make_range} {input.draft} > {wildcards.dir}/nanopolish/regions.list 2>> {params.log} &&
         for i in `cat {wildcards.dir}/nanopolish/regions.list`; do touch {wildcards.dir}/nanopolish/regions/$i.region; done 2>> {params.log}
         """
 
@@ -564,7 +584,10 @@ rule nanopolish:
     resources:
         gpu = 0
     shell:
-        "{input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2> {log}"
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        {input.nanopolish} vcf2fasta -g {input.draft} {input.vcfs} > {output.consensus} 2>> {log}
+        """
 
 
 rule medaka_train_features:
@@ -594,6 +617,7 @@ rule medaka_train_features:
         truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
 
         # keep a link of basecalls with the consensus
@@ -601,7 +625,7 @@ rule medaka_train_features:
         ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         sleep 1
 
-        echo "aligning basecalls to draft" >{log}
+        echo "aligning basecalls to draft" >>{log}
         mini_align -i {input.basecalls} -r {input.draft} -p {params.bam} -t {threads} -P -m &>> {log}
         sleep 5
 
@@ -673,6 +697,7 @@ rule medaka_train:
         gpu = 1
     shell:
         """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         echo "GPU status before" >> {log}
         gpustat >> {log}
 
