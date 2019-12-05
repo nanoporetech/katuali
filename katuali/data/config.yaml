@@ -193,9 +193,9 @@ MEDAKA_OPTS:
     "_hac_prom": "-m r941_prom_high"
     "_fast": "-m r941_min_fast"
     "_fast_prom": "-m r941_prom_fast"
-    "_rep_1_best_val": "-m medaka_train_rep1/model.best.val_cat_acc.hdf5"
-    "_rep_2_best_val": "-m medaka_train_rep2/model.best.val_cat_acc.hdf5"
-    "_rep_3_best_val": "-m medaka_train_rep3/model.best.val_cat_acc.hdf5"
+    "_rep_1_best_val": "-m medaka_train_rep_1/model.best.val_cat_acc.hdf5"
+    "_rep_2_best_val": "-m medaka_train_rep_2/model.best.val_cat_acc.hdf5"
+    "_rep_3_best_val": "-m medaka_train_rep_3/model.best.val_cat_acc.hdf5"
 
 # Medaka training features
 MEDAKA_TRAIN_TRUTH_CHUNK:
