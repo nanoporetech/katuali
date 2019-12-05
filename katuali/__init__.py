@@ -356,3 +356,15 @@ def expand_target_template(template, config):
     # this will fail if there are any {} still present
     targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
     return targets
+
+
+def suffix_decorate(func, suffix=''):
+    """Add a suffix to a function returning a string
+
+    :param: func which returns string
+    :suffix: suffix to add to string before returning.
+    """
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs) + suffix
+
+    return wrapper

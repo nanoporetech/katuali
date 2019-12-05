@@ -144,6 +144,8 @@ rule align_to_ref:
         venv = ancient(IN_POMOXIS),
         basecalls = ancient("{runid}/basecall/{bc_dir}/basecalls.fasta"),
         ref = ancient(partial(get_reference, config=config)),
+        ref_mmi = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.mmi')),
+        ref_fai = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.fai')),
     output:
         bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
     log:
@@ -157,7 +159,7 @@ rule align_to_ref:
         """
         check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -P -t {threads} &>> {log}
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -t {threads} &> {log}
         """
 
 
@@ -166,6 +168,8 @@ rule align_to_draft:
         venv = ancient(IN_POMOXIS),
         basecalls = ancient("{dir}/{subdir}/basecalls.fasta"),
         draft = ancient("{dir}/consensus.fasta"),
+        draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{dir}/consensus.fasta.fai"),
     output:
         bam = "{dir}/{subdir}/calls2draft.bam"
     log:
@@ -177,7 +181,24 @@ rule align_to_draft:
         """
         check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -P -t {threads} &>> {log}
+        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/{wildcards.subdir}/calls2draft -t {threads} &> {log}
+        """
+
+rule mini_align_index:
+    input:
+        venv = ancient(IN_POMOXIS),
+        ref = ancient("{dir}/{filename}"),
+    output:
+        mmi = "{dir}/{filename,[^/]+}.mmi",
+        fai = "{dir}/{filename,[^/]+}.fai",
+    log:
+        "{dir}/{filename}.mini_align_index.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        mini_align -r {input.ref} -X &> {log}
         """
 
 
@@ -185,6 +206,8 @@ rule assess_consensus:
     input:
         venv = ancient(IN_POMOXIS),
         consensus = ancient("{runid}/{dir}/consensus.fasta"),
+        consensus_mmi = ancient("{runid}/{dir}/consensus.fasta.mmi"),
+        consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
         truth = ancient(partial(get_reference, config=config)),
     output:
         summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
@@ -434,6 +457,8 @@ rule medaka_consensus:
     input:
         venv = ancient(IN_MEDAKA),
         draft = ancient("{dir}/consensus.fasta"),
+        draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{dir}/consensus.fasta.fai"),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/medaka{suffix,[^/]*}/consensus.fasta",
@@ -595,6 +620,8 @@ rule medaka_train_features:
         in_medaka = ancient(IN_MEDAKA),
         in_pomoxis = ancient(IN_POMOXIS),
         draft = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta"),
+        draft_mmi = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.fai"),
         basecalls = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
@@ -739,7 +766,7 @@ rule medaka_train:
         """
 
 def pipeline_targets(wildcards, config=config):
-    p = wildcards['pipeline']
+    p = 'all_' + wildcards['pipeline']
     logger.run_info("Creating targets for pipeline: {}".format(p))
     targets = []
     for template in config['PIPELINES'][p]:
@@ -751,4 +778,4 @@ rule pipeline:
     input:
         targets = partial(pipeline_targets, config=config)
     output:
-        "{pipeline,[^/]*}"
+        "all_{pipeline,[^/]*}"
