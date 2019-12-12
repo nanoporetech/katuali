@@ -75,7 +75,6 @@ Consensus Tools
 .. parsed-literal::
 
     `medaka <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
-    `nanopolish <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
 
 Medaka is recommended in combination with the latest "flip-flop" algorithm in
 the guppy basecaller, and for rapid consensus. Nanopolish may still by

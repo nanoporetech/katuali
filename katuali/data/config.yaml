@@ -10,7 +10,7 @@
 # amended if necessary.
 #
 # To run the predefined workflows: `all_fast_assm_polish`, `all_standard_assm_polish`
-# `all_standard_assm_nanopolish`, `all_medaka_train_features` starting from fast5 input,
+# `all_medaka_train_features` starting from fast5 input,
 # nothing else need be done. If starting a workflow from basecall data
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
 # basecalls should be placed under a folder as determined by the value of the
@@ -81,7 +81,6 @@ IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 FLYE_EXEC: "~/git/Flye/bin/flye"
 SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
-NANOPOLISH: "~/git/nanopolish" 
 GUPPY: "/usr/bin/guppy_basecaller"
 SOURCE: "source"
 LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
@@ -91,7 +90,7 @@ LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 # Pipeline options
 
 # Basecaller for predefined workflows. The `fast_assm_polish`,
-# `standard_assm_polish` `standard_assm_nanopolish` and medaka training
+# `standard_assm_polish` and medaka training
 # workflows use this value to determine the basecaller setup to use.
 #
 # It is recommended to set this to: guppy to use the guppy basecaller
@@ -106,7 +105,7 @@ BASECALLER_SUFFIX:
     "_hac" 
 
 # Assembler for predefined workflows ("flye" or canu""). The
-# `standard_assm_polish` and `standard_assm_nanopolish` and medaka training
+# `standard_assm_polish` and medaka training
 # workflows use this value to determine the assembler setup to use.
 ASSEMBLER:
     "canu"
@@ -188,11 +187,11 @@ MEDAKA_TRAIN_REPLICATES:
 MEDAKA_EVAL_SUFFIXES:
     ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
 MEDAKA_OPTS: 
-    "": "-m r941_min_high"
-    "_hac": "-m r941_min_high"
-    "_hac_prom": "-m r941_prom_high"
-    "_fast": "-m r941_min_fast"
-    "_fast_prom": "-m r941_prom_fast"
+    "": "-m r941_min_high_g330"
+    "_hac": "-m r941_min_high_g330"
+    "_hac_prom": "-m r941_prom_high_g330"
+    "_fast": "-m r941_min_fast_g303"
+    "_fast_prom": "-m r941_prom_fast_g303"
     "_rep_1_best_val": "-m medaka_train_rep_1/model.best.val_cat_acc.hdf5"
     "_rep_2_best_val": "-m medaka_train_rep_2/model.best.val_cat_acc.hdf5"
     "_rep_3_best_val": "-m medaka_train_rep_3/model.best.val_cat_acc.hdf5"
@@ -229,13 +228,10 @@ MEDAKA_VARIANT_SUFFIXES:
 
 PIPELINES:
     all_fast_assm_polish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
     ]
     all_standard_assm_polish: [
         "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
-    ]
-    all_standard_assm_nanopolish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/nanopolish/consensus.fasta"
     ]
     all_medaka_eval: [
         "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
@@ -294,12 +290,6 @@ FLYE_OPTS:
 # Shasta 
 SHASTA_OPTS:
     "": "--Reads.minReadLength 2000"
-
-# Nanopolish
-# wildcards in dynamic files cannot be constrained => we can't safely extract a
-# suffix from dynamic nanopolish targets since they use nested config
-NANOPOLISH_OPTS:
-    "--fix-homopolymers"
 
 # assess_assembly
 ASSESS_ASSM_OPTS:

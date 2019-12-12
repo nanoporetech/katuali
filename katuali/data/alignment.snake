@@ -1,0 +1,86 @@
+rule align_to_ref:
+    input:
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{runid}/basecall/{bc_dir}/basecalls.fasta"),
+        ref = ancient(partial(get_reference, config=config)),
+        ref_mmi = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.mmi')),
+        ref_fai = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.fai')),
+    output:
+        bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
+    log:
+        "{runid}/basecall/{bc_dir}/align/align_to_ref.log"
+    params:
+        prefix = lambda w, output: os.path.splitext(output.bam)[0],
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -t {threads} &> {log}
+        """
+
+
+rule align_to_draft:
+    input:
+        venv = ancient(IN_POMOXIS),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+        draft = ancient("{dir}/consensus.fasta"),
+        draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{dir}/consensus.fasta.fai"),
+    output:
+        bam = "{dir}/calls2draft.bam"
+    log:
+        "{dir}/align_to_draft.log"
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        mini_align -i {input.basecalls} -r {input.draft} -p {wildcards.dir}/calls2draft -t {threads} &> {log}
+        """
+
+
+rule mini_align_index:
+    input:
+        venv = ancient(IN_POMOXIS),
+        ref = ancient("{dir}/{filename}"),
+    output:
+        mmi = "{dir}/{filename,[^/]+}.mmi",
+        fai = "{dir}/{filename,[^/]+}.fai",
+    log:
+        "{dir}/{filename}.mini_align_index.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        mini_align -r {input.ref} -X &> {log}
+        """
+
+
+rule subsample_bam:
+    input:
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
+    output:
+        fasta = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/basecalls.fasta",
+    log:
+        "{dir}/{contig}/{depth}X{suffix}/subsample.log"
+    params:
+        contig_opt = partial(get_contig_opt, config=config),
+        prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>>{log};
+        sleep 5;
+        for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
+        """

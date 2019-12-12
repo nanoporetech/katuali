@@ -31,12 +31,12 @@ will perform basecalling with scrappie (starting from `./run1/reads`),
 
 Each step of a multi-step pipeline stores its outputs in a subdirectory of the
 previous stage. In this way, we can define a multistep-pipeline to basecall
-with guppy, assemble with canu, then polish with medaka, and finally run
-nanopolish by contructing the target: 
+with guppy, assemble with canu, perform consensus with racon, and finally polish
+with medaka:
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu_gsz_4.0M/medaka/nanopolish/consensus.fasta
+    katuali run1/basecall/guppy/canu_gsz_4.0M/racon/medaka/consensus.fasta
 
 This nested working directory stores the data in such a way that is it obvious
 what went into and out of each stage of the pipeline.
@@ -45,15 +45,16 @@ It also enables forks in the pipelines which might share basecalls (or other
 intermediate results), but differ in assembly or consensus methods.
 
 For example, if we wish to basecall with guppy, assemble with canu, run
-medaka on the canu assembly, and seperately run nanopolish on the canu assembly,
-we could use the targets: 
+racon followed by medaka on the canu assembly, and seperately run medaka directly on
+the canu assembly, we could use the targets: 
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu_gsz_4.0M/nanopolish/consensus.fasta run1/basecall/guppy/canu_gsz_4.0M/medaka/consensus.fasta
+    katuali run1/basecall/guppy/canu_gsz_4.0M/racon/medaka/consensus.fasta \
+            run1/basecall/guppy/canu_gsz_4.0M/medaka/consensus.fasta
 
 `Snakemake` will create a graph of tasks to perform the common basecall
-and assembly tasks, then run separately nanopolish and medaka from the same
+and assembly tasks, then run separately two indepdendent medaka tasks from the same
 inputs (and in parallel, given enough resource).
 
 
@@ -90,16 +91,17 @@ Reads can be assembled in three ways at present:
 Polishing
 ---------
 
-Sequences can be polished with Racon, Nanopolish and medaka to create higher
+Sequences can be polished with Racon or medaka to create higher
 accuracy consensus sequences. Consensus methods can also be combined (e.g.
 racon/medaka) meaning that the input to medaka will be the racon consensus. 
-The last example requests two rounds of medaka. 
+The last example requests two rounds of medaka (something not generally
+required or encouraged).
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/nanopolish/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka_flipflop/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka_flipflop/medaka_flipflop/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka/medaka_flipflop/consensus.fasta
 
 
 Pipeline restrictions
