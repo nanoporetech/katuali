@@ -6,7 +6,7 @@ Basic Usage and Tests
 
 The easiest way to test the pipeline is to run the tests, which will basecall,
 assemble and polish a small dataset that comes bundled with `Katuali`.  The
-tests require scrappie, pomoxis, canu, flye and nanopolish to be installed, and can
+tests require suppy, pomoxis, canu, flye and medaka to be installed, and can
 be run with:
 
 .. code-block:: bash
@@ -58,7 +58,7 @@ and update this file to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu/flye we need to specify genome size
 
-There are three standard workflows available:
+There are two standard workflows available:
 
 1. To perform basecalling, a quick assembly with miniasm, and consensus with racon
    and medaka it is sufficient to run:
@@ -72,13 +72,6 @@ There are three standard workflows available:
    .. code-block:: bash
   
        katuali --configfile my_config.yaml all_standard_assm_polish
-
-3. To polish the assembly with nanopolish (not recommended in tandem with
-   flip-flop basecalling, where medaka is preferred):
-
-   .. code-block:: bash
-  
-       katuali --configfile my_config.yaml all_standard_assm_nanopolish
 
 
 The :ref:`introduction` section describes how to create a pipeline with any

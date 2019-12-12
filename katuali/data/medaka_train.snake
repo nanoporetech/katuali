@@ -1,0 +1,151 @@
+
+
+rule medaka_train_features:
+    input:
+        in_medaka = ancient(IN_MEDAKA),
+        in_pomoxis = ancient(IN_POMOXIS),
+        draft = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta"),
+        draft_mmi = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.fai"),
+        basecalls = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/basecalls.fasta"),
+        truth = ancient(partial(get_reference, config=config)),
+    output:
+        features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train.hdf",
+        rc_features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train_rc.hdf",
+    log:
+        "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_features{suffix}.log"
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.features),
+        bam = lambda w, output: os.path.join(os.path.dirname(output.features), "calls2ref"),
+        truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2ref"),
+        rc_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "callsrc2ref"),
+        rc_truth_bam = lambda w, output: os.path.join(os.path.dirname(output.features), "truth2refrc"),
+        rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
+        truth_region = lambda w, output: os.path.join(os.path.dirname(output.features), "truth.fasta"),
+        opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
+        truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
+
+        # keep a link of basecalls with the consensus
+
+        ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
+        sleep 1
+
+        echo "aligning basecalls to draft" >>{log}
+        mini_align -i {input.basecalls} -r {input.draft} -p {params.bam} -t {threads} -P -m &>> {log}
+        sleep 5
+
+        echo "Extracting truth region {wildcards.region} from reference" >>{log}
+        samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 2>> {log}
+        sleep 5
+
+        echo "aligning truth to draft" >>{log}
+        mini_align -i {params.truth_region} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        sleep 5
+
+        echo "reverse complement the draft and align reads" >> {log}
+        seqkit seq --complement --reverse {input.draft} -o {params.rc_draft} &>> {log}
+        sleep 5
+
+        echo "aligning basecalls to rc draft" >>{log}
+        mini_align -i {input.basecalls} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
+        sleep 5
+
+        echo "aligning truth to rc draft" >> {log}
+        mini_align -i {params.truth_region} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        sleep 5
+
+        echo "creating features" >> {log}
+        set +u; {config[SOURCE]} {input.in_medaka} set -u;
+        medaka features {params.bam}.bam {output.features} --truth {params.truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+        echo "creating rc features"
+        medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
+
+        """
+
+
+def get_medaka_train_features(wildcards, config=config):
+    # The `MEDAKA_TRAIN_REPLICATES` section of the config specifies
+    # a set of training replicates and the PIPELINE required to create the
+    # features for these replicates. The PIPELINE itself is simply a list of
+    # target templates. The function `expand_target_template` used below
+    # fills in the template using values from the DATA section of the config
+    # in all possible ways.
+    features_pipeline = config["MEDAKA_TRAIN_REPLICATES"][wildcards["suffix"]]
+    feature_templates = config["PIPELINES"][features_pipeline]
+    targets = []
+    for template in feature_templates:
+        targets.extend(katuali.expand_target_template(template, config))
+
+    if config["USE_ONLY_EXISTING_MEDAKA_FEAT"]:
+        logger.run_info("WARNING: USE_ONLY_EXISTING_MEDAKA_FEAT set to true, only using existing medaka training features.")
+        n_all_feat = len(targets)
+        targets = [f for f in targets if os.path.isfile(f)]
+        if len(targets) == 0:
+            raise ValueError("USE_ONLY_EXISTING_MEDAKA_FEAT set to true in config, but no features were found")
+        logger.run_info("Found {}/{} of the medaka training feature files.".format(len(targets), n_all_feat))
+
+    return targets
+
+
+rule medaka_train:
+    input:
+        venv = ancient(IN_MEDAKA_GPU),
+        features = ancient(partial(get_medaka_train_features, config=config))
+    output:
+        train_dir = directory("medaka_train_{suffix,[^/]*}")
+    log:
+        "medaka_train_{suffix}.log",
+    params:
+        opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
+    threads: config["MEDAKA_TRAIN_THREADS_IO"]
+    resources:
+        gpu = 1
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        echo "GPU status before" >> {log}
+        gpustat >> {log}
+
+        GPU=$(pick_gpu 2>> {log})
+
+        echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
+
+        if [ "{config[SCRATCH]}" != "" ];then
+            if [ "{config[TMPSCRATCH]}" != "" ];then
+                tmpscr={config[TMPSCRATCH]}
+                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}" >> {log}
+                mkdir -p $tmpscr &>> {log}
+            else
+                userscr={config[SCRATCH]}/$USER
+                mkdir -p $userscr 2>> {log}
+                tmpscr=$(mktemp -d -p $userscr) &>> {log}
+            fi
+            t=$(date +"%T")
+            echo "$t: Copying feature files to specified scratch directory: $tmpscr." >> {log}
+            for f in {input.features}; do
+                d=$tmpscr/$f
+                t0=$(date +"%T")
+                if [[ ! -e $d ]]; then
+                    echo "$t0 Copying $d" >> {log}
+                    mkdir -p $(dirname $d) && sleep 1 && cp $f $d &>> {log}
+                    t1=$(date +"%T")
+                    echo "$t1 Copied $d" >> {log}
+                else
+                    echo "Found existing file: $d" >> {log}
+                fi
+            done
+            features=$(for f in {input.features}; do echo $tmpscr/$f; done)
+        else
+            features={input.features}
+        fi
+
+        set +u; {config[SOURCE]} {input.venv} set -u;
+        CUDA_VISIBLE_DEVICES=$GPU medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
+        """

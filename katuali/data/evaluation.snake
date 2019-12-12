@@ -1,0 +1,66 @@
+from functools import partial
+
+import katuali
+
+rule get_depth:
+    input:
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
+    output:
+        depth = directory("{dir}/depth")
+    log:
+        "{dir}/depth/get_depth.log"
+    params:
+        contig_opt = partial(get_contig_opt, config=config),
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>> {log}
+        """
+
+
+rule get_basecall_stats:
+    input:
+        venv = ancient(IN_POMOXIS),
+        bam = ancient("{dir}/calls2ref.bam"),
+    output:
+        stats = "{dir}/calls2ref_stats.txt"
+    log:
+        "{dir}/basecall_stats.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        stats_from_bam {input.bam} -o {output.stats} &>> {log}
+        """
+
+
+rule assess_consensus:
+    input:
+        venv = ancient(IN_POMOXIS),
+        consensus = ancient("{runid}/{dir}/consensus.fasta"),
+        consensus_mmi = ancient("{runid}/{dir}/consensus.fasta.mmi"),
+        consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
+        truth = ancient(partial(get_reference, config=config)),
+    output:
+        summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
+        bam = "{runid,[^/]+}/{dir}/consensus_to_truth.bam",
+        stats = "{runid,[^/]+}/{dir}/consensus_to_truth_stats.txt",
+    log:
+        "{runid}/{dir}/assess_consensus.log"
+    params:
+        prefix = "{runid}/{dir}/consensus_to_truth",
+    threads: config["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[SOURCE]} {input.venv}; set -u;
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &>> {log}
+        """
