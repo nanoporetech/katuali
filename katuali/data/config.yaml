@@ -86,31 +86,6 @@ SOURCE: "source"
 LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 
 
-##################
-# Pipeline options
-
-# Basecaller for predefined workflows. The `fast_assm_polish`,
-# `standard_assm_polish` and medaka training
-# workflows use this value to determine the basecaller setup to use.
-#
-# It is recommended to set this to: guppy to use the guppy basecaller
-BASECALLER:
-    "guppy"
-# The basecaller variant to use within predefined workflows pipeline.  It is
-# recommended to set this to either _hac (high accuracy minion) or _hac_prom
-# (high accuracy promethion). The value here should be a key of option dictionary,
-# corresponding to the selected basecaller, in the miscellaneous options part
-# of this config.
-BASECALLER_SUFFIX:
-    "_hac" 
-
-# Assembler for predefined workflows ("flye" or canu""). The
-# `standard_assm_polish` and medaka training
-# workflows use this value to determine the assembler setup to use.
-ASSEMBLER:
-    "canu"
-
-
 #########################
 # Compute/cluster options
 
@@ -267,7 +242,7 @@ GUPPY_OPTS:
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
-    "": " --all_fail"
+    "": "--all_fail"
     "_prop": "--proportional --all_fail"
     "_filtered": "--quality 6 --coverage 90 --all_fail"
 
