@@ -268,4 +268,4 @@ SHASTA_OPTS:
 
 # assess_assembly
 ASSESS_ASSM_OPTS:
-    "-C" # runs cataloguing of errors
+    "": "-C -H" # runs cataloguing of errors and homopolymer analysis
