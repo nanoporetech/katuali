@@ -207,14 +207,14 @@ PIPELINES:
         "{DATA}/basecall/guppy_hac/miniasm/racon/medaka_hac/consensus.fasta"
     ]
     all_standard_assm_polish: [
-        "{DATA}/basecall/guppy_hac/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_hac/consensus.fasta"
+        "{DATA}/basecall/guppy_hac/canu_gsz_{GENOME_SIZE}/racon/medaka_hac/consensus.fasta"
     ]
     all_medaka_eval: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
     ]
     all_medaka_train: [
         "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
