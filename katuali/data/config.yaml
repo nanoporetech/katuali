@@ -13,8 +13,9 @@
 # `all_medaka_train_features` starting from fast5 input,
 # nothing else need be done. If starting a workflow from basecall data
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
-# basecalls should be placed under a folder as determined by the value of the
-# `BASECALLER` in the pipeline options.
+# basecalls should be placed under the basecalling folder as defined in the pipelines config section.
+# For the all_fast_assm_polish pipeline for example, basecalls should be placed in 
+# "{DATA}/basecall/guppy_hac/basecalls.fasta"
 
 
 ####################
@@ -203,17 +204,17 @@ MEDAKA_VARIANT_SUFFIXES:
 
 PIPELINES:
     all_fast_assm_polish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+        "{DATA}/basecall/guppy_hac/miniasm/racon/medaka_hac/consensus.fasta"
     ]
     all_standard_assm_polish: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
+        "{DATA}/basecall/guppy_hac/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_hac/consensus.fasta"
     ]
     all_medaka_eval: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
+        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
     ]
     all_medaka_train: [
         "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
