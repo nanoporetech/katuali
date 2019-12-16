@@ -1,8 +1,8 @@
 rule basecall_guppy:
     input:
-        guppy = ancient(GUPPY_EXEC),
+        guppy = ancient(config["RUNTIME"]["GUPPY_EXEC"]),
         fast5 = ancient("{runid}/reads"),
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
     output:
         fasta = "{runid}/basecall/guppy{suffix,[^/]*}/basecalls.fasta",
         summary = "{runid}/basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
@@ -16,7 +16,7 @@ rule basecall_guppy:
         gpu = 1
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         # snakemake will create the output dir, guppy will fail if it exists..
         rm -r {params[output_dir]}
 
@@ -38,7 +38,7 @@ rule basecall_guppy:
         sleep 5
         echo "Combining the following fastq files into {output.fasta}" >> {log}
         ls {params[output_dir]}/*.fastq >> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
         rm {params.output_dir}/*.fastq
         """

@@ -9,28 +9,24 @@ import katuali
 KATUALI_VERSION = katuali.__version__
 SNAKES = resource_filename('katuali', 'data')
 
-GUPPY_EXEC = os.path.expanduser(config["GUPPY"])
-IN_POMOXIS = os.path.expanduser(config["IN_POMOXIS"])
-IN_MEDAKA = os.path.expanduser(config["IN_MEDAKA"])
-IN_MEDAKA_GPU = os.path.expanduser(config["IN_MEDAKA_GPU"])
-CANU_EXEC = os.path.expanduser(config["CANU_EXEC"])
-FLYE_EXEC = os.path.expanduser(config["FLYE_EXEC"])
-SHASTA_EXEC = os.path.expanduser(config["FLYE_EXEC"])
+# expand ~ to full paths. 
+for prog in ["GUPPY_EXEC", "IN_POMOXIS", "IN_MEDAKA", "CANU_EXEC", "FLYE_EXEC", "SHASTA_EXEC"]:
+    config["RUNTIME"][prog] = os.path.expanduser(config["RUNTIME"][prog])
 
 # Always set the environment
-LD_LIBRARY_PATH = config.get("LD_LIBRARY_PATH")
+LD_LIBRARY_PATH = config["RUNTIME"]["LD_LIBRARY_PATH"]
 shell.prefix("""
 set -euo pipefail;
 export LD_LIBRARY_PATH=\"{LD_LIBRARY_PATH}\";
 """.format(LD_LIBRARY_PATH=LD_LIBRARY_PATH))
 
-config["THREADS_PER_JOB"] = int(config["THREADS_PER_JOB"])
+config["RUNTIME"]["THREADS_PER_JOB"] = int(config["RUNTIME"]["THREADS_PER_JOB"])
 
 # NOTE on virtual environments
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.
 # https://snakemake.readthedocs.io/en/stable/project_info/faq.html#my-shell-command-fails-with-with-errors-about-an-unbound-variable-what-s-wrong
 # so any activation commands must be wrapped as such:
-#      set +u; {config[IN_MEDAKA]}; set -u; 
+#      set +u; config[RUNTIME][SOURCE] {config[RUNTIME][IN_MEDAKA]}; set -u; 
 
 
 rule version:

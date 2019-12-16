@@ -304,7 +304,7 @@ def expand_target_template(template, config):
     dataset_params = set(itertools.chain(*[config['DATA'][v] for v in config['DATA']]))
     dataset_params = dataset_params & to_expand
     # get parameters which are not coupled to the dataset
-    non_dataset_params = to_expand - dataset_params
+    non_dataset_params = to_expand - dataset_params - {'GENOME_SIZE'}
     non_dataset_params = {k: config[k] for k in non_dataset_params if k != 'DATA'}
 
     templates = []
@@ -351,10 +351,14 @@ def expand_target_template(template, config):
                                           dataset_templates for k in product_dict(**kwargs)]))
             templates.extend(dataset_templates)
         else:
-            templates=dataset_templates
+            templates = dataset_templates
     # expand dataset-specific templates with non_dataset_params to create targets
     # this will fail if there are any {} still present
-    targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
+    if len(non_dataset_params) > 0:
+        targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
+    else:
+        targets = templates
+
     return targets
 
 

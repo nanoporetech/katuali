@@ -4,7 +4,7 @@ import katuali
 
 rule get_depth:
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         depth = directory("{dir}/depth")
@@ -16,15 +16,15 @@ rule get_depth:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         mkdir -p {output.depth} && coverage_from_bam {input.bam} {params.contig_opt} -s 1000 -p {output.depth}/ &>> {log}
         """
 
 
 rule get_basecall_stats:
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         stats = "{dir}/calls2ref_stats.txt"
@@ -34,15 +34,15 @@ rule get_basecall_stats:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         stats_from_bam {input.bam} -o {output.stats} &>> {log}
         """
 
 
 rule assess_consensus:
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         consensus = ancient("{runid}/{dir}/consensus.fasta"),
         consensus_mmi = ancient("{runid}/{dir}/consensus.fasta.mmi"),
         consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
@@ -55,12 +55,12 @@ rule assess_consensus:
         "{runid}/{dir}/assess_consensus.log"
     params:
         prefix = "{runid}/{dir}/consensus_to_truth",
-    threads: config["THREADS_PER_JOB"]
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &>> {log}
         """

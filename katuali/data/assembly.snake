@@ -3,7 +3,7 @@ rule ref_as_assembly_region:
     # Replace consensus with extracted reference for region.
     # 'region' must be in target 
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         basecalls = ancient("{runid}/{dir}/align/{region}/{depth}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
@@ -17,8 +17,8 @@ rule ref_as_assembly_region:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         echo "Pulling region {wildcards.region} from {input.truth}" >>{log}
         samtools faidx {input.truth} {wildcards.region} > {output.consensus}
         sleep 5
@@ -29,7 +29,7 @@ rule ref_as_assembly_region:
 rule ref_as_assembly:
     # Replace consensus with full reference 
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
@@ -43,14 +43,14 @@ rule ref_as_assembly:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         ln -s $PWD/{input.truth} $PWD/{output.consensus}
         ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         """
 
 rule miniasm:
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/miniasm{suffix,[^/]*}/consensus.fasta",
@@ -60,13 +60,13 @@ rule miniasm:
     params:
         output_dir = lambda w: "{dir}/miniasm{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-    threads: config["THREADS_PER_JOB"]
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} &&
         mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {params[opts]} -m 0 &>> {log}
@@ -79,7 +79,7 @@ rule miniasm:
 rule canu:
     # TODO can we make use of github.com/thiesgehrmann/FungalAssemblerPipeline ?
     input:
-        canu = ancient(CANU_EXEC),
+        canu = ancient(config["RUNTIME"]["CANU_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/canu{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
@@ -92,13 +92,13 @@ rule canu:
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
         prefix = "canu",
-        mt="maxThreads={}".format(config["THREADS_PER_JOB"]),
-    threads: config["THREADS_PER_JOB"]
+        mt="maxThreads={}".format(config["RUNTIME"]["THREADS_PER_JOB"]),
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
         {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &>> {log}
@@ -111,7 +111,7 @@ rule canu:
 
 rule flye:
     input:
-        flye = ancient(FLYE_EXEC),
+        flye = ancient(config["RUNTIME"]["FLYE_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/flye{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
@@ -123,13 +123,14 @@ rule flye:
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         opts = partial(get_opts, config=config, config_key="FLYE_OPTS"),
         prefix = "flye",
-        mt=config["THREADS_PER_JOB"],
-    threads: config["THREADS_PER_JOB"]
+        mt=config["RUNTIME"]["THREADS_PER_JOB"],
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        {input.flye} --nano-raw {input.basecalls} --genome-size {params.gsz} --out-dir {params.output_dir} --threads {params.mt} {params[opts]} &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        {input.flye} --nano-raw {input.basecalls} --genome-size {params.gsz} --out-dir {params.output_dir} --threads {params.mt} {params[opts]} &>> {log}
         mv {params.output_dir}/assembly.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
@@ -137,7 +138,7 @@ rule flye:
 
 rule shasta:
     input:
-        shasta = ancient(FLYE_EXEC),
+        shasta = ancient(config["RUNTIME"]["SHASTA_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
         consensus = "{dir}/shasta{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
@@ -149,13 +150,14 @@ rule shasta:
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         opts = partial(get_opts, config=config, config_key="SHASTA_OPTS"),
         prefix = "shasta",
-        mt=config["THREADS_PER_JOB"],
-    threads: config["THREADS_PER_JOB"]
+        mt=config["RUNTIME"]["THREADS_PER_JOB"],
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params[opts] &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params[opts] &>> {log}
         mv {params.output_dir}/Assembly.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """
