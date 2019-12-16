@@ -96,7 +96,7 @@ def get_medaka_train_features(wildcards, config=config):
 
 rule medaka_train:
     input:
-        venv = ancient(IN_MEDAKA_GPU),
+        venv = ancient(IN_MEDAKA),
         features = ancient(partial(get_medaka_train_features, config=config))
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")

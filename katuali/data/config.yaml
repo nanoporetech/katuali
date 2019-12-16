@@ -71,12 +71,12 @@ DATA:
 #
 # Configuration for software is found toward the end of this config.
 
-# Katuali supports running medaka consensus only on CPU and training only on
-# GPU. If you wish to train and run consensus it is easiest to create two
-# medaka virtual environemnts - one for GPU (with tensorflow-gpu installed) and
-# one for CPU (with just tensorflow installed). 
-IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # medaka used for consensus - should only have tensorflow installed
-IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
+# Katuali supports running medaka consensus on CPU or GPU and training only on
+# GPU. If you wish to use GPU, tensorflow-gpu must be installed in your medaka
+# virtual environment. 
+# To run medaka consensus on GPU, set MEDAKA_CONSENSUS_USE_GPU to true. 
+MEDAKA_CONSENSUS_USE_GPU: false
+IN_MEDAKA: "~/git/medaka/venv/bin/activate"
 IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
 CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
 FLYE_EXEC: "~/git/Flye/bin/flye"
