@@ -13,8 +13,9 @@
 # `all_medaka_train_features` starting from fast5 input,
 # nothing else need be done. If starting a workflow from basecall data
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
-# basecalls should be placed under a folder as determined by the value of the
-# `BASECALLER` in the pipeline options.
+# basecalls should be placed under the basecalling folder as defined in the pipelines config section.
+# For the all_fast_assm_polish pipeline for example, basecalls should be placed in 
+# "{DATA}/basecall/guppy_hac/basecalls.fasta"
 
 
 ####################
@@ -203,7 +204,7 @@ SHASTA_OPTS:
 
 # assess_assembly
 ASSESS_ASSM_OPTS:
-    "-C" # runs cataloguing of errors
+    "": "-C -H" # runs cataloguing of errors and homopolymer analysis
 
 
 #############################

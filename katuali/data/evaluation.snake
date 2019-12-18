@@ -48,11 +48,11 @@ rule assess_consensus:
         consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        summ = "{runid,[^/]+}/{dir}/consensus_to_truth_summ.txt",
-        bam = "{runid,[^/]+}/{dir}/consensus_to_truth.bam",
-        stats = "{runid,[^/]+}/{dir}/consensus_to_truth_stats.txt",
+        summ = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}_summ.txt",
+        bam = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}.bam",
+        stats = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}_stats.txt",
     log:
-        "{runid}/{dir}/assess_consensus.log"
+        "{runid}/{dir}/assess_consensus{suffix}.log"
     params:
         prefix = "{runid}/{dir}/consensus_to_truth",
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
