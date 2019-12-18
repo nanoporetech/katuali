@@ -72,23 +72,24 @@ def get_contig_opt(wildcards, config):
 
 
 def get_opts(wildcards, config, config_key):
-    default_key = ''
 
     if config_key not in config:
         raise KeyError('{} not in config'.format(config_key))
 
     suffix = wildcards["suffix"]
 
+    # This allows one to use config entries specified on the command line
+    # (which can't be nested)
+    # TODO: do we still need this? 
     if not isinstance(config[config_key], dict):
         opts = config[config_key]
         logger.run_info("{} parameters were not nested, using {}".format(config_key, opts))
 
-    elif suffix in config[config_key] and suffix != default_key:
+    elif suffix in config[config_key]:
         opts = config[config_key][suffix]
-        logger.run_info("Using {} parameters specified by suffix {}".format(config_key, suffix))
+        logger.run_info("Using {} parameters specified by suffix: \"{}\"".format(config_key, suffix))
     else:
-        opts = config[config_key][default_key]
-        logger.run_info("Using default {} parameters".format(config_key))
+        raise KeyError('{} suffix \"{}\" not in {}'.format(config_key, suffix, set(config[config_key].keys())))
 
     return opts
 
