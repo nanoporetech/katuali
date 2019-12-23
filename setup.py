@@ -8,7 +8,7 @@ import shutil
 import sys
 
 __pkg_name__ = 'katuali'
-__author__ = 'mwykes'
+__author__ = 'ont-research'
 __description__ = 'Pipelines for Nanopore sequencing.'
 __path__ = os.path.abspath(os.path.dirname(__file__))
 __pkg_path__ = os.path.join(os.path.join(__path__, __pkg_name__))
