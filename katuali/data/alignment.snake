@@ -1,14 +1,14 @@
 rule align_to_ref:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid}/basecall/{bc_dir}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fasta"),
         ref = ancient(partial(get_reference, config=config)),
         ref_mmi = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.mmi')),
         ref_fai = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.fai')),
     output:
-        bam = "{runid}/basecall/{bc_dir}/align/calls2ref.bam"
+        bam = "{runid}/{dir}/align/calls2ref.bam"
     log:
-        "{runid}/basecall/{bc_dir}/align/align_to_ref.log"
+        "{runid}/{dir}/align/align_to_ref.log"
     params:
         prefix = lambda w, output: os.path.splitext(output.bam)[0],
     threads: config["RUNTIME"]["THREADS_PER_JOB"]

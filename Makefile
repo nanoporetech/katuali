@@ -53,34 +53,34 @@ test/ref.fasta: test/config.yaml
 # The following targets step through a pipeline
 
 test_basecall: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/basecalls.fasta
+	${TEST} MinIonRun1/guppy/basecalls.fasta
 
 test_align: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/align/calls2ref.bam
+	${TEST} MinIonRun1/guppy/align/calls2ref.bam
 
 test_subsample: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/align/all_contigs/25X/basecalls.fasta
+	${TEST} MinIonRun1/guppy/align/all_contigs/25X/basecalls.fasta
 
 test_canu: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu/consensus.fasta
+	${TEST} MinIonRun1/guppy/canu/consensus.fasta
 
 test_flye: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye/consensus.fasta
+	${TEST} MinIonRun1/guppy/flye/consensus.fasta
 
 test_flye_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye/racon/consensus.fasta
+	${TEST} MinIonRun1/guppy/flye/racon/consensus.fasta
 
 test_flye_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/guppy/flye/racon/medaka/consensus.fasta
 
 test_canu_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu/racon/consensus.fasta
+	${TEST} MinIonRun1/guppy/canu/racon/consensus.fasta
 
 test_canu_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/guppy/canu/racon/medaka/consensus.fasta
 
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/miniasm/racon/consensus.fasta
+	${TEST} MinIonRun1/guppy/miniasm/racon/consensus.fasta
 
 test_pipeline_all_fast_assm_polish: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} all_fast_assm_polish --dryrun
