@@ -43,7 +43,8 @@ rule medaka:
         "{dir}/medaka{suffix}.log"
     threads: 8
     resources:
-        gpu = int(config["RUNTIME"]["MEDAKA_CONSENSUS_USE_GPU"])
+        # NOTE: currently we will only use at most a single GPU
+        gpus = config["RUNTIME"]["MEDAKA_CONSENSUS_NUM_GPU"]
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w, output: os.path.dirname(output.consensus),

@@ -1,16 +1,18 @@
+import katuali
+
 #TODO: the following two rules could be merged
 rule ref_as_assembly_region:
     # Replace consensus with extracted reference for region.
     # 'region' must be in target 
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid}/{dir}/align/{region}/{depth}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/align/{region}/{depth}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        basecalls = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly_gsz_{genome_size,[^/]*}/basecalls.fasta",
-        consensus = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly_gsz_{genome_size,[^/]*}/consensus.fasta",
+        basecalls = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/basecalls.fasta",
+        consensus = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/consensus.fasta",
     log:
-        "{runid}/{dir}/align/{region}/{depth}/ref_assembly_gsz_{genome_size}.log",
+        "{runid,[^/]+}/{dir}/align/{region}/{depth}/ref_assembly.log",
     params:
         output_dir = lambda w, output: os.path.dirname(output.basecalls),
     resources:
@@ -30,13 +32,13 @@ rule ref_as_assembly:
     # Replace consensus with full reference 
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid}/{dir}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        consensus = "{runid,[^/]+}/{dir}/full_ref_assembly_gsz_{genome_size,[^/]*}/consensus.fasta",
-        basecalls = "{runid,[^/]+}/{dir}/full_ref_assembly_gsz_{genome_size,[^/]*}/basecalls.fasta"
+        consensus = "{runid,[^/]+}/{dir}/full_ref_assembly/consensus.fasta",
+        basecalls = "{runid,[^/]+}/{dir}/full_ref_assembly/basecalls.fasta"
     log:
-        "{runid}/{dir}/full_ref_assembly_gsz_{genome_size}.log"
+        "{runid,[^/]+}/{dir}/full_ref_assembly.log"
     params:
         output_dir = lambda w, output: os.path.dirname(output.basecalls),
     resources:
@@ -82,12 +84,12 @@ rule canu:
         canu = ancient(config["RUNTIME"]["CANU_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/canu{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/canu{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
     log:
-        "{dir}/canu{suffix}gsz_{genome_size}.log"
+        "{dir}/canu{suffix}.log"
     params:
-        gsz = lambda w: "genomeSize={genome_size}".format(**dict(w)),
+        gsz = lambda w: katuali.find_genome_size(w['dir'], config),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         exec_opts = config["CANU_EXEC_OPTS"],
         opts = partial(get_opts, config=config, config_key="CANU_OPTS"),
@@ -101,7 +103,7 @@ rule canu:
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
-        {input.canu} -d {params.output_dir} -p {params.prefix} {params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &>> {log}
+        {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &>> {log}
         mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         # remove canu intermediates we don't use
@@ -114,12 +116,12 @@ rule flye:
         flye = ancient(config["RUNTIME"]["FLYE_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/flye{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/flye{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/flye{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/flye{suffix,[^/]*}/basecalls.fasta"
     log:
-        "{dir}/flye{suffix}gsz_{genome_size}.log"
+        "{dir}/flye{suffix}.log"
     params:
-        gsz = lambda w: "{genome_size}".format(**dict(w)),
+        gsz = lambda w: katuali.find_genome_size(w['dir']),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         opts = partial(get_opts, config=config, config_key="FLYE_OPTS"),
         prefix = "flye",
@@ -141,12 +143,11 @@ rule shasta:
         shasta = ancient(config["RUNTIME"]["SHASTA_EXEC"]),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
-        consensus = "{dir}/shasta{suffix,[^/]*}_gsz_{genome_size,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/shasta{suffix,[^/]*}_gsz_{genome_size,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/shasta{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/shasta{suffix,[^/]*}/basecalls.fasta"
     log:
-        "{dir}/shasta{suffix}gsz_{genome_size}.log"
+        "{dir}/shasta{suffix}.log"
     params:
-        gsz = lambda w: "{genome_size}".format(**dict(w)),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         opts = partial(get_opts, config=config, config_key="SHASTA_OPTS"),
         prefix = "shasta",

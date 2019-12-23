@@ -4,6 +4,7 @@ import itertools
 import logging
 import operator
 import os
+import pathlib
 import platform
 import re
 import shutil
@@ -239,7 +240,7 @@ def int_to_formatted_string(i, fmt='{:.1f}'):
     >>> int_to_formatted_string(1e12)
     '1000.0g'
     """
-    units = (Unit('k', 1e3), Unit('m', 1e6), Unit('g', 1e9))
+    units = (Unit('k', 1e3), Unit('M', 1e6), Unit('G', 1e9))
     units = sorted(units, key=operator.attrgetter('unit'))
     max_unit = max(u.unit for u in units)
     for u in units:
@@ -339,7 +340,7 @@ def expand_target_template(template, config):
                 dataset_templates = []
                 for region in regions:
                     region_sz = int_to_formatted_string(get_region_len(region, ref))
-                    d = { 'GENOME_SIZE': region_sz, region_param: region}
+                    d = {'GENOME_SIZE': region_sz, region_param: region}
                     dataset_templates.append(partial_format(dataset_tmp, **d))
         else:
             dataset_templates = [dataset_tmp]
@@ -360,6 +361,30 @@ def expand_target_template(template, config):
         targets = templates
 
     return targets
+
+
+def find_genome_size(target, config):
+    """Find an appropriate genome size from a target path."""
+    target_parts = pathlib.Path(target).parts
+    dataset = target_parts[0]
+    if 'REFERENCE' in config['DATA'][dataset]:
+        # We have a reference file, need to find a contig name in path.
+        with pysam.FastaFile(config['DATA'][dataset]['REFERENCE']) as fh:
+            rlengths = dict(zip(fh.references, fh.lengths))
+        found = set()
+        for folder, ref in itertools.product(target_parts, rlengths.keys()):
+            if ref in folder:
+                found.add(ref)
+        if len(found) == 0:
+            # fallback to config value if present
+            if 'GENOME_SIZE' in config['DATA'][dataset]:
+                return config['DATA'][dataset]['GENOME_SIZE']
+            else:
+                raise KeyError("Could not find a contig name within target: {}.".format(target))
+        elif len(found) > 1:
+            raise ValueError("Found multiple contig names within target: {}.".format(target))
+        else:
+            return int_to_formatted_string(rlengths[ref])
 
 
 def suffix_decorate(func, suffix=''):

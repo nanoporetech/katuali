@@ -62,22 +62,22 @@ test_subsample: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/guppy/align/all_contigs/25X/basecalls.fasta
 
 test_canu: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu/consensus.fasta
 
 test_flye: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye/consensus.fasta
 
 test_flye_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/racon/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye/racon/consensus.fasta
 
 test_flye_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/flye_gsz_50k/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/flye/racon/medaka/consensus.fasta
 
 test_canu_racon: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/racon/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu/racon/consensus.fasta
 
 test_canu_medaka: reads test/ref.fasta test/config.yaml test/Snakefile
-	${TEST} MinIonRun1/basecall/guppy/canu_gsz_50k/racon/medaka/consensus.fasta
+	${TEST} MinIonRun1/basecall/guppy/canu/racon/medaka/consensus.fasta
 
 test_miniasm_racon: reads test/ref.fasta test/config.yaml test/Snakefile
 	${TEST} MinIonRun1/basecall/guppy/miniasm/racon/consensus.fasta

@@ -20,7 +20,10 @@ set -euo pipefail;
 export LD_LIBRARY_PATH=\"{LD_LIBRARY_PATH}\";
 """.format(LD_LIBRARY_PATH=LD_LIBRARY_PATH))
 
-config["RUNTIME"]["THREADS_PER_JOB"] = int(config["RUNTIME"]["THREADS_PER_JOB"])
+# TODO: why might these not be int?
+for key in ("THREADS_PER_JOB", "MEDAKA_CONSENSUS_NUM_GPU"):
+    config["RUNTIME"][key] = int(config["RUNTIME"][key])
+
 
 # NOTE on virtual environments
 # Snakemake uses bash strict mode, virtualenv violates bash strict mode.

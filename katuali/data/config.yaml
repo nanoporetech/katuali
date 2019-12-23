@@ -27,15 +27,14 @@
 #
 # REFERENCE is required for the medaka training workflows, and in general any
 # time reads need to be aligned to a reference (e.g. for for subsampling)
-# and for calling variants. 
 #   
 # MEDAKA_TRAIN_REGIONS and MEDAKA_EVAL_REGIONS define regions for
 # training and evaluation within the medaka training workflow, and are
 # otherwise not used. 
 #
-# MEDAKA_VARIANT_REGIONS is used in the medaka_all_variant workflow. 
-#
 # GENOME_SIZE is required only in workflows using the canu or flye assembler.
+# When a reference file is given, GENOME_SIZE will be calculated from it in
+# the case that a value is not directly specified.
 #
 # In the example below we train from the "minion" run using "ecoli" and "yeast"
 # contigs in the reference and evaluate on the "gridion" run using the contigs
@@ -52,19 +51,19 @@ DATA:
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
     'GridIonRun1': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
     'GridIonRun2': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
 
             
 ############################
@@ -79,17 +78,17 @@ DATA:
 
 PIPELINES:
     all_fast_assm_polish: [
-        "{DATA}/basecall/guppy_hac/miniasm/racon/medaka_hac/consensus.fasta"
+        "{DATA}/basecall/guppy/miniasm/racon/medaka/consensus.fasta"
     ]
     all_standard_assm_polish: [
-        "{DATA}/basecall/guppy_hac/canu_gsz_{GENOME_SIZE}/racon/medaka_hac/consensus.fasta"
+        "{DATA}/basecall/guppy/canu/racon/medaka/consensus.fasta"
     ]
     all_medaka_eval: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+        "{DATA}/basecall/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
+        "{DATA}/basecall/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
+        "{DATA}/basecall/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train_rc.hdf"
     ]
     all_medaka_train: [
         "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
@@ -100,17 +99,14 @@ PIPELINES:
 RUNTIME:  
     # default number of threads/cores/slots to use per multi-threaded task.
     THREADS_PER_JOB: 8
+    # To run medaka consensus on GPU, set MEDAKA_CONSENSUS_NUM_GPU to 1.
+    # More than a single GPU is not currently supported (by medaka).
+    MEDAKA_CONSENSUS_NUM_GPU: 0
 
     ##############################
     # Location of various software
     #
     # Configuration for software is found toward the end of this config.
-
-    # Katuali supports running medaka consensus on CPU or GPU and training only on
-    # GPU. If you wish to use GPU, tensorflow-gpu must be installed in your medaka
-    # virtual environment. 
-    # To run medaka consensus on GPU, set MEDAKA_CONSENSUS_USE_GPU to true.
-    MEDAKA_CONSENSUS_USE_GPU: false
     IN_MEDAKA: "~/git/medaka/venv/bin/activate"
     IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
     CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
@@ -260,9 +256,3 @@ MEDAKA_TRAIN_FEAT_OPTS:
 MEDAKA_TRAIN_OPTS:
     "": "--mini_epochs 5 --validation_split 0.10"
 
-# Medaka variant calling
-MEDAKA_VARIANT_OPTS:
-    "_hac": "-m r941_min_high -d"
-
-MEDAKA_VARIANT_SUFFIXES:
-    ["_hac"]
