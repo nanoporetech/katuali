@@ -36,7 +36,7 @@ with medaka:
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu_gsz_4.0M/racon/medaka/consensus.fasta
+    katuali run1/basecall/guppy/canu/racon/medaka/consensus.fasta
 
 This nested working directory stores the data in such a way that is it obvious
 what went into and out of each stage of the pipeline.
@@ -50,8 +50,8 @@ the canu assembly, we could use the targets:
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu_gsz_4.0M/racon/medaka/consensus.fasta \
-            run1/basecall/guppy/canu_gsz_4.0M/medaka/consensus.fasta
+    katuali run1/basecall/guppy/canu/racon/medaka/consensus.fasta \
+            run1/basecall/guppy/canu/medaka/consensus.fasta
 
 `Snakemake` will create a graph of tasks to perform the common basecall
 and assembly tasks, then run separately two indepdendent medaka tasks from the same
@@ -78,14 +78,14 @@ Reads can be assembled in three ways at present:
 .. code-block:: bash
 
     # assemble with canu, specifying the genome size in the target name. 
-    katuali run1/basecall/scrappie/canu_gsz_4.0M/consensus.fasta  
+    katuali run1/basecall/scrappie/canu/consensus.fasta  
 
     # use pomoxis mini_assemble to assemble with miniasm, then form consensus
     # with racon
     katuali run1/basecall/scrappie/miniasm_racon/consensus.fasta  
 
     # assemble with flye, specifying the genome size in the target name. 
-    katuali run1/basecall/scrappie/flye_gsz_4.0M/consensus.fasta
+    katuali run1/basecall/scrappie/flye/consensus.fasta
 
 
 Polishing
@@ -99,9 +99,9 @@ required or encouraged).
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu_gsz_4.0M/racon/medaka/medaka_flipflop/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu/racon/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu/racon/medaka/consensus.fasta
+    katuali run1/basecall/guppy_flipflop/canu/racon/medaka/medaka_flipflop/consensus.fasta
 
 
 Pipeline restrictions
@@ -176,8 +176,8 @@ datasets, regions, depths, and medaka models, generating hundreds of targets in 
 
     PIPELINES:
         all_medaka_eval: [
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}_gsz_{GENOME_SIZE}/racon/consensus_to_truth_summ.txt"
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
+            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}/racon/consensus_to_truth_summ.txt"
         ]
 
 The final step of each pipeline is to create an empty file with the name of the
