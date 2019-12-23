@@ -119,7 +119,7 @@ and update the katuali config to reflect your data:
         'run1':
             'GENOME_SIZE': '4.0M'  # for canu we need to specify genome size
 
-There are three predefined pipelines.
+There are two predefined pipelines.
 
 1. To perform basecalling, a quick assembly with miniasm, and consensus with racon
    and medaka it is sufficient to run:
@@ -130,10 +130,6 @@ There are three predefined pipelines.
 
        katuali --configfile my_config.yaml standard_assm_polish
 
-3. To polish the assembly with nanopolish (not recommended in tandem with
-   flip-flop basecalling, where medaka is preferred):
-
-       katuali --configfile my_config.yaml standard_assm_nanopolish
 
 The [documentation](https://nanoporetech.github.io/katuali/examples.html)
 describes how to create a pipeline with any combination of basecallers,

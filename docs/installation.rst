@@ -69,16 +69,14 @@ In the context of Katuali, pomoxis functions as a wrapper to
 `miniasm <https://github.com/lh3/miniasm>`_. Canu is utilised in the standard
 workflow, while pomoxis is used in the fast workflow.
 
+
 Consensus Tools
 ^^^^^^^^^^^^^^^
 
 .. parsed-literal::
 
     `medaka <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
-    `nanopolish <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
-
-Medaka is recommended in combination with the latest "flip-flop" algorithm in
-the guppy basecaller, and for rapid consensus. Nanopolish may still by
-preferred if using older basecallers. 
 
 
+Katuali can also use `racon <https://github.com/lbcb-sci/racon>`_ which is included with
+pomoxis.
