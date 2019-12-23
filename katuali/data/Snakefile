@@ -107,9 +107,13 @@ rule pipeline:
         targets = partial(pipeline_targets, config=config)
     output:
         "all_{pipeline,[^/]*}"
+    shell:
+        """
+        echo "Sentinel file. Delete this file to run the pipeline again." > {output}
+        """
 
 
-include: os.path.join(SNAKES, "basecalling.snake")
+include: os.path.join(SNAKES, "./basecalling.snake")
 include: os.path.join(SNAKES, "./alignment.snake")
 include: os.path.join(SNAKES, "./assembly.snake")
 include: os.path.join(SNAKES, "./correction.snake")
