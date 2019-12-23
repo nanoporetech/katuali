@@ -1,7 +1,7 @@
 
 rule racon:
     input:
-        venv = ancient(IN_POMOXIS),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         draft = ancient("{dir}/consensus.fasta"),
         basecalls = ancient("{dir}/basecalls.fasta"),
     output:
@@ -12,13 +12,13 @@ rule racon:
     params:
         output_dir = lambda w: "{dir}/racon{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
-    threads: config["THREADS_PER_JOB"]
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} &&
         mini_assemble -i {input.basecalls} -r {input.draft} -o {params[output_dir]} -t {threads} -p assm {params[opts]} &>> {log}
@@ -31,7 +31,7 @@ rule racon:
 
 rule medaka:
     input:
-        venv = ancient(IN_MEDAKA),
+        venv = ancient(config["RUNTIME"]["IN_MEDAKA"]),
         draft = ancient("{dir}/consensus.fasta"),
         draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
         draft_fai = ancient("{dir}/consensus.fasta.fai"),
@@ -43,24 +43,30 @@ rule medaka:
         "{dir}/medaka{suffix}.log"
     threads: 8
     resources:
-        # TODO: support either GPU or CPU, i.e. if we are using GPU we have to
-        # run pick_gpu and export CUDA_VISIBLE_DEVICES=1, but not if we are
-        # running on CPU
-        gpu = 0
+        # NOTE: currently we will only use at most a single GPU
+        gpus = config["RUNTIME"]["MEDAKA_CONSENSUS_NUM_GPU"]
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.venv}; set -u;
-        # snakemake will create the output dir if it does not exist, remove it it exists.
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+
+        if [ "{resources.gpu}" != "0" ];then
+            GPU=$(pick_gpu 2>> {log})
+            echo "Runnning on host $HOSTNAME with GPU $GPU" >> {log}
+        else
+            GPU=""
+            echo "Runnning on host $HOSTNAME without GPU." >> {log}
+        fi
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        # snakemake will create the output dir if it does not exist, remove it if it exists.
         rm -r {params[output_dir]}
 
-        medaka_consensus -i {input.basecalls} -d {input.draft} -o {params[output_dir]} -t {threads} {params[opts]} &>> {log}
+        CUDA_VISIBLE_DEVICES=$GPU medaka_consensus -i {input.basecalls} -d {input.draft} -o {params.output_dir} -t {threads} {params.opts} &>> {log}
 
         # keep a link of basecalls with the consensus
         ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
         # rm large intermediates
-        rm {params[output_dir]}/calls_to_draft.bam* {params[output_dir]}/consensus_probs.hdf
+        rm {params.output_dir}/calls_to_draft.bam* {params.output_dir}/consensus_probs.hdf
         """

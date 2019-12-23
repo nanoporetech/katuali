@@ -27,15 +27,14 @@
 #
 # REFERENCE is required for the medaka training workflows, and in general any
 # time reads need to be aligned to a reference (e.g. for for subsampling)
-# and for calling variants. 
 #   
 # MEDAKA_TRAIN_REGIONS and MEDAKA_EVAL_REGIONS define regions for
 # training and evaluation within the medaka training workflow, and are
 # otherwise not used. 
 #
-# MEDAKA_VARIANT_REGIONS is used in the medaka_all_variant workflow. 
-#
 # GENOME_SIZE is required only in workflows using the canu or flye assembler.
+# When a reference file is given, GENOME_SIZE will be calculated from it in
+# the case that a value is not directly specified.
 #
 # In the example below we train from the "minion" run using "ecoli" and "yeast"
 # contigs in the reference and evaluate on the "gridion" run using the contigs
@@ -52,146 +51,21 @@ DATA:
         'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
         'MEDAKA_EVAL_REGIONS': []
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
     'GridIonRun1': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
     'GridIonRun2': 
         'GENOME_SIZE': '4.8M'
         'MEDAKA_TRAIN_REGIONS': []
         'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
         'MEDAKA_VARIANT_REGIONS': []
-        'REFERENCE': 'ref.fasta'   
+        'REFERENCE': 'ref.fasta'
 
-
-##############################
-# Location of various software
-#
-# Configuration for software is found toward the end of this config.
-
-# Katuali supports running medaka consensus only on CPU and training only on
-# GPU. If you wish to train and run consensus it is easiest to create two
-# medaka virtual environemnts - one for GPU (with tensorflow-gpu installed) and
-# one for CPU (with just tensorflow installed). 
-IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # medaka used for consensus - should only have tensorflow installed
-IN_MEDAKA_GPU: "~/git/medaka_gpu/venv/bin/activate"  # medaka used for training - should have tensorflow-gpu installed
-IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
-CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
-FLYE_EXEC: "~/git/Flye/bin/flye"
-SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
-GUPPY: "/usr/bin/guppy_basecaller"
-SOURCE: "source"
-LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
-
-
-#########################
-# Compute/cluster options
-
-# Location of scratch space on cluster nodes. This is currently only used for
-# medaka training where latency on an networked filesystem can significantly
-# slow things down. To have katuali copy medaka features to scratch space
-# before training set SCRATCH and optionally TMPSCRATCH.
-#
-# If TMPSCRATCH is given the resultant path will be:
-#     /SCRATCH/$USER/TMPSCRATCH
-# whereas if it is not given the resultant path will be:
-#    /SCRATCH/$USER/<generated unique name>
-#
-# TMPSCRATCH is useful in the case of restarting a training job on a node to
-# which features have already been copied; in this case, simply set TMPSCRATCH
-# to the directory under which the features were copied and katuali will skip
-# copying the data and use the existing data.
-#
-# Note that katuali does not delete the data in scratch, so users must do this
-# manually.
-SCRATCH: ""
-TMPSCRATCH: ""
-
-# default number of threads/cores/slots to use per multi-threaded task.
-THREADS_PER_JOB: 8
-
-# Snakemake checks for the existence of input files on the submission node.  On
-# systems with a high-latency distributed file system, the existence of a file
-# on the submission node may not guarantee its presence on a compute node.
-# Katuali checks that all input files exist on the machine where a rule is
-# about to run.  Note that if the file is not found, katuali will attempt to
-# force an NFS cache update by changing the owner of the file to the current
-# user (using chown). If the file is still not found, execution terminates.
-# Verbose logging of the file checking can by setting CHECK_FILES_EXIST_OPTS to
-# '--debug'. 
-#CHECK_FILES_EXIST_OPTS: '--debug'  # activate logging of file-checking
-CHECK_FILES_EXIST_OPTS: '--quiet'  # check files silently
-
-
-#############################
-# Options for medaka training
-
-# This section can be ignored if not running a medaka training workflow
-
-# Read depths at which to create assemblies for training, this should
-# span the range of depths at which the model is to be used
-# Use the --keep-going option of Snakemake if you are happy the relax
-# the constraint of requiring all depths for all reference sequences. 
-DEPTHS:
-    [25, 50, 75, 100, 125, 150, 175, 200]
-
-# If any medaka feature files are missing (e.g. due to insufficient coverage
-# for some runs / contigs) the medaka training step will not find all the files
-# it expects and will not run. To train on the feauture files which were
-# created, set this flag to true (after having already created the features
-# with the flag set to false) 
-USE_ONLY_EXISTING_MEDAKA_FEAT:
-    false
-
-# Run multiple training replicates - output will be in medaka_train_{key},
-# values should be a key of the PIPELINES dictionary in this file. In simple
-# cases this allows running technical replicates of the training, but also
-# allows the pipeline to be changed to for example create features in a
-# different manner. For the latter change the value component to an alternative
-# user defined pipeline.
-MEDAKA_TRAIN_REPLICATES:
-    "rep_1": "all_medaka_feat" 
-    "rep_2": "all_medaka_feat"
-    "rep_3": "all_medaka_feat"
-
-# Evaluation of trained models, entries in this list should be keys
-# of MEDAKA_OPTS, the values of which need to specify the path of the
-# trained model using the `-m option`.
-MEDAKA_EVAL_SUFFIXES:
-    ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
-MEDAKA_OPTS: 
-    "": "-m r941_min_high_g330"
-    "_hac": "-m r941_min_high_g330"
-    "_hac_prom": "-m r941_prom_high_g330"
-    "_fast": "-m r941_min_fast_g303"
-    "_fast_prom": "-m r941_prom_fast_g303"
-    "_rep_1_best_val": "-m medaka_train_rep_1/model.best.val_cat_acc.hdf5"
-    "_rep_2_best_val": "-m medaka_train_rep_2/model.best.val_cat_acc.hdf5"
-    "_rep_3_best_val": "-m medaka_train_rep_3/model.best.val_cat_acc.hdf5"
-
-# Medaka training features
-MEDAKA_TRAIN_TRUTH_CHUNK:
-    10000  # size of truth chunks aligned to draft to provide labels. 
-MEDAKA_TRAIN_FEAT_OPTS:
-    "": "--chunk_len 1000 --chunk_ovlp 0"
-
-MEDAKA_TRAIN_OPTS:
-    "": "--mini_epochs 5 --validation_split 0.10"
-
-# Medaka training can be IO-limited - using multi-threading to load data
-MEDAKA_TRAIN_THREADS_IO:
-    8
-
-MEDAKA_VARIANT_OPTS:
-    "_hac": "-m r941_min_high -d"
-
-MEDAKA_VARIANT_SUFFIXES:
-    ["_hac"]
-
-
+            
 ############################
 # Definitions of standard pipelines
 #
@@ -204,21 +78,78 @@ MEDAKA_VARIANT_SUFFIXES:
 
 PIPELINES:
     all_fast_assm_polish: [
-        "{DATA}/basecall/guppy_hac/miniasm/racon/medaka_hac/consensus.fasta"
+        "{DATA}/basecall/guppy/miniasm/racon/medaka/consensus.fasta"
     ]
     all_standard_assm_polish: [
-        "{DATA}/basecall/guppy_hac/canu_gsz_{GENOME_SIZE}/racon/medaka_hac/consensus.fasta"
+        "{DATA}/basecall/guppy/canu/racon/medaka/consensus.fasta"
     ]
     all_medaka_eval: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu_gsz_{GENOME_SIZE}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+        "{DATA}/basecall/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/basecall/guppy_hac/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu_gsz_{GENOME_SIZE}/racon/medaka_features/medaka_train_rc.hdf"
+        "{DATA}/basecall/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
+        "{DATA}/basecall/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train_rc.hdf"
     ]
     all_medaka_train: [
         "medaka_train_{MEDAKA_TRAIN_REPLICATES}"
     ]
+
+
+# Runtime configuration
+RUNTIME:  
+    # default number of threads/cores/slots to use per multi-threaded task.
+    THREADS_PER_JOB: 8
+    # To run medaka consensus on GPU, set MEDAKA_CONSENSUS_NUM_GPU to 1.
+    # More than a single GPU is not currently supported (by medaka).
+    MEDAKA_CONSENSUS_NUM_GPU: 0
+
+    ##############################
+    # Location of various software
+    #
+    # Configuration for software is found toward the end of this config.
+    IN_MEDAKA: "~/git/medaka/venv/bin/activate"
+    IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
+    CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
+    FLYE_EXEC: "~/git/Flye/bin/flye"
+    SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
+    GUPPY_EXEC: "/usr/bin/guppy_basecaller"
+    SOURCE: "source"
+    LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
+
+    #########################
+    # Compute/cluster options
+
+    # Location of scratch space on cluster nodes. This is currently only used for
+    # medaka training where latency on an networked filesystem can significantly
+    # slow things down. To have katuali copy medaka features to scratch space
+    # before training set SCRATCH and optionally TMPSCRATCH.
+    #
+    # If TMPSCRATCH is given the resultant path will be:
+    #     /SCRATCH/$USER/TMPSCRATCH
+    # whereas if it is not given the resultant path will be:
+    #    /SCRATCH/$USER/<generated unique name>
+    #
+    # TMPSCRATCH is useful in the case of restarting a training job on a node to
+    # which features have already been copied; in this case, simply set TMPSCRATCH
+    # to the directory under which the features were copied and katuali will skip
+    # copying the data and use the existing data.
+    #
+    # Note that katuali does not delete the data in scratch, so users must do this
+    # manually.
+    SCRATCH: ""
+    TMPSCRATCH: ""
+
+    # Snakemake checks for the existence of input files on the submission node.  On
+    # systems with a high-latency distributed file system, the existence of a file
+    # on the submission node may not guarantee its presence on a compute node.
+    # Katuali checks that all input files exist on the machine where a rule is
+    # about to run.  Note that if the file is not found, katuali will attempt to
+    # force an NFS cache update by changing the owner of the file to the current
+    # user (using chown). If the file is still not found, execution terminates.
+    # Verbose logging of the file checking can by setting CHECK_FILES_EXIST_OPTS to
+    # '--debug'. 
+    #CHECK_FILES_EXIST_OPTS: '--debug'  # activate logging of file-checking
+    CHECK_FILES_EXIST_OPTS: '--quiet'  # check files silently
 
 
 ############################
@@ -270,3 +201,58 @@ SHASTA_OPTS:
 # assess_assembly
 ASSESS_ASSM_OPTS:
     "": "-C -H" # runs cataloguing of errors and homopolymer analysis
+
+
+#############################
+# Options for medaka training
+
+# This section can be ignored if not running a medaka training workflow
+
+# Read depths at which to create assemblies for training, this should
+# span the range of depths at which the model is to be used
+# Use the --keep-going option of Snakemake if you are happy the relax
+# the constraint of requiring all depths for all reference sequences. 
+DEPTHS:
+    [25, 50, 75, 100, 125, 150, 175, 200]
+
+# If any medaka feature files are missing (e.g. due to insufficient coverage
+# for some runs / contigs) the medaka training step will not find all the files
+# it expects and will not run. To train on the feauture files which were
+# created, set this flag to true (after having already created the features
+# with the flag set to false) 
+USE_ONLY_EXISTING_MEDAKA_FEAT:
+    false
+
+# Run multiple training replicates - output will be in medaka_train_{key},
+# values should be a key of the PIPELINES dictionary in this file. In simple
+# cases this allows running technical replicates of the training, but also
+# allows the pipeline to be changed to for example create features in a
+# different manner. For the latter change the value component to an alternative
+# user defined pipeline.
+MEDAKA_TRAIN_REPLICATES:
+    "rep_1": "all_medaka_feat" 
+    "rep_2": "all_medaka_feat"
+    "rep_3": "all_medaka_feat"
+
+# Evaluation of trained models, entries in this list should be keys
+# of MEDAKA_OPTS, the values of which need to specify the path of the
+# trained model using the `-m option`.
+MEDAKA_EVAL_SUFFIXES:
+    ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
+MEDAKA_OPTS: 
+    "": "-m r941_min_high_g330"
+    "_hac": "-m r941_min_high_g330"
+    "_hac_prom": "-m r941_prom_high_g330"
+    "_fast": "-m r941_min_fast_g303"
+    "_fast_prom": "-m r941_prom_fast_g303"
+    "_rep_1_best_val": "-m medaka_train_rep_1/model.best.val_cat_acc.hdf5"
+    "_rep_2_best_val": "-m medaka_train_rep_2/model.best.val_cat_acc.hdf5"
+    "_rep_3_best_val": "-m medaka_train_rep_3/model.best.val_cat_acc.hdf5"
+
+# Medaka training features
+MEDAKA_TRAIN_FEAT_OPTS:
+    "": "--chunk_len 1000 --chunk_ovlp 0"
+
+MEDAKA_TRAIN_OPTS:
+    "": "--mini_epochs 5 --validation_split 0.10"
+

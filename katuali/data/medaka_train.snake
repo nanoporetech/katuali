@@ -2,8 +2,8 @@
 
 rule medaka_train_features:
     input:
-        in_medaka = ancient(IN_MEDAKA),
-        in_pomoxis = ancient(IN_POMOXIS),
+        in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         draft = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta"),
         draft_mmi = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.mmi"),
         draft_fai = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.fai"),
@@ -14,7 +14,7 @@ rule medaka_train_features:
         rc_features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train_rc.hdf",
     log:
         "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_features{suffix}.log"
-    threads: config["THREADS_PER_JOB"]
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
     params:
@@ -26,11 +26,11 @@ rule medaka_train_features:
         rc_draft = lambda w, output: os.path.join(os.path.dirname(output.features), "draftrc.fasta"),
         truth_region = lambda w, output: os.path.join(os.path.dirname(output.features), "truth.fasta"),
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
-        truth_chunk = config["MEDAKA_TRAIN_TRUTH_CHUNK"],
+        truth_chunk = 10000  # size of truth chunks aligned to draft to provide labels.
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        set +u; {config[SOURCE]} {input.in_pomoxis}; set -u;
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
 
         # keep a link of basecalls with the consensus
 
@@ -62,7 +62,7 @@ rule medaka_train_features:
         sleep 5
 
         echo "creating features" >> {log}
-        set +u; {config[SOURCE]} {input.in_medaka} set -u;
+        set +u; {config[RUNTIME][SOURCE]} {input.in_medaka} set -u;
         medaka features {params.bam}.bam {output.features} --truth {params.truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
         echo "creating rc features"
         medaka features {params.rc_bam}.bam {output.rc_features} --truth {params.rc_truth_bam}.bam {params[opts]} --threads {threads} &>> {log}
@@ -96,7 +96,7 @@ def get_medaka_train_features(wildcards, config=config):
 
 rule medaka_train:
     input:
-        venv = ancient(IN_MEDAKA_GPU),
+        venv = ancient(config["RUNTIME"]["IN_MEDAKA"]),
         features = ancient(partial(get_medaka_train_features, config=config))
     output:
         train_dir = directory("medaka_train_{suffix,[^/]*}")
@@ -104,12 +104,12 @@ rule medaka_train:
         "medaka_train_{suffix}.log",
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
-    threads: config["MEDAKA_TRAIN_THREADS_IO"]
+    threads: 8
     resources:
         gpu = 1
     shell:
         """
-        check_files_exist {config[CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         echo "GPU status before" >> {log}
         gpustat >> {log}
 
@@ -117,13 +117,13 @@ rule medaka_train:
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
-        if [ "{config[SCRATCH]}" != "" ];then
-            if [ "{config[TMPSCRATCH]}" != "" ];then
-                tmpscr={config[TMPSCRATCH]}
-                echo "Using provided TMPSCRATCH {config[TMPSCRATCH]}" >> {log}
+        if [ "{config[RUNTIME][SCRATCH]}" != "" ];then
+            if [ "{config[RUNTIME][TMPSCRATCH]}" != "" ];then
+                tmpscr={config[RUNTIME][TMPSCRATCH]}
+                echo "Using provided TMPSCRATCH {config[RUNTIME][TMPSCRATCH]}" >> {log}
                 mkdir -p $tmpscr &>> {log}
             else
-                userscr={config[SCRATCH]}/$USER
+                userscr={config[RUNTIME][SCRATCH]}/$USER
                 mkdir -p $userscr 2>> {log}
                 tmpscr=$(mktemp -d -p $userscr) &>> {log}
             fi
@@ -146,6 +146,6 @@ rule medaka_train:
             features={input.features}
         fi
 
-        set +u; {config[SOURCE]} {input.venv} set -u;
+        set +u; {config[RUNTIME][SOURCE]} {input.venv} set -u;
         CUDA_VISIBLE_DEVICES=$GPU medaka train $features --train_name {output.train_dir} {params.opts} --threads_io {threads} &>> {log}
         """
