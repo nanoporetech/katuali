@@ -76,7 +76,6 @@ Consensus Tools
 .. parsed-literal::
 
     `medaka <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
-    `nanopolish <https://github.com/jts/nanopolish>`_: "~/git/nanopolish"
 
 
 Katuali can also use `racon <https://github.com/lbcb-sci/racon>`_ which is included with
