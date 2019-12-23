@@ -4,12 +4,12 @@ rule basecall_guppy:
         fast5 = ancient("{runid}/reads"),
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
     output:
-        fasta = "{runid}/basecall/guppy{suffix,[^/]*}/basecalls.fasta",
-        summary = "{runid}/basecall/guppy{suffix,[^/]*}/sequencing_summary.txt",
+        fasta = "{runid,[^/]+}/guppy{suffix,[^/]*}/basecalls.fasta",
+        summary = "{runid,[^/]+}/guppy{suffix,[^/]*}/sequencing_summary.txt",
     log:
-        "{runid}/basecall/guppy{suffix,[^/]*}.log",
+        "{runid}/guppy{suffix,[^/]*}.log",
     params:
-        output_dir = lambda w: "{runid}/basecall/guppy{suffix}".format(**dict(w)),
+        output_dir = lambda w: "{runid}/guppy{suffix}".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
     threads: 4
     resources:
@@ -29,7 +29,7 @@ rule basecall_guppy:
 
         echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
 
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} -x cuda:$GPU {params.opts} &>> {log}
+        {input.guppy} -s {params.output_dir} -r -i {input.fast5} {params.opts} &>> {log}
 
         echo "gpustat after" >> {log}
         gpustat >> {log}

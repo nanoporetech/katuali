@@ -4,16 +4,16 @@ rule medaka_train_features:
     input:
         in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
         in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        draft = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta"),
-        draft_mmi = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.mmi"),
-        draft_fai = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/consensus.fasta.fai"),
-        basecalls = ancient("{runid}/basecall/{bc}/align/{region}/{dir}/basecalls.fasta"),
+        draft = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta"),
+        draft_mmi = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.fai"),
+        basecalls = ancient("{runid}/{caller}/align/{region}/{dir}/basecalls.fasta"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train.hdf",
-        rc_features = "{runid,[^/]+}/basecall/{bc,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train_rc.hdf",
+        features = "{runid,[^/]+}/{caller,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train.hdf",
+        rc_features = "{runid,[^/]+}/{caller,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train_rc.hdf",
     log:
-        "{runid}/basecall/{bc}/align/{region}/{dir}/medaka_features{suffix}.log"
+        "{runid}/{caller}/align/{region}/{dir}/medaka_features{suffix}.log"
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
@@ -99,9 +99,9 @@ rule medaka_train:
         venv = ancient(config["RUNTIME"]["IN_MEDAKA"]),
         features = ancient(partial(get_medaka_train_features, config=config))
     output:
-        train_dir = directory("medaka_train_{suffix,[^/]*}")
+        train_dir = directory("medaka_train{suffix,[^/]*}")
     log:
-        "medaka_train_{suffix}.log",
+        "medaka_train{suffix}.log",
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_OPTS"),
     threads: 8

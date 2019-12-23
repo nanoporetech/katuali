@@ -121,7 +121,7 @@ rule flye:
     log:
         "{dir}/flye{suffix}.log"
     params:
-        gsz = lambda w: katuali.find_genome_size(w['dir']),
+        gsz = lambda w: katuali.find_genome_size(w['dir'], config),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
         opts = partial(get_opts, config=config, config_key="FLYE_OPTS"),
         prefix = "flye",

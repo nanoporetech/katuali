@@ -14,7 +14,7 @@ rule racon:
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
-        gpu = 0
+        gpus = 0
     shell:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
@@ -52,7 +52,7 @@ rule medaka:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
 
-        if [ "{resources.gpu}" != "0" ];then
+        if [ "{resources.gpus}" != "0" ];then
             GPU=$(pick_gpu 2>> {log})
             echo "Runnning on host $HOSTNAME with GPU $GPU" >> {log}
         else
