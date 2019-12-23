@@ -55,7 +55,7 @@ rule environment:
 def get_reference(wildcards, config):
     # return the absolute path so that a reference in the working directory
     # e.g. ref.fasta is not confused for a pipeline target, which is
-    # distinguished from an explicit target by the lack of a '/' in pipeline targets.  
+    # distinguished from an explicit target by the lack of a '/' in pipeline targets.
     return os.path.abspath(config["DATA"][wildcards["runid"]]["REFERENCE"])
 
 
