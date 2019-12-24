@@ -8,7 +8,7 @@ import shutil
 import sys
 
 __pkg_name__ = 'katuali'
-__author__ = 'mwykes'
+__author__ = 'ont-research'
 __description__ = 'Pipelines for Nanopore sequencing.'
 __path__ = os.path.abspath(os.path.dirname(__file__))
 __pkg_path__ = os.path.join(os.path.join(__path__, __pkg_name__))
@@ -66,6 +66,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
+            'check_files_exist = {}:check_files_exist'.format(__pkg_name__),
             'process_katuali_config = {}:process_katuali_config'.format(__pkg_name__),
             'pick_gpu = {}:pick_gpu'.format(__pkg_name__),
             'katuali_datafile = {}:print_data_path'.format(__pkg_name__),

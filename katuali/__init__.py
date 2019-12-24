@@ -4,6 +4,8 @@ import itertools
 import logging
 import operator
 import os
+import pathlib
+import platform
 import re
 import shutil
 import sys
@@ -14,11 +16,93 @@ import pkg_resources
 import pysam
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __pkg__ = __name__
 
 
 Unit = collections.namedtuple('Unit', ('symbol', 'unit'))
+
+
+def check_file_exists(fp, log_level=logging.INFO):
+    """Check file exists, recursively following symlinks and forcing NFS cache updates with chown
+
+        ... Note that chown changes owner and group to the present user.
+
+    :param fp: str, filepath.
+    :returns: str, real path of file, having followed all symlinks.
+    """
+
+    logging.basicConfig(
+        format='[%(asctime)s - %(name)s] %(message)s',
+        datefmt='%H:%M:%S', level=log_level)
+    logger = logging.getLogger('check_file')
+
+    logger.debug('Checking file on {}: {}'.format(platform.node(), fp))
+
+    def _is_link_or_exists(fp):
+        return os.path.islink(fp) or os.path.exists(fp)
+
+    if not _is_link_or_exists(fp):
+        logger.debug('File not found, forcing NFS cache update for {}'.format(fp))
+        # force NFS cache update by changing owner and group to current user
+        os.chown(fp, os.getuid(), os.getgid())
+        if not _is_link_or_exists(fp):
+             raise IOError('File not present even after chown: {}'.format(os.path.abspath(fp)))
+
+    if os.path.islink(fp):  # recursively follow links
+        logger.debug('File is symlink, following link. File: {}'.format(fp))
+        # support links to absolute and relative paths
+        target_path = os.readlink(fp)
+        if not os.path.isabs(target_path):
+            target_path = os.path.join(os.path.dirname(fp), target_path)
+            logger.debug('File is relative symlink: {}'.format(target_path))
+        # support links to absolute and relative paths
+        return check_file_exists(target_path)
+    else:
+        logger.debug('File exists! File: {} Size: {}'.format(fp, os.path.getsize(fp)))
+        if os.path.basename(fp) in {'basecalls.fasta', 'consensus.fasta'}:
+            with pysam.FastxFile(fp) as fx:
+                first_rec_name = next(fx).name
+                logger.debug('First fastx record: {}'.format(first_rec_name))
+        return fp
+
+
+def _log_level():
+    """Parser to set logging level and acquire software version/commit"""
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=False)
+
+    #parser.add_argument('--version', action='version', version=get_version())
+
+    modify_log_level = parser.add_mutually_exclusive_group()
+    modify_log_level.add_argument('--debug', action='store_const',
+        dest='log_level', const=logging.DEBUG, default=logging.INFO,
+        help='Verbose logging of debug information.')
+    modify_log_level.add_argument('--quiet', action='store_const',
+        dest='log_level', const=logging.WARNING, default=logging.INFO,
+        help='Minimal logging; warnings only).')
+
+    return parser
+
+
+def check_files_exist():
+    parser = argparse.ArgumentParser(
+        description='Check files exist, recursively following symlinks and forcing NFS cache updates with chown.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[_log_level()],
+    )
+    parser.add_argument('filepaths', nargs='+', help='Filepaths.')
+    args=parser.parse_args()
+
+    logging.basicConfig(
+        format='[%(asctime)s - %(name)s] %(message)s',
+        datefmt='%H:%M:%S', level=args.log_level)
+    logger = logging.getLogger('check_files')
+
+    for fp in args.filepaths:
+        check_file_exists(fp, args.log_level)
+    logger.debug('Finished checking that input files exist.')
 
 
 def _data_path(filename):
@@ -156,7 +240,7 @@ def int_to_formatted_string(i, fmt='{:.1f}'):
     >>> int_to_formatted_string(1e12)
     '1000.0g'
     """
-    units = (Unit('k', 1e3), Unit('m', 1e6), Unit('g', 1e9))
+    units = (Unit('k', 1e3), Unit('M', 1e6), Unit('G', 1e9))
     units = sorted(units, key=operator.attrgetter('unit'))
     max_unit = max(u.unit for u in units)
     for u in units:
@@ -221,7 +305,7 @@ def expand_target_template(template, config):
     dataset_params = set(itertools.chain(*[config['DATA'][v] for v in config['DATA']]))
     dataset_params = dataset_params & to_expand
     # get parameters which are not coupled to the dataset
-    non_dataset_params = to_expand - dataset_params
+    non_dataset_params = to_expand - dataset_params - {'GENOME_SIZE'}
     non_dataset_params = {k: config[k] for k in non_dataset_params if k != 'DATA'}
 
     templates = []
@@ -256,7 +340,7 @@ def expand_target_template(template, config):
                 dataset_templates = []
                 for region in regions:
                     region_sz = int_to_formatted_string(get_region_len(region, ref))
-                    d = { 'GENOME_SIZE': region_sz, region_param: region}
+                    d = {'GENOME_SIZE': region_sz, region_param: region}
                     dataset_templates.append(partial_format(dataset_tmp, **d))
         else:
             dataset_templates = [dataset_tmp]
@@ -268,8 +352,48 @@ def expand_target_template(template, config):
                                           dataset_templates for k in product_dict(**kwargs)]))
             templates.extend(dataset_templates)
         else:
-            templates=dataset_templates
+            templates = dataset_templates
     # expand dataset-specific templates with non_dataset_params to create targets
     # this will fail if there are any {} still present
-    targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
+    if len(non_dataset_params) > 0:
+        targets = [t.format(**k) for k in product_dict(**non_dataset_params) for t in templates]
+    else:
+        targets = templates
+
     return targets
+
+
+def find_genome_size(target, config):
+    """Find an appropriate genome size from a target path."""
+    target_parts = pathlib.Path(target).parts
+    dataset = target_parts[0]
+    if 'REFERENCE' in config['DATA'][dataset]:
+        # We have a reference file, need to find a contig name in path.
+        with pysam.FastaFile(config['DATA'][dataset]['REFERENCE']) as fh:
+            rlengths = dict(zip(fh.references, fh.lengths))
+        found = set()
+        for folder, ref in itertools.product(target_parts, rlengths.keys()):
+            if ref in folder:
+                found.add(ref)
+        if len(found) == 0:
+            # fallback to config value if present
+            if 'GENOME_SIZE' in config['DATA'][dataset]:
+                return config['DATA'][dataset]['GENOME_SIZE']
+            else:
+                raise KeyError("Could not find a contig name within target: {}.".format(target))
+        elif len(found) > 1:
+            raise ValueError("Found multiple contig names within target: {}.".format(target))
+        else:
+            return int_to_formatted_string(rlengths[ref])
+
+
+def suffix_decorate(func, suffix=''):
+    """Add a suffix to a function returning a string
+
+    :param: func which returns string
+    :suffix: suffix to add to string before returning.
+    """
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs) + suffix
+
+    return wrapper
