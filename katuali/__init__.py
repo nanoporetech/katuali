@@ -367,24 +367,23 @@ def find_genome_size(target, config):
     """Find an appropriate genome size from a target path."""
     target_parts = pathlib.Path(target).parts
     dataset = target_parts[0]
+    found = set()
     if 'REFERENCE' in config['DATA'][dataset]:
         # We have a reference file, need to find a contig name in path.
         with pysam.FastaFile(config['DATA'][dataset]['REFERENCE']) as fh:
             rlengths = dict(zip(fh.references, fh.lengths))
-        found = set()
         for folder, ref in itertools.product(target_parts, rlengths.keys()):
             if ref in folder:
                 found.add(ref)
-        if len(found) == 0:
-            # fallback to config value if present
-            if 'GENOME_SIZE' in config['DATA'][dataset]:
-                return config['DATA'][dataset]['GENOME_SIZE']
-            else:
-                raise KeyError("Could not find a contig name within target: {}.".format(target))
-        elif len(found) > 1:
-            raise ValueError("Found multiple contig names within target: {}.".format(target))
+    if len(found) == 0:
+        # fallback to config value if present
+        if 'GENOME_SIZE' in config['DATA'][dataset]:
+            return config['DATA'][dataset]['GENOME_SIZE']
         else:
-            return int_to_formatted_string(rlengths[ref])
+            raise KeyError("Could not find a contig name within target: {}.".format(target))
+    elif len(found) > 1:
+        raise ValueError("Found multiple contig names within target: {}.".format(target))
+    return int_to_formatted_string(rlengths[found.pop()])
 
 
 def suffix_decorate(func, suffix=''):
