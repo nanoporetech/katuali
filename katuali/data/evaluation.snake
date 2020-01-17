@@ -55,6 +55,7 @@ rule assess_consensus:
         "{runid}/{dir}/assess_consensus{suffix}.log"
     params:
         prefix = "{runid}/{dir}/consensus_to_truth",
+        opts = partial(get_opts, config=config, config_key="ASSESS_ASSM_OPTS")
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
@@ -62,5 +63,6 @@ rule assess_consensus:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
-        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {config[ASSESS_ASSM_OPTS]} &>> {log}
+        rm -rf {params.prefix}*
+        assess_assembly -i {input.consensus} -r {input.truth} -p {params.prefix} -t {threads} {params[opts]} &>> {log}
         """

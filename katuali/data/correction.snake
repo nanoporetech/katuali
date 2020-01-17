@@ -14,7 +14,7 @@ rule racon:
         opts = partial(get_opts, config=config, config_key="MINI_ASSEMBLE_OPTS"),
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
-        gpus = 0
+        gpu = 0
     shell:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
@@ -44,7 +44,7 @@ rule medaka:
     threads: 8
     resources:
         # NOTE: currently we will only use at most a single GPU
-        gpus = config["RUNTIME"]["MEDAKA_CONSENSUS_NUM_GPU"]
+        gpu = config["RUNTIME"]["MEDAKA_CONSENSUS_NUM_GPU"]
     params:
         opts = partial(get_opts, config=config, config_key="MEDAKA_OPTS"),
         output_dir = lambda w, output: os.path.dirname(output.consensus),
@@ -52,7 +52,7 @@ rule medaka:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
 
-        if [ "{resources.gpus}" != "0" ];then
+        if [ "{resources.gpu}" != "0" ];then
             GPU=$(pick_gpu 2>> {log})
             echo "Runnning on host $HOSTNAME with GPU $GPU" >> {log}
         else
