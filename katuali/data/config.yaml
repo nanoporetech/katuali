@@ -239,10 +239,10 @@ MEDAKA_TRAIN_REPLICATES:
 # trained model using the `-m option`.
 MEDAKA_EVAL_SUFFIXES:
     ["_rep_1_best_val", "_rep_2_best_val", "_rep_3_best_val"]
-MEDAKA_OPTS: 
-    "": "-m r941_min_high_g330"
-    "_hac": "-m r941_min_high_g330"
-    "_hac_prom": "-m r941_prom_high_g330"
+MEDAKA_OPTS:
+    "": "-m r941_min_high_g344"
+    "_hac": "-m r941_min_high_g344"
+    "_hac_prom": "-m r941_prom_high_g344"
     "_fast": "-m r941_min_fast_g303"
     "_fast_prom": "-m r941_prom_fast_g303"
     "_rep_1_best_val": "-m medaka_train_rep_1/model.best.val_cat_acc.hdf5"
