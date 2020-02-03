@@ -352,7 +352,8 @@ def expand_target_template(template, config):
                                           dataset_templates for k in product_dict(**kwargs)]))
             templates.extend(dataset_templates)
         else:
-            templates = dataset_templates
+            templates.extend(dataset_templates)
+
     # expand dataset-specific templates with non_dataset_params to create targets
     # this will fail if there are any {} still present
     if len(non_dataset_params) > 0:
