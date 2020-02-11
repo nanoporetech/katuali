@@ -48,13 +48,13 @@ rule assess_consensus:
         consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        summ = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}_summ.txt",
-        bam = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}.bam",
-        stats = "{runid,[^/]+}/{dir}/consensus_to_truth{suffix,[^/]*}_stats.txt",
+        summ = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.txt",
+        bam = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.bam",
+        stats = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.txt",
     log:
-        "{runid}/{dir}/assess_consensus{suffix}.log"
+        "{runid}/{dir}/assess{suffix,[^/]*}/assess_consensus{suffix}.log"
     params:
-        prefix = "{runid}/{dir}/consensus_to_truth",
+        prefix = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth",
         opts = partial(get_opts, config=config, config_key="ASSESS_ASSM_OPTS")
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:

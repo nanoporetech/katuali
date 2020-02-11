@@ -83,8 +83,12 @@ PIPELINES:
     all_standard_assm_polish: [
         "{DATA}/guppy/canu/racon/medaka/consensus.fasta"
     ]
+    all_consensus_eval: [
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt",
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
+    ]
     all_medaka_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
     ]
     all_medaka_feat: [
         "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
@@ -199,6 +203,7 @@ SHASTA_OPTS:
     "": "--Reads.minReadLength 2000"
 
 # assess_assembly
+ASSESS_ASSM_SUFFIXES: [""]
 ASSESS_ASSM_OPTS:
     "": "-C -H" # runs cataloguing of errors and homopolymer analysis
 
