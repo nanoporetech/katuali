@@ -49,8 +49,8 @@ rule assess_consensus:
         truth = ancient(partial(get_reference, config=config)),
     output:
         summ = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.txt",
-        bam = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.bam",
-        stats = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.txt",
+        bam = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth.bam",
+        stats = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_stats.txt",
     log:
         "{runid}/{dir}/assess{suffix,[^/]*}/assess_consensus{suffix}.log"
     params:
