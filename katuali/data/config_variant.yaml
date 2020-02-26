@@ -39,36 +39,54 @@
 # In the example below we train from the "minion" run using "ecoli" and "yeast"
 # contigs in the reference and evaluate on the "gridion" run using the contigs
 # "ecoli", "yeast" and "na12878_chr21" in the reference.
+
+
 DATA:
-    'MinIonRun1': 
-        'GENOME_SIZE': '52k'
-        'REFERENCE': 'ref.fasta'
-        'MEDAKA_TRAIN_REGIONS': []
+    'dna_prom':
+        # For variant-calling training datasets, do not change the reference path.
+        # Either link to a pre-existing file or let katuali download the reference.
+        'REFERENCE': 'medaka_variant_resources/grch38/grch38.fna.gz'
+        # for variant calling MEDAKA_TRAIN_REGIONS could be entire chromomosomes
+        'MEDAKA_TRAIN_REGIONS': ['chr15', 'chr16', 'chr17', 'chr18', 'chr19']
         'MEDAKA_EVAL_REGIONS': []
-    'MinIonRun2': 
-        'GENOME_SIZE': '4.8M'
-        'REFERENCE': 'ref.fasta'
-        'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-        'MEDAKA_EVAL_REGIONS': []
-    'GridIonRun1': 
-        'GENOME_SIZE': '4.8M'
-        'REFERENCE': 'ref.fasta'
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-    'GridIonRun2': 
-        'GENOME_SIZE': '4.8M'
-        'REFERENCE': 'ref.fasta'
-        'MEDAKA_TRAIN_REGIONS': []
-        'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
+        'SAMPLE': "NA24385"
 
 
-# Empty VARIANT_RESOURCES stubs, required to enable medaka_train_variant.snake
-# to be included in the Snakefile without raising config key errors.  
-# See config_variant.yaml for an example of a valid variant calling config.
+############################
+# References and truth data required for variant calling training
+# 
+# SAMPLES: The GIAB NA24385 sample is shown here for example. Other or further samples
+# can be used. 
+#   - The truth reference MUST be provided under medaka_variant_resources/grch38/{SAMPLE}/
+#     as {SAMPLE}.fasta (e.g. medaka_variant_resources/grch38/NA24385/NA24385.fasta)
+#      -  The per chromosome truth references will be created by Katuali during runtime 
+#         if they do not exist. They can be also linked or copied under 
+#         medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_per_chr/
+#         as chrX.fasta, chrX_{SAMPLE}_maternal.fasta and chrX_{SAMPLE}_paternal.fasta
+#      
+#   - The high confidences bedfiles and vcfs for each sample can to be downloaded from the GIAB website
+#     during runtime by providing the URLs as shown below for NA24385. Alternatively, bed and vcf files can
+#     copied (or linked) to medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_high_conf.bed 
+#     and medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_high_conf.vcf.gz, respectively. 
+#
+# VARIANTS_TO_ADD: Variant calls from 1k genomes project are used by default and will be downloaded 
+# during runtime if the vcfs does not exist under medaka_variant_resources/grch38/1kgenomes/.
+# A different set of variants can be added to the reference by replacing the filepath specified below. 
+# A vcf must be provided per chromosome and a wildcard (chrX) for the chromosome needs to be contained 
+# within the filename.
+#
+# See the documentation for further details on the Katuali directory structures for variant calling
+
 VARIANT_RESOURCES:
-    "SAMPLES" : ""
-    "VARIANTS_TO_ADD": ""
-           
+    "SAMPLES":
+        "NA24385":
+            "TRUTH_HIGH_CONF_BED_URL": "https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/AshkenazimTrio/HG002_NA24385_son/NISTv3.3.2/GRCh38/HG002_GRCh38_GIAB_highconf_CG-Illfb-IllsentieonHC-Ion-10XsentieonHC-SOLIDgatkHC_CHROM1-22_v.3.3.2_highconf_noinconsistent.bed" 
+            "TRUTH_HIGH_CONF_VCF_URL": "https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/AshkenazimTrio/HG002_NA24385_son/NISTv3.3.2/GRCh38/HG002_GRCh38_GIAB_highconf_CG-Illfb-IllsentieonHC-Ion-10XsentieonHC-SOLIDgatkHC_CHROM1-22_v.3.3.2_highconf_triophased.vcf.gz" 
+
+    "VARIANTS_TO_ADD": "medaka_variant_resources/grch38/1kgenomes/ALL.{chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+
+ 
+
 
 ############################
 # Definitions of standard pipelines
@@ -87,21 +105,24 @@ PIPELINES:
     all_standard_assm_polish: [
         "{DATA}/guppy/canu/racon/medaka/consensus.fasta"
     ]
-    all_consensus_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt",
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
-    ]
     all_medaka_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
         "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train_rc.hdf",
+        "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train_rc.hdf"
     ]
     all_medaka_train: [
         "medaka_train{MEDAKA_TRAIN_REPLICATES}"
     ]
+    all_medaka_variant_feat: [
+        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X.hdf",
+        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_rc.hdf"
+    ]
+    all_medaka_snp_feat: [
+        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/medaka_diploid_snp_features/{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_medaka_train.hdf",
 
+    ]
 
 # Runtime configuration
 RUNTIME:  
@@ -115,16 +136,16 @@ RUNTIME:
     # Location of various software
     #
     # Configuration for software is found toward the end of this config.
-    IN_MEDAKA: "~/git/medaka/venv/bin/activate"  # tensorflow-gpu should be installed in the venv if you wish to use medaka on GPU. 
+    IN_MEDAKA: "~/git/medaka/venv/bin/activate"
     IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
     CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
     FLYE_EXEC: "~/git/Flye/bin/flye"
     SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
     GUPPY_EXEC: "/usr/bin/guppy_basecaller"
     SOURCE: "source"
+    LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
     LIFTOVER: "~/miniconda3/envs/liftover/bin/liftOver"
     VCFCREATEMULTI: "~/git/vcflib/bin/vcfcreatemulti"
-    LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 
     #########################
     # Compute/cluster options
@@ -209,7 +230,6 @@ SHASTA_OPTS:
     "": "--Reads.minReadLength 2000"
 
 # assess_assembly
-ASSESS_ASSM_SUFFIXES: [""]
 ASSESS_ASSM_OPTS:
     "": "-C -H" # runs cataloguing of errors and homopolymer analysis
 
@@ -222,7 +242,7 @@ ASSESS_ASSM_OPTS:
 # Read depths at which to create assemblies for training, this should
 # span the range of depths at which the model is to be used
 DEPTHS:
-    [25, 50, 75, 100, 125, 150, 175, 200]
+    [10, 15, 20, 25, 30, 40, 50, 60]
 
 # If any medaka feature files are missing (e.g. due to insufficient coverage
 # for some runs / contigs) the medaka training step will not find all the files
@@ -239,9 +259,12 @@ USE_ONLY_EXISTING_MEDAKA_FEAT:
 # different manner. For the latter change the value component to an alternative
 # user defined pipeline.
 MEDAKA_TRAIN_REPLICATES:
-    "_rep_1": "all_medaka_feat" 
-    "_rep_2": "all_medaka_feat"
-    "_rep_3": "all_medaka_feat"
+    "_snp_rep_1": "all_medaka_snp_feat" 
+    "_snp_rep_2": "all_medaka_snp_feat"
+    "_snp_rep_3": "all_medaka_snp_feat"
+    "_variant_rep_1": "all_medaka_variant_feat" 
+    "_variant_rep_2": "all_medaka_variant_feat"
+    "_variant_rep_3": "all_medaka_variant_feat"
 
 # Evaluation of trained models, entries in this list should be keys
 # of MEDAKA_OPTS, the values of which need to specify the path of the
@@ -263,7 +286,13 @@ MEDAKA_TRAIN_FEAT_OPTS:
     "": "--chunk_len 1000 --chunk_ovlp 0"
 
 MEDAKA_TRAIN_OPTS:
-    "_rep_1": "--mini_epochs 5 --validation_split 0.10"
-    "_rep_2": "--mini_epochs 5 --validation_split 0.10"
-    "_rep_3": "--mini_epochs 5 --validation_split 0.10"
+    "_snp_rep_1": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
+    "_snp_rep_2": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
+    "_snp_rep_3": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
+    "_variant_rep_1": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
+    "_variant_rep_2": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
+    "_variant_rep_3": " --optim_args lr=0.0001 rho=0.9 epsilon=None decay=0.0"
 
+# Setting MEDAKA_TRAIN_SNP_USE_BED to True restricts MEDAKA SNP-calling
+# training data to high-confident regions
+MEDAKA_TRAIN_SNP_USE_BED: False

@@ -92,6 +92,7 @@ Table of contents
    tests
    examples
    medaka_train
+   medaka_train_variant
    configuration
    faq
 
