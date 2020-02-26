@@ -12,16 +12,12 @@ If you use the `katuali` wrapper script (rather than running `Snakemake`
 directly), by default your pipeline will use the yaml config provided with
 `katuali`.
 
-The default config file can be overridden using the ``--configfile`` option, and
-individual config parameters can be overwriddden with the ``--config`` option:
+The default config file can be overridden using the ``--configfile`` option.
 
 .. code-block:: bash
 
     # use a custom config
-    katuali basecall/scrappie/miniasm_racon/consensus.fasta --configfile myconfig.yaml
-
-    # override MINI_ASSEMBLE_OPTS config on the command line
-    katuali basecall/scrappie/miniasm_racon/consensus.fasta --config MINI_ASSEMBLE_OPTS="-c"
+    katuali guppy/miniasm_racon/consensus.fasta --configfile myconfig.yaml
 
 
 Nested configuration
@@ -44,26 +40,13 @@ options:
 .. code-block:: bash
 
     # use default MINI_ASSEMBLE_OPTS (suffix is empty string "")
-    katuali basecall/scrappie/miniasm_racon/consensus.fasta
+    katuali guppy/miniasm_racon/consensus.fasta
     
     # use MINI_ASSEMBLE_OPTS specified by suffix "_ce"
-    katuali basecall/scrappie/miniasm_racon_ce/consensus.fasta
+    katuali guppy/miniasm_racon_ce/consensus.fasta
 
 A suffix can be added to most targets to specify options. If the suffix does
-not exist in the nested config, the default parameters will be used as if the
-suffix were empty. This can be useful if you want to run the same target twice
-(maybe to sample any random error or to test different versions of a code) and
-want the output files to be distinct. 
-
-Further, settings in the config file can be overridden on the command line:
-
-.. code-block:: bash
-
-    katuali all_fast_assm_polish --config MINI_ASSEMBLE_OPTS="-c -e 5"
-
-The ``katuali`` program achieves this merging command line ``--config`` options
-with the input ``--configfile`` and saving the merged YAML config before running
-snakemake. 
+not exist in the nested config, an error will be raised. 
 
 
 Processing and resource
@@ -74,23 +57,56 @@ The pipeline can be used on the local machine, or submitted to a cluster.
 There are two parameters which control CPU usage:
 
     * the ``--cores N`` option, which limits the totol number of threads which can be simultaneously used by all Snakemake tasks.
+      This can be specified on the command line.  
     
-    * the ``--config THREADS_PER_JOB=n`` config parameter, determines the maximum
+    * the ``THREADS_PER_JOB`` config parameter, determines the maximum
       number of `threads
       <https://snakemake.readthedocs.io/en/stable/tutorial/advanced.html#step-1-specifying-the-number-of-used-threads>`_
       that a single multi-threaded rule will use. When fewer cores than threads
       are provided, the number of threads a task uses will be reduced to the
-      number of given cores.
+      number of given cores. This parameter must be set within the ``RUNTIME`` section of the config file:
+
+.. code-block:: yaml
+
+    RUNTIME:  
+        THREADS_PER_JOB: 4
+
 
 As an example, if ``THREADS_PER_JOB`` is set to 4 and ``--cores`` is set to 8, up to two multi-threaded
 tasks can run at a time.
 
 
+Running medaka consensus on GPU or CPU
+--------------------------------------
+
+The workload of running the the medaka consensus neural-network can assigned to either CPU or GPU resources using the ``MEDAKA_CONSENSUS_NUM_GPU`` flag. 
+
+Setting 
+
+.. code-block:: yaml
+
+    RUNTIME:  
+        MEDAKA_CONSENSUS_NUM_GPU: 0
+
+will result in the neural-network being run on CPU, while setting 
+
+.. code-block:: yaml
+
+    RUNTIME:  
+        MEDAKA_CONSENSUS_NUM_GPU: 1
+
+will result in the neural-network being run on GPU. 
+
+.. note:: Note that MEDAKA_CONSENSUS_NUM_GPU should be 0 or 1; values greater than 1 are not supported. 
+
+.. note:: Note also that to ``tensorflow-gpu`` must be installed in your medaka environment if you wish to run medaka using a GPU. 
+
+
 Running on the local machine
 ----------------------------
 
-When running on a local machine using GPUs (e.g. while basecalling with guppy
-or training medaka models), `katuali` can limit the number of concurrent GPU
+When running on a local machine using GPUs (e.g. while basecalling with guppy, 
+training or evaluating medaka models), `katuali` can limit the number of concurrent GPU
 tasks scheduled so as not to saturate GPU resource by informing katuali how
 many GPUs are present on the machine:
 

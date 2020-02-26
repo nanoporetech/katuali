@@ -6,7 +6,7 @@ rule align_to_ref:
         ref_mmi = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.mmi')),
         ref_fai = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.fai')),
     output:
-        bam = "{runid}/{dir}/align/calls2ref.bam"
+        bam = "{runid,[^/]+}/{dir}/align/calls2ref.bam"
     log:
         "{runid}/{dir}/align/align_to_ref.log"
     params:
@@ -58,6 +58,9 @@ rule mini_align_index:
     shell:
         """
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        # remove any existing indices (only one of them will exist) as
+        # mini_align will die if some exist
+        rm -rf {output}
         mini_align -r {input.ref} -X &> {log}
         """
 
@@ -68,10 +71,12 @@ rule subsample_bam:
         bam = ancient("{dir}/calls2ref.bam"),
     output:
         fasta = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/basecalls.fasta",
+        bam = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/calls2ref.bam",
+        bai = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/calls2ref.bam.bai",
     log:
         "{dir}/{contig}/{depth}X{suffix}/subsample.log"
     params:
-        contig_opt = partial(get_contig_opt, config=config),
+        contig_opt = partial(get_contig_opt),
         prefix = lambda w: "{dir}/{contig}/{depth}X{suffix}/sub_sample".format(**dict(w)),
         opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
     resources:
@@ -82,5 +87,39 @@ rule subsample_bam:
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         subsample_bam {input.bam} {wildcards.depth} {params[contig_opt]} -o {params[prefix]} {params[opts]} -t {threads} &>>{log};
         sleep 5;
-        for i in {params[prefix]}*.bam; do samtools fasta $i ; done > {output.fasta}
+
+        # if params[contig_opt] specified multiple regions, we will have multiple bams we need to merge
+        n_bams=$(ls {params[prefix]}*.bam | wc -l)
+        if [ $n_bams -gt 1 ];
+        then
+            echo "Merging bams" >> {log}
+            samtools merge - -@ {threads} {params[prefix]}*.bam | samtools sort -@ {threads} > {output.bam} 2>> {log}
+            samtools index -@ {threads} {output.bam}  2>> {log}
+            rm -f {params[prefix]}*.bam {params[prefix]}*.bam.bai
+        else
+            echo "Moving bam" >> {log}
+            mv {params[prefix]}*.bam {output.bam}
+            mv {params[prefix]}*.bam.bai {output.bai}
+        fi  
+
+        samtools fasta {output.bam} > {output.fasta} 2>> {log}
+        """
+
+
+rule extract_region_from_bam:
+    input:
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        bam = ancient("{dir}/align/calls2ref.bam"),
+    output:
+        fastq = "{dir}/align/{region,[^/]+}/basecalls.fastq.gz",
+    log:
+        "{dir}/align/{region}/extract_region_from_bam.log"
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        (samtools view {input.bam} {wildcards.region} -b -@ {threads} | samtools fastq - -@ {threads} | bgzip -@ {threads} -c) >{output.fastq} 2>> {log}
         """

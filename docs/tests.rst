@@ -22,12 +22,11 @@ E.coli plasmid.
 
     test/                                  
       MinIonRun1/              # dataset name as defined in config. 
-        basecall/                       
-          scrappie/            # scrappie basecaller with default options
-            align/             # alignment of bases
-              all_contigs/     # extraction of all_contigs in alignment  
-                25X/           # subsampling alignments
-                  sub_sample_25X_ecoli_SCS110_plasmid2.calls2ref.bam
+        guppy/            # guppy basecaller with default options
+          align/             # alignment of bases
+            all_contigs/     # extraction of all_contigs in alignment  
+              25X/           # subsampling alignments
+                sub_sample_25X_ecoli_SCS110_plasmid2.calls2ref.bam
 
 
 Predefined Workflows

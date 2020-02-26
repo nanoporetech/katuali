@@ -158,7 +158,8 @@ rule shasta:
     shell:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params[opts] &>> {log}
+        rm -rf {params.output_dir}
+        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params.opts} --input {input.basecalls} &>> {log}
         mv {params.output_dir}/Assembly.fasta {output.consensus} &&
         ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
         """

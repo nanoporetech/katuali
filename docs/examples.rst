@@ -13,21 +13,21 @@ outputs.
 `Katuali` makes strong use of `Snakemake`'s powerful `wildcards
 <https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards>`_
 to extract pipeline parameters from the target file path. For example
-which basecaller or assembler to use as well as parameters for these tools.
+which assembler to use as well as parameters for these tools.
 
 For example, while
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/basecalls.fasta
+    katuali run1/guppy/canu/consensus.fasta
 
-will basecall with guppy. 
+will basecall with guppy then assemble with canu
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/basecalls.fasta
+    katuali run1/guppy/shasta/consensus.fasta
 
-will perform basecalling with scrappie (starting from `./run1/reads`), 
+will basecall with guppy then perform assembly with shasta (starting from `./run1/reads`), 
 
 Each step of a multi-step pipeline stores its outputs in a subdirectory of the
 previous stage. In this way, we can define a multistep-pipeline to basecall
@@ -36,7 +36,7 @@ with medaka:
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu/racon/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta
 
 This nested working directory stores the data in such a way that is it obvious
 what went into and out of each stage of the pipeline.
@@ -50,8 +50,8 @@ the canu assembly, we could use the targets:
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/canu/racon/medaka/consensus.fasta \
-            run1/basecall/guppy/canu/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta \
+            run1/guppy/canu/medaka/consensus.fasta
 
 `Snakemake` will create a graph of tasks to perform the common basecall
 and assembly tasks, then run separately two indepdendent medaka tasks from the same
@@ -61,31 +61,32 @@ inputs (and in parallel, given enough resource).
 Basecalling
 -----------
 
-Supported basecallers include guppy, scrappie, flappie:
+Supported basecallers include guppy.
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy/basecalls.fasta
-    katuali run1/basecall/scrappie/basecalls.fasta
-    katuali run1/basecall/flappie/basecalls.fasta
+    katuali run1/guppy/basecalls.fasta
 
 
 Assembly
 --------
 
-Reads can be assembled in three ways at present:
+Reads can be assembled in four ways at present:
 
 .. code-block:: bash
 
-    # assemble with canu, specifying the genome size in the target name. 
-    katuali run1/basecall/scrappie/canu/consensus.fasta  
+    # assemble with canu
+    katuali run1/guppy/canu/consensus.fasta  
 
     # use pomoxis mini_assemble to assemble with miniasm, then form consensus
     # with racon
-    katuali run1/basecall/scrappie/miniasm_racon/consensus.fasta  
+    katuali run1/guppy/miniasm_racon/consensus.fasta  
 
-    # assemble with flye, specifying the genome size in the target name. 
-    katuali run1/basecall/scrappie/flye/consensus.fasta
+    # assemble with flye 
+    katuali run1/guppy/flye/consensus.fasta
+
+    # assemble with shasta
+    katuali run1/guppy/shasta/consensus.fasta
 
 
 Polishing
@@ -99,9 +100,9 @@ required or encouraged).
 
 .. code-block:: bash
 
-    katuali run1/basecall/guppy_flipflop/canu/racon/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu/racon/medaka/consensus.fasta
-    katuali run1/basecall/guppy_flipflop/canu/racon/medaka/medaka_flipflop/consensus.fasta
+    katuali run1/guppy/canu/racon/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/medaka/consensus.fasta
 
 
 Pipeline restrictions
@@ -119,7 +120,7 @@ Automatic generation of custom pipeline targets
 -----------------------------------------------
 
 If your pipeline involves the creation of many targets by looping over some
-variable(s), for example datasets, regions, basecallers, assemblers, you can get
+variable(s), for example datasets, regions, assemblers, you can get
 katuali to automatically generate all the targets for you by creating a
 template of the target containing named
 placeholders of the config variable(s) that will be looped over. 
@@ -130,8 +131,9 @@ The fast_assm_polish workflow is implemented with the following target template:
 
     PIPELINES:
         all_fast_assm_polish: [
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/miniasm_racon/medaka{BASECALLER_SUFFIX}/consensus.fasta"
-        ]
+            "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta"
+    ]
+
 
 Running
 
@@ -139,10 +141,8 @@ Running
 
     katuali all_fast_assm_polish
 
-will expand all the variables in the target template. ``{DATA}`` will be expanded
-to all the datsets defined in ``config[DATA]``. As ``{BASECALLER}`` and
-``{BASECALLER_SUFFIX}`` are single-entries in the config (rather than being a
-list of strings), their placeholders are simply replaced with their values.
+will expand all the variables in the target template. In this example ``{DATA}`` will be expanded
+to all the datsets defined in ``config[DATA]``. 
 
 You can use any config parameter as a placeholder, however there are some rules
 concerning variables which are dataset-specific:
@@ -168,24 +168,22 @@ concerning variables which are dataset-specific:
 
 Config pipeline entries are lists so that multiple target templates can be used in a single pipeline. 
 
-As an example, the ``all_medaka_eval`` pipeline contains two target templates, to
+As an example, the ``all_consensus_eval`` pipeline contains two target templates, to
 evaluate both the pre- and post-medaka consensus accuracy, in this case over a range of
 datasets, regions, depths, and medaka models, generating hundreds of targets in the process. 
 
 .. code-block:: yaml
 
     PIPELINES:
-        all_medaka_eval: [
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt",
-            "{DATA}/basecall/{BASECALLER}{BASECALLER_SUFFIX}/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/{ASSEMBLER}/racon/consensus_to_truth_summ.txt"
+        all_consensus_eval: [
+            "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt",
+            "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
         ]
 
 The final step of each pipeline is to create an empty file with the name of the
 pipeline (e.g. ``all_standard_assm_polish``) which indicates the pipeline has
-finished.  If you wish to rerun the pipeline after changing config variables
-which affect the pipeline targets, the empty file needs to
-be deleted before rerunning the pipeline; without deleting it, `katuali` will
-not create the new targets.
+finished.  If you rerun the pipeline this file will be automatically deleted
+and recreated upon pipeline completion. 
 
 
 .. _starting_from_basecalls:
@@ -209,7 +207,7 @@ katuali had basecalled allows any derived targets to be created.
     IN_POMOXIS=~/git/pomoxis/venv/bin/activate
 
     # ...no need to edit below here
-    BCDIR=${RUN}/basecall/${BASECALLER}/
+    BCDIR=${RUN}/${BASECALLER}/
     mkdir -p ${BCDIR}
     mkdir ${RUN}/reads
     ln -s ${SUMMARY} ${BCDIR}/sequencing_summary.txt
@@ -240,7 +238,7 @@ The read coverage depth can then be calculated as follows:
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/align/depth
+    katuali run1/guppy/align/depth
 
 The depth directory will contain a text file per reference contig with coverage
 vs genomic coordinate, as well as a file containing summary statistics for all
@@ -264,18 +262,18 @@ Once the reference is the config, running:
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/align/all_contigs/25X/miniasm_racon/consensus.fasta
+    katuali run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta
 
 will perform the following steps:
 
     * basecall the reads to create:
-      `run1/basecall/scrappie/basecalls.fasta`
+      `run1/guppy/basecalls.fasta`
     * align the basecalls to the reference to create:
-      `run1/basecall/scrappie/align/calls2ref.bam`
+      `run1/guppy/align/calls2ref.bam`
     * subsample all contigs in the .bam file to 25X to create (in one step):
-      `run1/basecall/scrappie/align/all_contigs/25X/basecalls.fasta`
+      `run1/guppy/align/all_contigs/25X/basecalls.fasta`
     * perform a ref-guided assembly and racon consensus to create:
-      `run1/basecall/scrappie/align/all_contigs/25X/miniasm_racon/consensus.fasta`
+      `run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta`
 
 
 .. note:: The rule to create subsampled datasets differs from other rules in
@@ -292,89 +290,25 @@ specifying targets such as:
 
 .. code-block:: bash
 
-    katuali run1/basecall/scrappie/align/ecoli_SCS110_plasmid2/25X/miniasm_racon/consensus.fasta 
+    katuali run1/guppy/align/ecoli_SCS110_plasmid2/25X/miniasm_racon/consensus.fasta 
 
 which will just process the reference sequence `ecoli_SCS110_plasmid2`.
 
 
-Subsampling specified regions
------------------------------
+Subsampling a specified region
+------------------------------
 
-It is also possible to subsample only specified regions specifed as samtools
-strings:
+It is also possible to subsample a region specifed as a samtools string:
 
 .. code-block:: bash
 
-    REGIONS="ecoli_SCS110_chromosome:50000-150000 ecoli_SCS110_chromosome:200000-250000"
-    katuali run1/basecall/scrappie/align/my_regions/25X/miniasm_racon/consensus.fasta --config REGIONS="$REGIONS"
+    katuali run1/guppy/align/ecoli_SCS110_chromosome:50000-150000/25X/miniasm_racon/consensus.fasta
 
 
 .. _train_medaka:
 
-Medaka training pipeline
-------------------------
+Medaka training pipelines
+-------------------------
 
-It is possible to train medaka models starting from folders of fast5s in a
-single command once the config has been modified to reflect your input data
-(fast5s and genomes for each run as well as training and evaluation region
-definitions).
-
-`MEDAKA_TRAIN_REGIONS` and `MEDAKA_EVAL_REGIONS` define regions for training
-and evaluation.  In the example below we train from the `minion` run using
-`ecoli` and `yeast` contigs in the reference and evaluate on the `gridion` run
-using the contigs `ecoli`, `yeast` and `na12878_chr21` in the reference.
-
-.. code-block:: yaml
-
-    DATA:
-        'MinIonRun1': 
-            'REFERENCE': '/path/to/references.fasta'   
-            'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-            'MEDAKA_EVAL_REGIONS': []
-        'MinIonRun2': 
-            'REFERENCE': '/path/to/references.fasta'   
-            'MEDAKA_TRAIN_REGIONS': ['ecoli', 'yeast']
-            'MEDAKA_EVAL_REGIONS': []
-        'GridIonRun1': 
-            'REFERENCE': '/path/to/references.fasta'   
-            'MEDAKA_TRAIN_REGIONS': []
-            'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-        'GridIonRun2': 
-            'REFERENCE': '/path/to/references.fasta'   
-            'MEDAKA_TRAIN_REGIONS': []
-            'MEDAKA_EVAL_REGIONS': ['ecoli', 'yeast', 'na12878_chr21']
-
-Running:
-
-.. code-block:: bash
-
-    katuali all_medaka_feat --keep-going
-
-will:
-
-* basecall all the runs
-* align each run to its reference
-* create subsampled sets of basecalls over the desired regions and depths
-* assemble those sets of basecalls
-* create medaka training features for all those sets
-
-Running:
-
-.. code-block:: bash
-
-    katuali all_medaka_train --keep-going
-
-will do all the tasks of ``all_medaka_feat`` and additionally launch
-multiple medaka model-training replicates.
-
-If some of your input runs have insufficient coverage-depth for some of the
-training regions, some of the training feature files will not be made. In this
-case the config flag ``USE_ONLY_EXISTING_MEDAKA_FEAT`` can be set to true to allow
-katuali to train using only those features which exist already:
-
-.. code-block:: yaml
-
-    USE_ONLY_EXISTING_MEDAKA_FEAT: true 
-
-Refer to comments in the config (katuali/data/config.yaml) to see how this process
-can be controlled. 
+It is possible to train both medaka consensus models and medaka variant-calling models starting from folders of fast5s. 
+See :ref:`medaka_train` and :ref:`medaka_train_variant`. 

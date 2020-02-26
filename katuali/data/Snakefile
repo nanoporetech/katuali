@@ -10,7 +10,7 @@ KATUALI_VERSION = katuali.__version__
 SNAKES = resource_filename('katuali', 'data')
 
 # expand ~ to full paths. 
-for prog in ["GUPPY_EXEC", "IN_POMOXIS", "IN_MEDAKA", "CANU_EXEC", "FLYE_EXEC", "SHASTA_EXEC"]:
+for prog in ["GUPPY_EXEC", "IN_POMOXIS", "IN_MEDAKA", "CANU_EXEC", "FLYE_EXEC", "SHASTA_EXEC", "LIFTOVER", "VCFCREATEMULTI"]:
     config["RUNTIME"][prog] = os.path.expanduser(config["RUNTIME"][prog])
 
 # Always set the environment
@@ -53,16 +53,12 @@ rule environment:
 
 
 def get_reference(wildcards, config):
-    # return the absolute path so that a reference in the working directory
-    # e.g. ref.fasta is not confused for a pipeline target, which is
-    # distinguished from an explicit target by the lack of a '/' in pipeline targets.
-    return os.path.abspath(config["DATA"][wildcards["runid"]]["REFERENCE"])
+    # convenience function to get reference from config
+    return config["DATA"][wildcards["runid"]]["REFERENCE"]
 
 
-def get_contig_opt(wildcards, config):
-    if "REGIONS" in config and "REGIONS" != "":
-        contig_opt = "-r {}".format(config["REGIONS"])
-    elif wildcards.contig == "all_contigs":
+def get_contig_opt(wildcards):
+    if wildcards.contig == "all_contigs":
         contig_opt = ""
     else:
         contig_opt = "-r {}".format(wildcards.contig)
@@ -95,6 +91,9 @@ def get_opts(wildcards, config, config_key):
 
 def pipeline_targets(wildcards, config=config):
     p = 'all_' + wildcards['pipeline']
+    if os.path.isfile(p):
+        # Remove sentinel file from previous run. 
+        os.remove(p)
     logger.run_info("Creating targets for pipeline: {}".format(p))
     targets = []
     for template in config['PIPELINES'][p]:
@@ -111,7 +110,7 @@ rule pipeline:
         gpu = 0
     shell:
         """
-        echo "Sentinel file. Delete this file to run the pipeline again." > {output}
+        echo "Sentinel file. This will automatically be deleted and recreated if the pipeline is run again." > {output}
         """
 
 
@@ -121,4 +120,4 @@ include: os.path.join(SNAKES, "./assembly.snake")
 include: os.path.join(SNAKES, "./correction.snake")
 include: os.path.join(SNAKES, "./evaluation.snake")
 include: os.path.join(SNAKES, "./medaka_train.snake")
-
+include: os.path.join(SNAKES, "./medaka_train_variant.snake")
