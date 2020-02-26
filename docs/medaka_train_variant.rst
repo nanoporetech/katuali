@@ -93,15 +93,6 @@ It is possible to train from a different, or multiple samples by extending the
         "VARIANTS_TO_ADD": "medaka_variant_resources/grch38/1kgenomes/ALL.{chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
 
 
-.. note:: Note that the pipeline also requires a diploid truth reference for
-    each sample. For the example above, the diploid truth needs to be created manually and placed at:
-
-    ``medaka_variant_resources/grch38/NA24385/NA24385.fasta``
-
-    Chromosomes should be named according to ``{sample}_{chr}_{haplotype}``, e.g.
-    ``NA24385_chr19_maternal`` or ``NA24385_chr18_paternal``.
-
-
 Based on the information provided in the config, ``Katuali`` will download and
 process reference and truth data into various intermediate files required for
 creating training features. This data required is stored under a directory
@@ -119,7 +110,7 @@ example shows the folder structure for the grch38 reference and the NA24385 samp
             grch38.fna.gz               # grch38 reference file which will be automatically downloaded. 
             grch38.fna.gz_per_chr/      # per chromosome references stored as chrX.fasta, automatically created. 
             1kgenomes/                  # VARIANTS_TO_ADD: vcf file per chromosome, automatically downloaded. 
-            NA24385/                    # SAMPLE Truth reference {SAMPLE.fasta}: NA24385.fasta, needs to be provided by the user. 
+            NA24385/                    # SAMPLE Truth reference {SAMPLE.fasta}: NA24385.fasta, created automatically from the truth vcf and reference. 
                 NA24385_per_chr/        # Phased reference per chromosome (e.g. chr18.fasta
                                         # chr18_NA24385_maternal.fasta and chr18_NA24385_paternal.fasta, created automatically).
         scuffed_ref/
