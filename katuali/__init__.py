@@ -16,7 +16,7 @@ import pkg_resources
 import pysam
 
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __pkg__ = __name__
 
 
@@ -127,10 +127,14 @@ def create_config():
         description='Create a template configuration file.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('output', help='Output config file.')
+    parser.add_argument('--variant', action='store_true', help='Use specialised config file "config_variant.yaml" for variant calling.')
     args = parser.parse_args()
 
-    default = _data_path('config.yaml')
-    shutil.copyfile(default, args.output)
+
+    if args.variant:
+        config = _data_path('config_variant.yaml')
+    else: config = _data_path('config.yaml')
+    shutil.copyfile(config, args.output)
 
 
 def process_katuali_config():
@@ -311,39 +315,7 @@ def expand_target_template(template, config):
     templates = []
     for dataset in datasets:
         # use partial_format to format only the DATA curly brace in the template
-        dataset_tmp = partial_format(template, DATA=dataset)
-        # handle genome size if it's in the template
-        if 'GENOME_SIZE' in to_expand:
-            if 'GENOME_SIZE' in config['DATA'][dataset]:
-                # use single genome size defined in config
-                genome_sz = config['DATA'][dataset]['GENOME_SIZE']
-                dataset_templates = [partial_format(dataset_tmp, GENOME_SIZE=genome_sz)]
-            elif 'REFERENCE' in config['DATA'][dataset] and 'REGION' in template:
-                # we match any parameter containing 'REGION', e.g.
-                # MEDAKA_EVAL_REGIONS, MEDAKA_TRAIN_REGIONS etc
-                # get reference lengths per region based either on full samtools
-                # region str with start and end, or using reference fasta to
-                # pull out contig length
-                region_params = [k for k in dataset_params if 'REGION' in k]
-
-                # check we don't have more than one region parameter
-                if len(region_params) > 1:
-                    raise ValueError('Found more than one region paramter in {}'.format(template))
-
-                region_param = region_params[0]
-                if not config['DATA'][dataset][region_param]:
-                    # the list of regions is empty, skip this dataset
-                    continue
-
-                regions = config['DATA'][dataset][region_param]
-                ref = config['DATA'][dataset]['REFERENCE']
-                dataset_templates = []
-                for region in regions:
-                    region_sz = int_to_formatted_string(get_region_len(region, ref))
-                    d = {'GENOME_SIZE': region_sz, region_param: region}
-                    dataset_templates.append(partial_format(dataset_tmp, **d))
-        else:
-            dataset_templates = [dataset_tmp]
+        dataset_templates = [partial_format(template, DATA=dataset)]
 
         # kwargs is dict name: list of values which will be expanded with product_dict
         kwargs = {k: config['DATA'][dataset][k] for k in dataset_params if k in config['DATA'][dataset]}
@@ -374,8 +346,9 @@ def find_genome_size(target, config):
         with pysam.FastaFile(config['DATA'][dataset]['REFERENCE']) as fh:
             rlengths = dict(zip(fh.references, fh.lengths))
         for folder, ref in itertools.product(target_parts, rlengths.keys()):
-            if ref in folder:
-                found.add(ref)
+            # folder could be a contig name or a samtools region str contig:start-end
+            if ref == folder.split(':')[0]:
+                found.add(folder)
     if len(found) == 0:
         # fallback to config value if present
         if 'GENOME_SIZE' in config['DATA'][dataset]:
@@ -383,8 +356,8 @@ def find_genome_size(target, config):
         else:
             raise KeyError("Could not find a contig name within target: {}.".format(target))
     elif len(found) > 1:
-        raise ValueError("Found multiple contig names within target: {}.".format(target))
-    return int_to_formatted_string(rlengths[found.pop()])
+        raise ValueError("Found multiple contig names {} within target: {}.".format(found, target))
+    return int_to_formatted_string(get_region_len(found.pop(), config['DATA'][dataset]['REFERENCE']))
 
 
 def suffix_decorate(func, suffix=''):

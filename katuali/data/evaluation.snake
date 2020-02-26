@@ -11,7 +11,7 @@ rule get_depth:
     log:
         "{dir}/depth/get_depth.log"
     params:
-        contig_opt = partial(get_contig_opt, config=config),
+        contig_opt = partial(get_contig_opt),
     resources:
         gpu = 0
     shell:

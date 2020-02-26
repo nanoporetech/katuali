@@ -1,10 +1,10 @@
 
 .. _medaka_train:
 
-Medaka training pipeline
-========================
+Medaka consensus training pipeline
+==================================
 
-It is possible to train and evaluate medaka models starting from folders of
+It is possible to train and evaluate medaka consensus models starting from folders of
 ``.fast5`` or ``.fasta/q`` files in a single command.
 
 
@@ -16,7 +16,7 @@ folders can be used, perhaps corresponding to multiple runs.
 
 Within the ``DATA`` section of a katuali configuration file, these top-level
 folders should be listed along with details of reference sequence files and sequences.
-`MEDAKA_TRAIN_REGIONS` and `MEDAKA_EVAL_REGIONS` define genomic regions for training
+``MEDAKA_TRAIN_REGIONS`` and ``MEDAKA_EVAL_REGIONS`` define genomic regions for training
 and evaluation.
 
 In the example below data from the first two top-level directories
@@ -80,13 +80,10 @@ There is a single medaka target to perform the above tasks:
 
 .. code-block:: bash
 
-    katuali all_medaka_feat --keep-going  --restart-times 3
+    katuali all_medaka_feat
 
-The `--keep-going` flag instructs ``katuali`` to continue processing tasks when
-unrelated tasks fail, while `--restart-times` option tells ``katuali`` to
-attempt each target a maximum of three times. When building hundreds of targets
-on a cluster this can be useful if tasks fail due to issues outside of the
-control of ``katuali``.
+``Katuali`` uses the ``Snakemake`` ``--keep-going`` flag instructs to continue processing tasks when
+unrelated tasks fail. 
 
 Having run the ``all_medaka_feat`` target, two files will be produced for
 every valid combination of dataset (top-level folder), coverage depth, and reference
@@ -94,12 +91,14 @@ sequence. For example the files:
 
 .. code-block:: bash
 
-    4bf50792/basecall/guppy_hac/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train.hdf
-    4bf50792/basecall/guppy_hac/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train_rc.hdf
+    4bf50792/guppy/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train.hdf
+    4bf50792/guppy/align/senterica1/25X_prop/canu_gsz_4.8m/racon/medaka_train/medaka_train_rc.hdf
 
 will be produced for a top-level folder named ``4bf5079``, a reference sequence
 ``senterica1`` at coverage of ``25``-fold.
 
+
+.. _training_models:
 
 Training models
 ---------------
@@ -111,8 +110,12 @@ by running:
 
     katuali all_medaka_train --keep-going
 
-This step requires the the use of GPUs to run efficiently. 
+This step requires the the use of GPUs.  
 
+.. note:: Note that to ``tensorflow-gpu`` must be installed in your medaka environment for medaka training. 
+
+
+.. _missing_feat:
 
 Coping with missing feature files
 ---------------------------------
@@ -129,6 +132,6 @@ allow katuali to train using only those features which exist already.
     
 .. note:: Note that you need to first attempt to create all features with the
     ``medaka_train_feat`` rule with ``USE_ONLY_EXISTING_MEDAKA_FEAT`` set to
-    false, and then run ``medaka_train_replicates`` with the flag set to true. 
+    false, and then run ``all_medaka_train`` with the flag set to true. 
 
 Refer to comments in the katuali configuration file for further details. 

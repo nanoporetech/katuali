@@ -5,7 +5,7 @@ Installation
 ============
 
 A Makefile is provided to create a `virtual environment
-<https://docs.python.org/3/tutorial/venv.html>`_ into which all necessary dependencies will be installed. 
+<https://docs.python.org/3/tutorial/venv.html>`_ into which ``katuali`` will be installed. 
 
 Katuali has been tested on Linux (specifically Ubuntu 16) and MacOS.
 
@@ -45,7 +45,10 @@ General Tools
     `pomoxis <https://github.com/nanoporetech/pomoxis>`_: "~/git/pomoxis/venv/bin/activate"
 
 Pomoxis is used as a general utility throughout much of katuali, its
-installation is required for most functionality.
+installation is required for most functionality. 
+
+Pomoxis >= 0.3.2 is required for the medaka variant-calling training pipelines. 
+
 
 Basecalling Tools
 ^^^^^^^^^^^^^^^^^
@@ -77,6 +80,21 @@ Consensus Tools
 
     `medaka <https://github.com/nanoporetech/medaka>`_: "~/git/medaka/venv/bin/activate"
 
+.. note:: Note that ``tensorflow-gpu`` must be installed in your medaka
+    environment if you wish to run medaka using a GPU (required for medaka
+    training, optional for running medaka consensus)
 
 Katuali can also use `racon <https://github.com/lbcb-sci/racon>`_ which is included with
 pomoxis.
+
+
+Other tools
+^^^^^^^^^^^
+
+.. parsed-literal::
+
+    `liftover <https://anaconda.org/bioconda/ucsc-liftover>`_: "~/miniconda3/envs/liftover/bin/liftOver"
+    `vcfcreatemulti <https://github.com/vcflib/vcflib>`_: "~/git/vcflib/bin/vcfcreatemulti"
+
+LiftOver and vcfcreatemulti are used in the medaka variant-calling training pipelines and only
+needs to be installed if you intend to use these pipelines.

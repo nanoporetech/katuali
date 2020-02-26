@@ -1,0 +1,532 @@
+
+# define path prefixes common to multiple rules
+REF_EDITED_PREFIX = "medaka_variant_resources/scuffed_ref/{sample,[^/]+}/{chr,[^/]+}/"
+DIPLOID_TRUTH_PREFIX = "medaka_variant_resources/grch38/{sample}/{sample}_per_chr_diploid/"
+FILTERED_BED = "medaka_variant_resources/grch38/{sample,[^/]+}/filtered_beds/{chr,[^/]+}_filtered_hc.bed"
+DIPLOID_TRUTH_BAM = "medaka_variant_resources/grch38/{sample,[^/]+}/{chr,[^/]+}/diploid_truth_to_ref.bam"
+
+# Size of chunks of truth to be aligned to the reference for creating labels
+TRUTH_CHUNK_SIZE = 100000
+
+
+# Rule for building truth references
+rule build_truth_reference:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        vcfcreatemulti = ancient(config["RUNTIME"]["VCFCREATEMULTI"]),
+        vcf = "medaka_variant_resources/grch38/{sample}/{sample}_high_conf.vcf.gz",
+        reference = "medaka_variant_resources/grch38/grch38.fna.gz"
+    output:
+        fa = "medaka_variant_resources/grch38/{sample,[^/]+}/{sample}.fasta.gz",
+        chain_maternal = "medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_maternal.chain",
+        chain_paternal = "medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_paternal.chain",
+    log: "medaka_variant_resources/grch38/{sample,[^/]+}/truth_reference.log",
+    params:
+        fixed_vcf = "medaka_variant_resources/grch38/{sample}/{sample}_fixed.vcf.gz",
+        chrs = ' '.join(['chr{}'.format(i) for i in list(range(1, 23)) + ['X', 'Y', 'M']]),
+        maternal_fa = "medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_maternal.fa",
+        paternal_fa = "medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_paternal.fa",
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+
+        # Fix-up VCF -- drop unphased and sort out overlapping calls
+        zgrep '^#\|PATMAT' {input.vcf} | {input.vcfcreatemulti} | bgzip -@ {threads} -c > {params.fixed_vcf} 2>> {log}
+        tabix {params.fixed_vcf} 
+
+        # Build maternal reference 
+        samtools faidx {input.reference} {params.chrs} | bcftools consensus --haplotype 2 -c {output.chain_maternal} {params.fixed_vcf} | sed 's/^>chr.*/&_{wildcards.sample}_maternal/' > {params.maternal_fa} 2>> {log}
+
+        # Build paternal reference 
+        samtools faidx {input.reference} {params.chrs} | bcftools consensus --haplotype 1 -c {output.chain_paternal} {params.fixed_vcf} | sed 's/^>chr.*/&_{wildcards.sample}_paternal/' > {params.paternal_fa} 2>> {log}
+
+        cat {params.maternal_fa} {params.paternal_fa} | bgzip -@ {threads} -c > {output.fa}
+        
+        rm {params.maternal_fa} {params.paternal_fa}
+        """
+
+
+#########################################################
+# Rules for creating features for haploid variant calling
+#########################################################
+
+
+def rm_regex_constr(string):
+    """Remove any [^/]+ regex contraints from a path template"""
+    return string.replace(',[^/]+', '')
+
+
+rule grch38:
+    input: 
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+    output: "medaka_variant_resources/grch38/grch38.fna.gz"
+    log: "medaka_variant_resources/grch38/grch38_download.log"
+    params: url="http://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz"
+    resources:
+        gpu = 0
+    threads: config["RUNTIME"]["THREADS_PER_JOB"] 
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        # it seems the gz is not compressed with bgzip so cannot be read natively be e.g. samtools
+        # hence decompress and recompress while downloading
+        wget -qO- {params.url} | bgzip -d -c -@ {threads} | bgzip -c -@ {threads} > {output} 2> {log}
+        """
+
+
+rule get_1k_genomes_vcf:
+    output:
+        vcf = "medaka_variant_resources/grch38/1kgenomes/ALL.{chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+    params: 
+        url_base = "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL", 
+        url_vcf = "ALL.{chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
+    log: "medaka_variant_resources/grch38/1kgenomes/{chr,[^/]+}_download.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        echo "Downloading {params.url_base}/{params.url_vcf}"
+        wget -qO- {params.url_base}/{params.url_vcf} > {output.vcf} 2> {log}
+        """
+
+
+rule get_truth_hc_data:
+    output:
+        bed="medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_high_conf.bed",
+        vcf="medaka_variant_resources/grch38/{sample,[^/]+}/{sample}_high_conf.vcf.gz",
+    params:
+        bed_url = lambda w: config["VARIANT_RESOURCES"]["SAMPLES"][w.sample]["TRUTH_HIGH_CONF_BED_URL"],
+        vcf_url = lambda w: config["VARIANT_RESOURCES"]["SAMPLES"][w.sample]["TRUTH_HIGH_CONF_VCF_URL"],
+    log: "medaka_variant_resources/grch38/{sample,[^/]+}/truth_download.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        echo "Downloading {params.bed_url}" 2> {log}
+        wget -qO- {params.bed_url} > {output.bed} 2>> {log}
+        echo "Downloading {params.vcf_url}" 2>> {log}
+        wget -qO- {params.vcf_url} > {output.vcf} 2>> {log}
+        """
+
+
+rule ref_per_chr:
+    input: 
+        ref = ancient("{ref}"),
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+    output: 
+        fasta = "{ref}_per_chr/{chr}.fasta.gz"
+    log: "{ref}_per_chr/extract_{chr}.log"
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        samtools faidx {input.ref} {wildcards.chr} | bgzip -@ {threads} -c > {output.fasta} 2> {log}
+        """
+
+
+rule diploid_ref_per_chr:
+    input: 
+        ref = ancient("medaka_variant_resources/grch38/{sample}/{sample}.fasta.gz"),
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+    output: 
+        fasta = DIPLOID_TRUTH_PREFIX + "{chr}.fasta.gz",
+        fasta_mat = DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_maternal.fasta.gz",
+        fasta_pat = DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_paternal.fasta.gz"
+    log: DIPLOID_TRUTH_PREFIX + "{chr}.log"
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.fasta),
+        contig_mat = "{chr}_{sample}_maternal",
+        contig_pat = "{chr}_{sample}_paternal" 
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        samtools faidx {input.ref} {params.contig_mat} {params.contig_pat} | bgzip -@ {threads} -c > {output.fasta} 2>> {log}
+        samtools faidx {input.ref} {params.contig_mat} | bgzip -@ {threads} -c > {output.fasta_mat} 2>> {log}
+        samtools faidx {input.ref} {params.contig_pat} | bgzip -@ {threads} -c > {output.fasta_pat} 2>> {log}
+        """
+
+
+rule scuff_reference:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        variants2add = ancient(config["VARIANT_RESOURCES"]["VARIANTS_TO_ADD"]),
+        truth_hc_vcf = ancient("medaka_variant_resources/grch38/{sample}/{sample}_high_conf.vcf.gz"),
+        ref = ancient("medaka_variant_resources/grch38/grch38.fna.gz_per_chr/{chr}.fasta.gz"), 
+    output: 
+        ref_out = REF_EDITED_PREFIX + "ref_edited.fasta.gz",
+        ref_rc_out = REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz",
+        chain = REF_EDITED_PREFIX + "ref_edited.chain",
+    log: 
+        REF_EDITED_PREFIX + "edit_reference.log"
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.ref_out),
+        variants_all = lambda w, output: os.path.join(os.path.dirname(output.ref_out), "variants_all.vcf.gz"),
+        vcf_header = lambda w, output: os.path.join(os.path.dirname(output.ref_out), "vcf_header.txt"),
+        variants_no_overlap = lambda w, output: os.path.join(os.path.dirname(output.ref_out), "variants_no_overlap.vcf.gz"),
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        chrom={wildcards.chr}
+
+        echo "Setup vcf of variants to add: drop genoypes and modify contig ID from e.g. 15 to chr15" >> {log}
+        # Note this edit includes snps and indels: TODO add option to select SNPs/INDELS/both
+        variants2add={input.variants2add}
+        chrnumber="${{chrom:3}}"
+        bcftools view $variants2add | bcftools view --drop-genotypes | sed "s/^$chrnumber/chr$chrnumber/" | sed "s/contig=<ID=$chrnumber>/contig=<ID=chr$chrnumber>/" | bgzip -c -@ {threads} > {params.variants_all}  2>> {log}
+        tabix -p vcf {params.variants_all}
+    
+        echo "Remove variants overlapping between truth variants and variants to be added" >> {log}
+        bcftools view --drop-genotypes {params.variants_all} | grep '#' > {params.vcf_header}  2>> {log}
+        bedtools subtract -A -a {params.variants_all} -b {input.truth_hc_vcf} | cat {params.vcf_header} - | bgzip -c -@ {threads} > {params.variants_no_overlap}  2>> {log}
+        tabix -p vcf {params.variants_no_overlap} &>>{log}       
+
+        echo "Add variants to grch38 reference" >> {log}
+        bcftools consensus -f {input.ref} {params.variants_no_overlap} -c {output.chain} | bgzip -c -@ {threads} > {output.ref_out} 2>>{log}
+        echo "Generate reverse compliment of edited reference" >> {log}
+        seqkit seq --complement --reverse {output.ref_out} | awk '{{if(/>/){{print $0 "_rc"}} else{{ print $0}}}}' | bgzip -c -@ {threads} >{output.ref_rc_out} 2>> {log}
+        """
+
+
+rule filter_bed:
+    input:
+        truth_hc_bed = ancient("medaka_variant_resources/grch38/{sample}/{sample}_high_conf.bed"),
+    output:
+        filtered_bed = FILTERED_BED,
+    log:
+        FILTERED_BED + ".log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+
+        # create a bed file just for this chr containing only intervals longer then 1kb
+        awk '{{l=$3-$2; if($1=="{wildcards.chr}" && l>1000) {{print $0}} }}' {input.truth_hc_bed} > {output.filtered_bed}  2>> {log}
+        """
+
+
+rule prepare_beds:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        liftover = ancient(config["RUNTIME"]["LIFTOVER"]),
+        filtered_bed = ancient(rm_regex_constr(FILTERED_BED)),
+        chain = ancient(REF_EDITED_PREFIX + "ref_edited.chain"),
+        scuffed_ref = ancient(REF_EDITED_PREFIX + "ref_edited.fasta.gz"),
+    output:
+        hc_edited_bed = REF_EDITED_PREFIX + "ref_edited_high_conf.bed",
+        not_lifted_bed = REF_EDITED_PREFIX + "not_lifted.bed",
+        hc_edited_rc_bed = REF_EDITED_PREFIX + "ref_edited_high_conf_rc.bed",
+    log:
+        REF_EDITED_PREFIX + "prepare_bedfiles.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+
+        # convert bed from GRCh38 referenece coordinates to edited GRCh38 coordinates
+        {input.liftover} {input.filtered_bed} {input.chain} {output.hc_edited_bed} {output.not_lifted_bed} &>> {log}
+        
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        reverse_bed {output.hc_edited_bed} {input.scuffed_ref} {output.hc_edited_rc_bed} &>> {log}
+        """
+
+
+rule truth_to_edited_ref:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        edited_ref = ancient(REF_EDITED_PREFIX + "ref_edited.fasta.gz"),
+        edited_ref_fai = ancient(REF_EDITED_PREFIX + "ref_edited.fasta.gz.fai"),
+        edited_ref_mmi = ancient(REF_EDITED_PREFIX + "ref_edited.fasta.gz.mmi"),
+        edited_ref_rc = ancient(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz"),
+        edited_ref_rc_fai = ancient(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz.fai"),
+        edited_ref_rc_mmi = ancient(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz.mmi"),
+        truth_hap1 = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_maternal.fasta.gz"),
+        truth_hap2 = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_paternal.fasta.gz"),
+    output:
+        truth2ref_hap1 = "medaka_variant_resources/grch38/{sample,[^/]+}/{chr,[^/]+}/truth_to_scuffed_ref_mat.bam",
+        truth2ref_hap2_rc = "medaka_variant_resources/grch38/{sample,[^/]+}/{chr,[^/]+}/truth_to_scuffed_ref_pat_rc.bam",
+    params:
+        chunk = TRUTH_CHUNK_SIZE 
+    log:
+        "medaka_variant_resources/grch38/{sample,[^/]+}/{chr,[^/]+}/truth_to_scuffed_ref.log"
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+
+        # remove bam extension for mini_align
+        b={output.truth2ref_hap1}
+        bam="${{b::-4}}"
+        b={output.truth2ref_hap2_rc}
+        bamrc="${{b::-4}}"
+        
+        # align truth to scuffed ref
+        mini_align -i {input.truth_hap1} -r {input.edited_ref} -c {params.chunk} -p $bam -t 12 -m &>> {log}
+        mini_align -i {input.truth_hap2} -r {input.edited_ref_rc} -c {params.chunk} -p $bamrc  -t 12 -m &>> {log}
+        """
+
+
+rule phase_reads:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        reads = ancient("{runid}/{bc}/align/{chr}/basecalls.fastq.gz"),
+        truth_ref = ancient(lambda w: rm_regex_constr(DIPLOID_TRUTH_PREFIX + "{chr}.fasta.gz").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        truth_ref_fai = ancient(lambda w: rm_regex_constr(DIPLOID_TRUTH_PREFIX + "{chr}.fasta.gz.fai").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        truth_ref_mmi = ancient(lambda w: rm_regex_constr(DIPLOID_TRUTH_PREFIX + "{chr}.fasta.gz.mmi").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+    output:
+        calls_maternal = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls_maternal.fasta.gz",
+        calls_paternal = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls_paternal.fasta.gz",
+    params:
+        output_dir = lambda w, output: os.path.dirname(output.calls_maternal),
+        s = lambda w: config["DATA"][w.runid]["SAMPLE"]
+    log:
+        "{runid}/{bc}/align/{chr,[^/]+}/phase_reads.log"
+    resources:
+        gpu = 0
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+
+        echo "Aligning reads to truth " &>>{log}
+        mini_align -i {input.reads} -r {input.truth_ref} -p {params.output_dir}/calls_to_truth_phased -t {threads} &>>{log}
+
+        sleep 5
+        echo "\nExtracting maternal reads ({wildcards.chr}_{params.s}_maternal) to {output.calls_maternal}" >>{log}
+        samtools view {params.output_dir}/calls_to_truth_phased.bam -b {wildcards.chr}_{params.s}_maternal | samtools fasta - | bgzip -c -@ {threads} > {output.calls_maternal} 2>>{log} 
+        echo "Extracting paternal reads ({wildcards.chr}_{params.s}_paternal) to {output.calls_paternal}" >>{log}
+        samtools view {params.output_dir}/calls_to_truth_phased.bam -b {wildcards.chr}_{params.s}_paternal | samtools fasta - | bgzip -c -@ {threads} > {output.calls_paternal} 2>>{log} 
+        """
+
+
+rule align_haps_to_ref:
+    input:
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        ref_edited = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited.fasta.gz").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        # define fai and mmi as inputs to avoid multiple jobs creating them simultaneously. 
+        ref_edited_fai = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited.fasta.gz.fai").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        ref_edited_mmi = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited.fasta.gz.mmi").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        ref_edited_rc = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        ref_edited_rc_fai = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz.fai").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        ref_edited_rc_mmi = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited_rc.fasta.gz.mmi").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        calls_maternal = ancient("{runid}/{bc}/align/{chr}/calls_maternal.fasta.gz"),
+        calls_paternal = ancient("{runid}/{bc}/align/{chr}/calls_paternal.fasta.gz"),
+    output:
+        calls_maternal_to_ref_edited = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls2scuffed_ref/calls2ref_maternal.bam",
+        calls_paternal_to_ref_edited_rc = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls2scuffed_ref/calls2ref_paternal_rc.bam",
+    log:
+        "{runid}/{bc}/align/{chr}/calls2scuffed_ref/align_haps2ref.log"
+    params: 
+        bam_prefix = lambda w, output: os.path.splitext(output.calls_maternal_to_ref_edited)[0],
+        bam_rc_prefix = lambda w, output: os.path.splitext(output.calls_paternal_to_ref_edited_rc)[0],
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+
+        # note: maternal reads are aligned to the forward direction of the scuffed reference 
+        #       paternal reads are aligned to the reverse compliment
+        echo "Aligning maternal reads to the edited reference" &>> {log}
+        mini_align -i {input.calls_maternal} -r {input.ref_edited} -p {params.bam_prefix}  -m -t 48 &>> {log}
+        echo "\nAligning paternal reads to the edited reference reverse compliment" &>> {log}
+        mini_align -i {input.calls_paternal} -r {input.ref_edited_rc} -p {params.bam_rc_prefix} -m -t 48 &>> {log}
+        """
+
+
+rule subsample_hap_bams:
+    input:
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        bam_mat = ancient("{dir}/{chr}/calls2scuffed_ref/calls2ref_maternal.bam"),
+        bam_pat_rc = ancient("{dir}/{chr}/calls2scuffed_ref/calls2ref_paternal_rc.bam")
+    output:
+        subsamle_mat_bam = "{dir}/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{suffix,[^/]*}/sub_sample_{depth}X_{chr}.calls2ref_maternal.bam",
+        subsamle_pat_bam = "{dir}/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{suffix,[^/]*}/sub_sample_{depth}X_{chr}_rc.calls2ref_paternal_rc.bam",
+    log:
+        subsample = "{dir}/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{suffix,[^/]*}/subsample.log",
+        mat = "{dir}/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{suffix,[^/]*}/subsample_mat.log",
+        pat = "{dir}/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{suffix,[^/]*}/subsample_pat.log",
+    params:
+        prefix ="{dir}/{chr}/calls2scuffed_ref/{depth}X{suffix}/sub_sample",
+        opts = partial(get_opts, config=config, config_key="SUBSAMPLE_BAM_OPTS"),
+    resources:
+        gpu = 0
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log.subsample}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+
+        subsample_bam {input.bam_mat} {wildcards.depth} -r {wildcards.chr} -o {params.prefix} {params[opts]} -t {threads} &>{log.mat};
+        subsample_bam {input.bam_pat_rc} {wildcards.depth} -r {wildcards.chr}_rc -o {params.prefix} {params[opts]} -t {threads} &>{log.pat};
+
+        """
+
+
+rule medaka_variant_haploid_features:
+    input:
+        in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
+        truthbam = ancient(lambda w: "medaka_variant_resources/grch38/{sample}/{chr}/truth_to_scuffed_ref_mat.bam".format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        truthbam_rc = ancient(lambda w: "medaka_variant_resources/grch38/{sample}/{chr}/truth_to_scuffed_ref_pat_rc.bam".format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        calls2ref = ancient("{runid}/{bc}/align/{chr}/calls2scuffed_ref/{depth}X{prop}/sub_sample_{depth}X_{chr}.calls2ref_maternal.bam"),
+        calls2ref_rc = ancient("{runid}/{bc}/align/{chr}/calls2scuffed_ref/{depth}X{prop}/sub_sample_{depth}X_{chr}_rc.calls2ref_paternal_rc.bam"),
+        bed = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited_high_conf.bed").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        bed_rc = ancient(lambda w: rm_regex_constr(REF_EDITED_PREFIX + "ref_edited_high_conf_rc.bed").format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+    output:
+        features = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{prop,[^/]+}/medaka_features{suffix,[^/]*}/medaka_train_variant_{runid}_{chr}_{depth}X.hdf",
+        features_rc = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/calls2scuffed_ref/{depth,[0-9]+}X{prop,[^/]+}/medaka_features{suffix,[^/]*}/medaka_train_variant_{runid}_{chr}_{depth}X_rc.hdf",
+    log:
+        "{runid}/{bc}/align/{chr}/calls2scuffed_ref/{depth,[0-9]+}X{prop}/medaka_features{suffix}/medaka_features.log",
+        
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    params:
+        opts = partial(get_opts, config=config, config_key="MEDAKA_TRAIN_FEAT_OPTS"),
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_medaka} set -u;
+
+        echo "creating features" &>> {log}
+        medaka features {input.calls2ref} {output.features} --regions {input.bed} --truth {input.truthbam} {params[opts]} --threads {threads} &>> {log}
+        echo "creating rc features" &>> {log}
+        medaka features {input.calls2ref_rc} {output.features_rc} --regions {input.bed_rc} --truth {input.truthbam_rc} {params[opts]} --threads {threads} &>> {log}
+        """
+
+#####################################################
+# Rules for creating features for diploid SNP calling
+#####################################################
+
+
+rule medaka_diploid_truth_bam:
+    input:
+        in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
+        in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        ref = ancient("medaka_variant_resources/grch38/grch38.fna.gz_per_chr/{chr}.fasta.gz"), 
+        ref_mmi = ancient("medaka_variant_resources/grch38/grch38.fna.gz_per_chr/{chr}.fasta.gz.mmi"), 
+        ref_fai = ancient("medaka_variant_resources/grch38/grch38.fna.gz_per_chr/{chr}.fasta.gz.fai"), 
+        maternal_truth = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_maternal.fasta.gz"),
+        maternal_truth_mmi = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_maternal.fasta.gz.mmi"),
+        maternal_truth_fai = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_maternal.fasta.gz.fai"),
+        paternal_truth = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_paternal.fasta.gz"),
+        paternal_truth_mmi = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_paternal.fasta.gz.mmi"),
+        paternal_truth_fai = ancient(DIPLOID_TRUTH_PREFIX + "{chr}_{sample}_paternal.fasta.gz.fai"),
+    output:
+        bam = DIPLOID_TRUTH_BAM,
+    params:
+        tdir = lambda w, output: os.path.join(os.path.dirname(output.bam), "{}_tmpdir".format(w.chr)),
+        chunk = TRUTH_CHUNK_SIZE 
+    log:
+        "medaka_variant_resources/grch38/{sample}/{chr}/diploid_truth_to_ref.log"
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+        
+        # delete and recreate temporary directory
+        rm -rf {params.tdir} && mkdir {params.tdir} &>> {log}
+        
+        # We should not simply align the chunked diploid truth to the
+        # reference, as accumulated drift due to indels not on both haplotypes
+        # could lead to significant staggering between the truth chunks of each
+        # haplotype in reference coordinates.  Hence chunk the reference, align
+        # to each truth haplotype, and then extract truth chunks which align to the
+        # reference chunks. 
+
+        maternal_truth={input.maternal_truth}
+        paternal_truth={input.paternal_truth}
+
+        for hap in maternal paternal; do
+            
+            truth_variable=${{hap}}_truth
+            truth=${{!truth_variable}}
+
+            echo "================================" &>> {log}
+            echo "Chunking and aligning ref to $hap truth" &>> {log}
+            echo "================================" &>> {log}
+            mini_align -i {input.ref} -r $truth -p {params.tdir}/{wildcards.chr}_to_$hap -c {params.chunk} -t {threads} -m &>> {log}
+            echo "================================" &>> {log}
+            echo "Extracting $hap sequences which align to ref chunks" &>> {log}
+            echo "================================" &>> {log}
+            ref_seqs_from_bam {params.tdir}/{wildcards.chr}_to_${{hap}}.bam > {params.tdir}/${{hap}}_seq.fasta 2>> {log}
+            echo "================================" &>> {log}
+            echo "Aligning $hap truth chunks to ref" &>> {log}
+            echo "================================" &>> {log}
+            mini_align -i {params.tdir}/${{hap}}_seq.fasta -r {input.ref} -p {params.tdir}/${{hap}}_to_ref -t {threads} &>> {log}
+        done
+
+        echo "================================" &>> {log}
+        echo "Tagging alignments" &>> {log}
+        echo "================================" &>> {log}
+        tag_bam {params.tdir}/maternal_to_ref.bam {params.tdir}/maternal_to_ref_tagged.bam HP 1 &>> {log}
+        tag_bam {params.tdir}/paternal_to_ref.bam {params.tdir}/paternal_to_ref_tagged.bam HP 2 &>> {log}
+          
+        echo "================================" &>> {log}
+        echo "Merging, sorting and setting MD tag for truth bam" &>> {log}
+        echo "================================" &>> {log}
+        samtools merge - {params.tdir}/maternal_to_ref_tagged.bam {params.tdir}/paternal_to_ref_tagged.bam | samtools sort | samtools calmd -b --reference {input.ref} - > {output.bam} 2>> {log}
+
+        echo "================================" &>> {log}
+        echo "Indexing truth bam" &>> {log}
+        echo "================================" &>> {log}
+        samtools index {output.bam} &>> {log}
+
+        echo "================================" &>> {log}
+        echo "Removing intermediate files" &>> {log}
+        echo "================================" &>> {log}
+        rm -rf {params.tdir} &>> {log}
+        """
+
+def get_filtered_bed(w):
+    return rm_regex_constr(FILTERED_BED).format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)
+
+rule medaka_diploid_snp_features:
+    input:
+        in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
+        truth_bam = ancient(lambda w: rm_regex_constr(DIPLOID_TRUTH_BAM).format(sample=config["DATA"][w.runid]["SAMPLE"], chr=w.chr)),
+        filtered_bed = ancient(get_filtered_bed),
+        bam = ancient("{runid}/{bc}/align/{chr}/{depth}X_prop/calls2ref.bam"),
+        bai = ancient("{runid}/{bc}/align/{chr}/{depth}X_prop/calls2ref.bam.bai"),
+    output:
+        features = "{runid,[^/]+}/{bc,[^/]+}/align/{chr,[^/]+}/{depth,[^/]+}X_prop/medaka_diploid_snp_features/{runid}_{chr}_{depth}X_medaka_train.hdf",
+    params:
+        regions = lambda w: get_filtered_bed(w) if config["MEDAKA_TRAIN_SNP_USE_BED"] else "{chr}".format(**w) 
+    log:
+        "{runid}/{bc}/align/{chr}/{depth}X_prop/medaka_diploid_snp_features/{runid}_{chr}_{depth}X_medaka_train.log",
+        
+    threads: config["RUNTIME"]["THREADS_PER_JOB"]
+    resources:
+        gpu = 0
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.in_medaka}; set -u;
+        medaka features {input.bam} {output.features} --regions {params.regions} --chunk_len 1000 --chunk_ovlp 0 --truth {input.truth_bam} --truth_haplotag HP --label_scheme DiploidLabelScheme --threads {threads} &> {log}
+        """
+
