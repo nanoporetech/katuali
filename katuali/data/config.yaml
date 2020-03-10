@@ -88,11 +88,11 @@ PIPELINES:
         "{DATA}/guppy/canu/racon/medaka/consensus.fasta"
     ]
     all_consensus_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt",
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_to_truth_summ.txt",
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt"
+        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_to_truth_summ.txt"
     ]
     all_medaka_feat: [
         "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
