@@ -47,12 +47,12 @@ rule align_to_draft:
 rule mini_align_index:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        ref = ancient("{dir}/{filename}"),
+        ref = ancient("{filename}"),
     output:
-        mmi = "{dir}/{filename,[^/]+}.mmi",
-        fai = "{dir}/{filename,[^/]+}.fai",
+        mmi = "{filename}.mmi",
+        fai = "{filename}.fai",
     log:
-        "{dir}/{filename}.mini_align_index.log"
+        "{filename}.mini_align_index.log"
     resources:
         gpu = 0
     shell:
