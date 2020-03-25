@@ -295,4 +295,4 @@ MEDAKA_TRAIN_OPTS:
 
 # Setting MEDAKA_TRAIN_SNP_USE_BED to True restricts MEDAKA SNP-calling
 # training data to high-confident regions
-MEDAKA_TRAIN_SNP_USE_BED: False
+MEDAKA_TRAIN_SNP_USE_BED: True
