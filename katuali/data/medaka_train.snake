@@ -1,5 +1,3 @@
-
-
 rule medaka_train_features:
     input:
         in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
@@ -30,35 +28,63 @@ rule medaka_train_features:
     shell:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        
+        if [[ "{params[opts]}" == *"HardRLEFeatureEncoder"* ]]
+          then
+          echo 'RLE encoding input files' >>{log}
+          set +u; {config[RUNTIME][SOURCE]} {input.in_medaka}; set -u;
+
+          # Compress basecalls into a .fastrle file
+          basecalls={params.output_dir}/$(basename {input.basecalls}).fastrle
+          medaka fastrle {input.basecalls} > ${{basecalls}} 2>> {log}
+
+          # Compress truth into a .fastrle file
+          truth_region={params.truth_region}.fastrle
+          samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 2>> {log}
+          medaka fastrle {params.truth_region} > ${{truth_region}} 2>> {log}
+
+          # Compress draft into a .fasta file
+          draft_rle={params.output_dir}/$(basename {input.draft}).fastrle
+          draft=${{draft_rle}}.fasta
+          medaka fastrle {input.draft} > ${{draft_rle}} 2>> {log}
+          set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
+          cat ${{draft_rle}} | fast_convert qa > ${{draft}} 2>> {log}
+
+          # Define alignment scores
+          ALIGNMENT_SCORES="-M 5 -S 4 -O 2 -E 3"
+        else
+          basecalls={input.basecalls}
+          truth_region={params.truth_region}
+          samtools faidx {input.truth} {wildcards.region} > ${{truth_region}} 2>> {log}
+          draft={input.draft}
+          ALIGNMENT_SCORES="-M 2 -S 4 -O (4,24) -E (2,1)"
+        fi 
+
+
         set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
 
         # keep a link of basecalls with the consensus
-
         ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
         sleep 1
 
         echo "aligning basecalls to draft" >>{log}
-        mini_align -i {input.basecalls} -r {input.draft} -p {params.bam} -t {threads} -P -m &>> {log}
-        sleep 5
-
-        echo "Extracting truth region {wildcards.region} from reference" >>{log}
-        samtools faidx {input.truth} {wildcards.region} > {params.truth_region} 2>> {log}
+        mini_align -i ${{basecalls}} -r ${{draft}} -p {params.bam} -t {threads} -P ${ALIGNMENT_SCORES} &>> {log}
         sleep 5
 
         echo "aligning truth to draft" >>{log}
-        mini_align -i {params.truth_region} -r {input.draft} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        mini_align -i ${{truth_region}} -r ${{draft}} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${ALIGNMENT_SCORES} &>> {log}
         sleep 5
 
         echo "reverse complement the draft and align reads" >> {log}
-        seqkit seq --complement --reverse {input.draft} -o {params.rc_draft} &>> {log}
+        seqkit seq --complement --reverse ${{draft}} -o {params.rc_draft} &>> {log}
         sleep 5
 
         echo "aligning basecalls to rc draft" >>{log}
-        mini_align -i {input.basecalls} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m &>> {log}
+        mini_align -i ${{basecalls}} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m ${ALIGNMENT_SCORES} &>> {log}
         sleep 5
 
         echo "aligning truth to rc draft" >> {log}
-        mini_align -i {params.truth_region} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} &>> {log}
+        mini_align -i ${{truth_region}} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${ALIGNMENT_SCORES} &>> {log}
         sleep 5
 
         echo "creating features" >> {log}
