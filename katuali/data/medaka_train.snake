@@ -57,7 +57,7 @@ rule medaka_train_features:
           truth_region={params.truth_region}
           samtools faidx {input.truth} {wildcards.region} > ${{truth_region}} 2>> {log}
           draft={input.draft}
-          ALIGNMENT_SCORES="-M 2 -S 4 -O (4,24) -E (2,1)"
+          ALIGNMENT_SCORES="-M 2 -S 4 -O 4,24 -E 2,1"
         fi 
 
 
@@ -68,11 +68,11 @@ rule medaka_train_features:
         sleep 1
 
         echo "aligning basecalls to draft" >>{log}
-        mini_align -i ${{basecalls}} -r ${{draft}} -p {params.bam} -t {threads} -P ${ALIGNMENT_SCORES} &>> {log}
+        mini_align -i ${{basecalls}} -r ${{draft}} -p {params.bam} -t {threads} -P ${{ALIGNMENT_SCORES}} &>> {log}
         sleep 5
 
         echo "aligning truth to draft" >>{log}
-        mini_align -i ${{truth_region}} -r ${{draft}} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${ALIGNMENT_SCORES} &>> {log}
+        mini_align -i ${{truth_region}} -r ${{draft}} -p {params.truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${{ALIGNMENT_SCORES}} &>> {log}
         sleep 5
 
         echo "reverse complement the draft and align reads" >> {log}
@@ -80,11 +80,11 @@ rule medaka_train_features:
         sleep 5
 
         echo "aligning basecalls to rc draft" >>{log}
-        mini_align -i ${{basecalls}} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m ${ALIGNMENT_SCORES} &>> {log}
+        mini_align -i ${{basecalls}} -r {params.rc_draft} -p {params.rc_bam} -t {threads} -P -m ${{ALIGNMENT_SCORES}} &>> {log}
         sleep 5
 
         echo "aligning truth to rc draft" >> {log}
-        mini_align -i ${{truth_region}} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${ALIGNMENT_SCORES} &>> {log}
+        mini_align -i ${{truth_region}} -r {params.rc_draft} -p {params.rc_truth_bam} -t {threads} -P -m -c {params.truth_chunk} ${{ALIGNMENT_SCORES}} &>> {log}
         sleep 5
 
         echo "creating features" >> {log}
