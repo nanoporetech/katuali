@@ -29,6 +29,42 @@ rule racon:
         """
 
 
+rule porpita:
+    input:
+        porpita = ancient(config["RUNTIME"]["PORPITA_EXEC"]),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        draft = ancient("{dir}/consensus.fasta"),
+        draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
+        draft_fai = ancient("{dir}/consensus.fasta.fai"),
+        basecalls = ancient("{dir}/basecalls.fasta"),
+    output:
+        consensus = "{dir}/porpita{suffix,[^/]*}/consensus.fasta",
+        basecalls = "{dir}/porpita{suffix,[^/]*}/basecalls.fasta"
+    log:
+        "{dir}/porpita{suffix}.log"
+    threads: 8
+    resources:
+        gpu = 0
+    params:
+        opts = partial(get_opts, config=config, config_key="PORPITA_OPTS"),
+        bam_prefix = lambda w, output: os.path.join(os.path.dirname(output.consensus), 'calls_to_draft')
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+
+        mini_align -i {input.basecalls} -r {input.draft} -p {params.bam_prefix} -t {threads} &>> {log}
+
+        {input.porpita} {params.opts} -t {threads} {params.bam_prefix}.bam > {output.consensus} 2>> {log}
+
+        # keep a link of basecalls with the consensus
+        ln -s $PWD/{input.basecalls} $PWD/{output.basecalls}
+        # rm large intermediates
+        rm {params.bam_prefix}* 
+        """
+
+
 rule medaka:
     input:
         venv = ancient(config["RUNTIME"]["IN_MEDAKA"]),

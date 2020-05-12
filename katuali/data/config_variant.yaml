@@ -142,10 +142,11 @@ RUNTIME:
     FLYE_EXEC: "~/git/Flye/bin/flye"
     SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
     GUPPY_EXEC: "/usr/bin/guppy_basecaller"
+    PORPITA_EXEC: "~/git/porpita/porpita"
     SOURCE: "source"
-    LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
     LIFTOVER: "~/miniconda3/envs/liftover/bin/liftOver"
     VCFCREATEMULTI: "~/git/vcflib/bin/vcfcreatemulti"
+    LD_LIBRARY_PATH: ""  # set this for e.g. CUDA library path
 
     #########################
     # Compute/cluster options
@@ -215,6 +216,10 @@ MINI_ASSEMBLE_OPTS:
     "_ce": "-c -e 10"
     "_ces": "-c -e 10 -n 10"
 
+# porpita 
+PORPITA_OPTS: 
+    "": ""
+
 # Canu 
 CANU_EXEC_OPTS:
     "useGrid=False" # this shouldn't be changed, snakemake will be confused
@@ -230,6 +235,7 @@ SHASTA_OPTS:
     "": "--Reads.minReadLength 2000"
 
 # assess_assembly
+ASSESS_ASSM_SUFFIXES: [""]
 ASSESS_ASSM_OPTS:
     "": "-C -H" # runs cataloguing of errors and homopolymer analysis
 
