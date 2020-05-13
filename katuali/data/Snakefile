@@ -10,7 +10,7 @@ KATUALI_VERSION = katuali.__version__
 SNAKES = resource_filename('katuali', 'data')
 
 # expand ~ to full paths. 
-for prog in ["GUPPY_EXEC", "IN_POMOXIS", "IN_MEDAKA", "CANU_EXEC", "FLYE_EXEC", "SHASTA_EXEC", "LIFTOVER", "VCFCREATEMULTI"]:
+for prog in ["GUPPY_EXEC", "IN_POMOXIS", "IN_MEDAKA", "CANU_EXEC", "FLYE_EXEC", "SHASTA_EXEC", "PORPITA_EXEC", "LIFTOVER", "VCFCREATEMULTI"]:
     config["RUNTIME"][prog] = os.path.expanduser(config["RUNTIME"][prog])
 
 # Always set the environment
