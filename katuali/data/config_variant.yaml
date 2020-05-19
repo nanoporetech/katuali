@@ -120,7 +120,7 @@ PIPELINES:
         "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_rc.hdf"
     ]
     all_medaka_snp_feat: [
-        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/medaka_diploid_snp_features/{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_medaka_train.hdf",
+        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/{SNP_DEPTHS}X_prop/medaka_diploid_snp_features/{DATA}_{MEDAKA_TRAIN_REGIONS}_{SNP_DEPTHS}X_medaka_train.hdf",
 
     ]
 
@@ -245,10 +245,12 @@ ASSESS_ASSM_OPTS:
 
 # This section can be ignored if not running a medaka training workflow
 
-# Read depths at which to create assemblies for training, this should
+# Read depths at which to create pileups for training, this should
 # span the range of depths at which the model is to be used
-DEPTHS:
-    [10, 15, 20, 25, 30, 40, 50, 60]
+DEPTHS:  # for haploid variant calling 
+    [10, 15, 20, 25, 30]
+SNP_DEPTHS:  # for diploid, hence double the depth
+    [20, 30, 40, 50, 60]
 
 # If any medaka feature files are missing (e.g. due to insufficient coverage
 # for some runs / contigs) the medaka training step will not find all the files
