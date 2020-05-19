@@ -123,6 +123,17 @@ PIPELINES:
         "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/{SNP_DEPTHS}X_prop/medaka_diploid_snp_features/{DATA}_{MEDAKA_TRAIN_REGIONS}_{SNP_DEPTHS}X_medaka_train.hdf",
 
     ]
+    all_medaka_variant_resources: [
+        "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}.fasta.gz",
+        "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_per_chr_diploid/{MEDAKA_TRAIN_REGIONS}.fasta.gz",
+        "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_per_chr_diploid/{MEDAKA_TRAIN_REGIONS}_{SAMPLE}_paternal.fasta.gz",
+        "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_per_chr_diploid/{MEDAKA_TRAIN_REGIONS}_{SAMPLE}_maternal.fasta.gz",
+        "medaka_variant_resources/grch38/{SAMPLE}/{MEDAKA_TRAIN_REGIONS}/diploid_truth_to_ref.bam",
+        "medaka_variant_resources/grch38/{SAMPLE}/{MEDAKA_TRAIN_REGIONS}/truth_to_scuffed_ref_mat.bam",
+        "medaka_variant_resources/grch38/{SAMPLE}/{MEDAKA_TRAIN_REGIONS}/truth_to_scuffed_ref_pat_rc.bam",
+        "medaka_variant_resources/grch38/{SAMPLE}/filtered_beds/{MEDAKA_TRAIN_REGIONS}_filtered_hc.bed",
+    ]
+
 
 # Runtime configuration
 RUNTIME:  
