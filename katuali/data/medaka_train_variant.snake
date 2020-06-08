@@ -35,7 +35,7 @@ rule build_truth_reference:
         set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
 
         # Fix-up VCF -- drop unphased and sort out overlapping calls
-        zgrep '^#\|PATMAT' {input.vcf} | {input.vcfcreatemulti} | bgzip -@ {threads} -c > {params.fixed_vcf} 2>> {log}
+        zgrep '^#\|PATMAT\|HOMVAR' {input.vcf} | {input.vcfcreatemulti} | bgzip -@ {threads} -c > {params.fixed_vcf} 2>> {log}
         tabix {params.fixed_vcf} 
 
         # Build maternal reference 
