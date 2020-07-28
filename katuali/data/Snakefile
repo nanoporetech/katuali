@@ -59,10 +59,9 @@ def get_reference(wildcards, config):
 
 
 def get_contig_opt(wildcards):
-    if wildcards.contig == "all_contigs":
-        contig_opt = ""
-    else:
-        contig_opt = "-r {}".format(wildcards.contig)
+    contig_opt = ""
+    if "contig" in wildcards and wildcards["contig"] != "all_contigs":
+        contig_opt = "-r {}".format(wildcards["contig"])
     logger.run_info("Setting region option to {}".format(contig_opt))
     return contig_opt
 
