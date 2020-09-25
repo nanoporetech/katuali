@@ -1,16 +1,18 @@
 rule align_to_ref:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fastq.gz"),
         ref = ancient(partial(get_reference, config=config)),
         ref_mmi = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.mmi')),
         ref_fai = ancient(katuali.suffix_decorate(partial(get_reference, config=config), suffix='.fai')),
     output:
-        bam = "{runid,[^/]+}/{dir}/align/calls2ref.bam"
+        bam = "{runid,[^/]+}/{dir}/align{suffix,[^/]*}/calls2ref.bam"
     log:
-        "{runid}/{dir}/align/align_to_ref.log"
+        "{runid}/{dir}/align{suffix,[^/]*}/align_to_ref.log"
     params:
         prefix = lambda w, output: os.path.splitext(output.bam)[0],
+        output_dir = lambda w: "{runid}/align{suffix}".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="MINI_ALIGN_OPTS"),
     threads: config["RUNTIME"]["THREADS_PER_JOB"]
     resources:
         gpu = 0
@@ -18,17 +20,17 @@ rule align_to_ref:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
-        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -t {threads} &> {log}
+        mini_align -i {input.basecalls} -r {input.ref} -p {params.prefix} -t {threads} {params[opts]}  &> {log}
         """
 
 
 rule align_to_draft:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{dir}/basecalls.fasta"),
-        draft = ancient("{dir}/consensus.fasta"),
-        draft_mmi = ancient("{dir}/consensus.fasta.mmi"),
-        draft_fai = ancient("{dir}/consensus.fasta.fai"),
+        basecalls = ancient("{dir}/basecalls.fastq.gz"),
+        draft = ancient("{dir}/consensus.fasta.gz"),
+        draft_mmi = ancient("{dir}/consensus.fasta.gz.mmi"),
+        draft_fai = ancient("{dir}/consensus.fasta.gz.fai"),
     output:
         bam = "{dir}/calls2draft.bam"
     log:
@@ -70,7 +72,7 @@ rule subsample_bam:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
         bam = ancient("{dir}/calls2ref.bam"),
     output:
-        fasta = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/basecalls.fasta",
+        fastq = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/basecalls.fastq.gz",
         bam = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/calls2ref.bam",
         bai = "{dir}/{contig}/{depth,[0-9]+}X{suffix,[^/]*}/calls2ref.bam.bai",
     log:
@@ -100,20 +102,20 @@ rule subsample_bam:
             echo "Moving bam" >> {log}
             mv {params[prefix]}*.bam {output.bam}
             mv {params[prefix]}*.bam.bai {output.bai}
-        fi  
+        fi
 
-        samtools fasta {output.bam} > {output.fasta} 2>> {log}
+        samtools fastq {output.bam} -@ {threads} | bgzip -@ {threads} -c >{output.fastq} 2>> {log}
         """
 
 
 rule extract_region_from_bam:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        bam = ancient("{dir}/align/calls2ref.bam"),
+        bam = ancient("{dir}/{aligndir, align[^/]*}/calls2ref.bam"),
     output:
-        fastq = "{dir}/align/{region,[^/]+}/basecalls.fastq.gz",
+        fastq = "{dir}/{aligndir, align[^/]*}/{region,[^/]+}/basecalls.fastq.gz",
     log:
-        "{dir}/align/{region}/extract_region_from_bam.log"
+        "{dir}/{aligndir, align[^/]*}/{region}/extract_region_from_bam.log"
     resources:
         gpu = 0
     threads: 4
@@ -122,4 +124,51 @@ rule extract_region_from_bam:
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         (samtools view {input.bam} {wildcards.region} -b -@ {threads} | samtools fastq - -@ {threads} | bgzip -@ {threads} -c) >{output.fastq} 2>> {log}
+        """
+
+
+rule extract_region_from_bam_as_bam:
+    input:
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        bam = ancient("{dir}/{aligndir, align[^/]*}/calls2ref.bam"),
+    output:
+        bam = "{dir}/{aligndir, align[^/]*}/{region,[^/]+}/calls2ref.bam",
+    log:
+        "{dir}/{aligndir, align[^/]*}/{region}/extract_region_from_bam.log"
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        samtools view {input.bam} {wildcards.region} -b -@ {threads} >{output.bam} 2>> {log}
+        samtools index {output.bam}
+        """
+
+
+rule extract_region_from_bam_as_fastfive:
+    input:
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        bam = "{dir}/{guppydir, guppy[^/]*}/{aligndir, align[^/]*}/{region,[^/]+}/calls2ref.bam",
+        fast5 = "{dir}/reads/",
+    output:
+        readlist = "{dir}/{guppydir, guppy[^/]*}/{aligndir, align[^/]*}/{region,[^/]+}/readlist.txt",
+        fast5 = directory("{dir}/{guppydir, guppy[^/]*}/{aligndir, align[^/]*}/{region,[^/]+}/fast5/"),
+    log:
+        "{dir}/{guppydir, guppy[^/]*}/{aligndir, align[^/]*}/{region}/extract_fast5_from_bam.log"
+    resources:
+        gpu = 0
+    threads: 4
+    shell:
+        """
+        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+
+        # extract list of reads with primary alignment
+        echo "{input.bam}"
+        echo "read_id" > {output.readlist}
+        (samtools view {input.bam} -F 2308 -@ {threads} | cut -d$'\t' -f 1) > {output.readlist}
+        fast5_subset --input {input.fast5} --save_path {output.fast5} \
+            --read_id_list {output.readlist} --batch_size 8000 --recursive
         """

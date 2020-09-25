@@ -17,7 +17,7 @@ The default config file can be overridden using the ``--configfile`` option.
 .. code-block:: bash
 
     # use a custom config
-    katuali guppy/miniasm_racon/consensus.fasta --configfile myconfig.yaml
+    katuali guppy/miniasm_racon/consensus.fasta.gz --configfile myconfig.yaml
 
 
 Nested configuration
@@ -40,10 +40,10 @@ options:
 .. code-block:: bash
 
     # use default MINI_ASSEMBLE_OPTS (suffix is empty string "")
-    katuali guppy/miniasm_racon/consensus.fasta
+    katuali guppy/miniasm_racon/consensus.fasta.gz
     
     # use MINI_ASSEMBLE_OPTS specified by suffix "_ce"
-    katuali guppy/miniasm_racon_ce/consensus.fasta
+    katuali guppy/miniasm_racon_ce/consensus.fasta.gz
 
 A suffix can be added to most targets to specify options. If the suffix does
 not exist in the nested config, an error will be raised. 

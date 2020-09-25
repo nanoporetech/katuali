@@ -15,7 +15,7 @@
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
 # basecalls should be placed under the basecalling folder as defined in the pipelines config section.
 # For the all_fast_assm_polish pipeline for example, basecalls should be placed in 
-# "{DATA}/guppy/basecalls.fasta"
+# "{DATA}/guppy/basecalls.fastq"
 
 
 ####################
@@ -82,10 +82,10 @@ VARIANT_RESOURCES:
 
 PIPELINES:
     all_fast_assm_polish: [
-        "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta"
+        "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta.gz"
     ]
     all_standard_assm_polish: [
-        "{DATA}/guppy/canu/racon/medaka/consensus.fasta"
+        "{DATA}/guppy/canu/racon/medaka/consensus.fasta.gz"
     ]
     all_consensus_eval: [
         "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_to_truth_summ.txt",
@@ -119,7 +119,7 @@ RUNTIME:
     IN_POMOXIS: "~/git/pomoxis/venv/bin/activate"
     CANU_EXEC: "~/git/canu-1.8/Linux-amd64/bin/canu"
     FLYE_EXEC: "~/git/Flye/bin/flye"
-    SHASTA_EXEC: "~/git/shasta-Linux-0.3.0"
+    SHASTA_EXEC: "~/git/shasta-Linux-0.5.1"
     GUPPY_EXEC: "/usr/bin/guppy_basecaller"
     PORPITA_EXEC: "~/git/porpita/porpita"
     SOURCE: "source"
@@ -182,12 +182,18 @@ GUPPY_OPTS:
     "_hac_prom": "-c dna_r9.4.1_450bps_hac_prom.cfg"
     "_fast": "-c dna_r9.4.1_450bps_fast.cfg"
     "_fast_prom": "-c dna_r9.4.1_450bps_fast_prom.cfg"
+    "_r103_hac_prom": "-c dna_r10.3_450bps_hac_prom.cfg" 
 
 # subsample_bam
 SUBSAMPLE_BAM_OPTS:
     "": "--all_fail"
     "_prop": "--proportional --all_fail"
     "_filtered": "--quality 6 --coverage 90 --all_fail"
+
+# mini_align
+MINI_ALIGN_OPTS:
+    "": ""
+    "_all": "-A"
 
 # mini_assemble
 MINI_ASSEMBLE_OPTS: 

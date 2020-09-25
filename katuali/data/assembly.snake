@@ -6,11 +6,11 @@ rule ref_as_assembly_region:
     # 'region' must be in target 
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid,[^/]+}/{dir}/align/{region}/{depth}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/align/{region}/{depth}/basecalls.fastq.gz"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        basecalls = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/basecalls.fasta",
-        consensus = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/consensus.fasta",
+        basecalls = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/basecalls.fastq.gz",
+        consensus = "{runid,[^/]+}/{dir}/align/{region,[^/]+}/{depth}/ref_assembly/consensus.fasta.gz",
     log:
         "{runid,[^/]+}/{dir}/align/{region}/{depth}/ref_assembly.log",
     params:
@@ -22,21 +22,19 @@ rule ref_as_assembly_region:
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
         echo "Pulling region {wildcards.region} from {input.truth}" >>{log}
-        samtools faidx {input.truth} {wildcards.region} > {output.consensus}
-        sleep 5
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        samtools faidx {input.truth} {wildcards.region} | bgzip -c > {output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fastq.gz
         """
 
 
 rule ref_as_assembly:
     # Replace consensus with full reference 
     input:
-        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fasta"),
+        basecalls = ancient("{runid,[^/]+}/{dir}/basecalls.fastq.gz"),
         truth = ancient(partial(get_reference, config=config)),
     output:
-        consensus = "{runid,[^/]+}/{dir}/full_ref_assembly/consensus.fasta",
-        basecalls = "{runid,[^/]+}/{dir}/full_ref_assembly/basecalls.fasta"
+        consensus = "{runid,[^/]+}/{dir}/full_ref_assembly/consensus.fasta.gz",
+        basecalls = "{runid,[^/]+}/{dir}/full_ref_assembly/basecalls.fastq.gz"
     log:
         "{runid,[^/]+}/{dir}/full_ref_assembly.log"
     params:
@@ -47,16 +45,16 @@ rule ref_as_assembly:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         ln -s $PWD/{input.truth} $PWD/{output.consensus}
-        ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
+        ln -s $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fastq.gz
         """
 
 rule miniasm:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        basecalls = ancient("{dir}/basecalls.fasta"),
+        basecalls = ancient("{dir}/basecalls.fastq.gz"),
     output:
-        consensus = "{dir}/miniasm{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/miniasm{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/miniasm{suffix,[^/]*}/consensus.fasta.gz",
+        basecalls = "{dir}/miniasm{suffix,[^/]*}/basecalls.fastq.gz"
     log:
         "{dir}/miniasm{suffix}.log"
     params:
@@ -72,20 +70,22 @@ rule miniasm:
         # snakemake will create the output dir, mini_assemble will fail if it exists..
         rm -r {params[output_dir]} &&
         mini_assemble -i {input.basecalls} -o {params[output_dir]} -t {threads} -p assm {params[opts]} -m 0 &>> {log}
-        # rename output
-        mv {params[output_dir]}/assm_final.fa {output.consensus}
+        # compress output
+        cat {params[output_dir]}/assm_final.fa | bgzip -c -@ {threads} > {output.consensus}
+        rm {params[output_dir]}/assm_final.fa
         # keep a link of basecalls with the consensus
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fastq.gz
         """
 
 rule canu:
     # TODO can we make use of github.com/thiesgehrmann/FungalAssemblerPipeline ?
     input:
         canu = ancient(config["RUNTIME"]["CANU_EXEC"]),
-        basecalls = ancient("{dir}/basecalls.fasta"),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        basecalls = ancient("{dir}/basecalls.fastq.gz"),
     output:
-        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/canu{suffix,[^/]*}/consensus.fasta.gz",
+        basecalls = "{dir}/canu{suffix,[^/]*}/basecalls.fastq.gz"
     log:
         "{dir}/canu{suffix}.log"
     params:
@@ -104,8 +104,9 @@ rule canu:
         # snakemake will create the output dir, canu will fail if it exists..
         #rm -r {params[output_dir]}
         {input.canu} -d {params.output_dir} -p {params.prefix} genomeSize={params.gsz} -nanopore-raw {input.basecalls} {params.exec_opts} {params[opts]} {params.mt} &>> {log}
-        mv {params.output_dir}/{params.prefix}.contigs.fasta {output.consensus} &&
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        cat {params.output_dir}/{params.prefix}.contigs.fasta | bgzip -c > {output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fastq.gz
         # remove canu intermediates we don't use
         rm -rf {params.output_dir}/{params.prefix}.* {params.output_dir}/correction {params.output_dir}/haplotyping {params.output_dir}/trimming {params.output_dir}/unitigging
         """
@@ -114,10 +115,11 @@ rule canu:
 rule flye:
     input:
         flye = ancient(config["RUNTIME"]["FLYE_EXEC"]),
-        basecalls = ancient("{dir}/basecalls.fasta"),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        basecalls = ancient("{dir}/basecalls.fastq.gz"),
     output:
-        consensus = "{dir}/flye{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/flye{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/flye{suffix,[^/]*}/consensus.fasta.gz",
+        basecalls = "{dir}/flye{suffix,[^/]*}/basecalls.fastq.gz"
     log:
         "{dir}/flye{suffix}.log"
     params:
@@ -133,22 +135,26 @@ rule flye:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         {input.flye} --nano-raw {input.basecalls} --genome-size {params.gsz} --out-dir {params.output_dir} --threads {params.mt} {params[opts]} &>> {log}
-        mv {params.output_dir}/assembly.fasta {output.consensus} &&
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        cat {params.output_dir}/assembly.fasta | bgzip -c -@ {threads} > {output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fastq.gz
+        rm {params.output_dir}/assembly.fasta
         """
 
 
 rule shasta:
     input:
         shasta = ancient(config["RUNTIME"]["SHASTA_EXEC"]),
-        basecalls = ancient("{dir}/basecalls.fasta"),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        basecalls = ancient("{dir}/basecalls.fastq.gz"),
     output:
-        consensus = "{dir}/shasta{suffix,[^/]*}/consensus.fasta",
-        basecalls = "{dir}/shasta{suffix,[^/]*}/basecalls.fasta"
+        consensus = "{dir}/shasta{suffix,[^/]*}/consensus.fasta.gz",
+        basecalls = "{dir}/shasta{suffix,[^/]*}/basecalls.fastq.gz"
     log:
         "{dir}/shasta{suffix}.log"
     params:
         output_dir = lambda w, output: os.path.dirname(output.consensus),
+        basecalls_dcmpr = lambda wildcards, input: os.path.splitext(input.basecalls)[0],
         opts = partial(get_opts, config=config, config_key="SHASTA_OPTS"),
         prefix = "shasta",
         mt=config["RUNTIME"]["THREADS_PER_JOB"],
@@ -159,7 +165,11 @@ rule shasta:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
         rm -rf {params.output_dir}
-        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params.opts} --input {input.basecalls} &>> {log}
-        mv {params.output_dir}/Assembly.fasta {output.consensus} &&
-        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fasta
+        # shasta can't handle gzipped inputs
+        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+        bgzip -d -c -@ {threads} {input.basecalls} > {params.basecalls_dcmpr} 
+        {input.shasta} --assemblyDirectory {params.output_dir} --threads {params.mt} {params.opts} --input {params.basecalls_dcmpr} &>> {log}
+        cat {params.output_dir}/Assembly.fasta | bgzip -c -@ {threads} > {output.consensus}
+        ln -s $PWD/{input.basecalls} $PWD/{params[output_dir]}/basecalls.fastq.gz
+        rm {params.output_dir}/Assembly.fasta 
         """

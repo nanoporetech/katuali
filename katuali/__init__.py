@@ -60,7 +60,7 @@ def check_file_exists(fp, log_level=logging.INFO):
         return check_file_exists(target_path)
     else:
         logger.debug('File exists! File: {} Size: {}'.format(fp, os.path.getsize(fp)))
-        if os.path.basename(fp) in {'basecalls.fasta', 'consensus.fasta'}:
+        if os.path.basename(fp) in {'basecalls.fastq', 'consensus.fasta'}:
             with pysam.FastxFile(fp) as fx:
                 first_rec_name = next(fx).name
                 logger.debug('First fastx record: {}'.format(first_rec_name))
@@ -286,20 +286,20 @@ def expand_target_template(template, config):
         'DEPTH': [25, 50],
         'BASECALLER': 'guppy'
         }
-    >>> template = '{DATA}/basecall/guppy/align/{REGIONS}/{DEPTH}X/basecalls.fasta'
+    >>> template = '{DATA}/basecall/guppy/align/{REGIONS}/{DEPTH}X/basecalls.fastq'
     >>> expand_target_template(template, config)
-    ['run2/basecall/guppy/align/b2/25X/basecalls.fasta',
-     'run2/basecall/guppy/align/b1/25X/basecalls.fasta',
-     'run1/basecall/guppy/align/a1/25X/basecalls.fasta',
-     'run2/basecall/guppy/align/b2/25X/basecalls.fasta',
-     'run2/basecall/guppy/align/b1/25X/basecalls.fasta',
-     'run1/basecall/guppy/align/a1/25X/basecalls.fasta',
-     'run2/basecall/guppy/align/b2/50X/basecalls.fasta',
-     'run2/basecall/guppy/align/b1/50X/basecalls.fasta',
-     'run1/basecall/guppy/align/a1/50X/basecalls.fasta',
-     'run2/basecall/guppy/align/b2/50X/basecalls.fasta',
-     'run2/basecall/guppy/align/b1/50X/basecalls.fasta',
-     'run1/basecall/guppy/align/a1/50X/basecalls.fasta']
+    ['run2/basecall/guppy/align/b2/25X/basecalls.fastq',
+     'run2/basecall/guppy/align/b1/25X/basecalls.fastq',
+     'run1/basecall/guppy/align/a1/25X/basecalls.fastq',
+     'run2/basecall/guppy/align/b2/25X/basecalls.fastq',
+     'run2/basecall/guppy/align/b1/25X/basecalls.fastq',
+     'run1/basecall/guppy/align/a1/25X/basecalls.fastq',
+     'run2/basecall/guppy/align/b2/50X/basecalls.fastq',
+     'run2/basecall/guppy/align/b1/50X/basecalls.fastq',
+     'run1/basecall/guppy/align/a1/50X/basecalls.fastq',
+     'run2/basecall/guppy/align/b2/50X/basecalls.fastq',
+     'run2/basecall/guppy/align/b1/50X/basecalls.fastq',
+     'run1/basecall/guppy/align/a1/50X/basecalls.fastq']
     """
 
     to_expand = set(re.findall('\{(.*?)\}', template))
