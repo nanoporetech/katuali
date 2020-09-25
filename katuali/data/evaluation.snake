@@ -43,9 +43,9 @@ rule get_basecall_stats:
 rule assess_consensus:
     input:
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        consensus = ancient("{runid}/{dir}/consensus.fasta"),
-        consensus_mmi = ancient("{runid}/{dir}/consensus.fasta.mmi"),
-        consensus_fai = ancient("{runid}/{dir}/consensus.fasta.fai"),
+        consensus = ancient("{runid}/{dir}/consensus.fasta.gz"),
+        consensus_mmi = ancient("{runid}/{dir}/consensus.fasta.gz.mmi"),
+        consensus_fai = ancient("{runid}/{dir}/consensus.fasta.gz.fai"),
         truth = ancient(partial(get_reference, config=config)),
     output:
         summ = "{runid,[^/]+}/{dir}/assess{suffix,[^/]*}/consensus_to_truth_summ.txt",

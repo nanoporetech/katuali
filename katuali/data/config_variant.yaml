@@ -15,7 +15,7 @@
 # (https://nanoporetech.github.io/katuali/examples.html#starting-from-existing-basecalls),
 # basecalls should be placed under the basecalling folder as defined in the pipelines config section.
 # For the all_fast_assm_polish pipeline for example, basecalls should be placed in 
-# "{DATA}/guppy/basecalls.fasta"
+# "{DATA}/guppy/basecalls.fastq"
 
 
 ####################
@@ -99,26 +99,6 @@ VARIANT_RESOURCES:
 # documentation for full details.  
 
 PIPELINES:
-    all_fast_assm_polish: [
-        "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta"
-    ]
-    all_standard_assm_polish: [
-        "{DATA}/guppy/canu/racon/medaka/consensus.fasta"
-    ]
-    all_medaka_eval: [
-        "{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/consensus_to_truth_summ.txt"
-    ]
-    all_medaka_feat: [
-        "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train.hdf",
-        "{DATA}/guppy/align/{MEDAKA_TRAIN_REGIONS}/{DEPTHS}X_prop/canu/racon/medaka_features/medaka_train_rc.hdf"
-    ]
-    all_medaka_train: [
-        "medaka_train{MEDAKA_TRAIN_REPLICATES}"
-    ]
-    all_medaka_variant_feat: [
-        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X.hdf",
-        "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_rc.hdf"
-    ]
     all_medaka_snp_feat: [
         "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/{SNP_DEPTHS}X_prop/medaka_diploid_snp_features/{DATA}_{MEDAKA_TRAIN_REGIONS}_{SNP_DEPTHS}X_medaka_train.hdf",
 
@@ -220,6 +200,11 @@ SUBSAMPLE_BAM_OPTS:
     "": "--all_fail"
     "_prop": "--proportional --all_fail"
     "_filtered": "--quality 6 --coverage 90 --all_fail"
+
+# mini_align
+MINI_ALIGN_OPTS:
+    "": ""
+    "_all": "-A"
 
 # mini_assemble
 MINI_ASSEMBLE_OPTS: 

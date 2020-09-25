@@ -1,10 +1,40 @@
+
+SCRIPT = \
+"""
+check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
+# snakemake will create the output dir, guppy will fail if it exists..
+rm -r {params[output_dir]}
+
+echo "GPU status before" >> {log}
+gpustat >> {log}
+
+sleep $(((RANDOM % 30)  + 1 ))
+
+GPU=$(pick_gpu 2>> {log})
+
+echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
+
+{input.guppy} -s {params.output_dir} -r -i {input.fast5} --device cuda:$GPU {params.opts} &>> {log}
+
+echo "gpustat after" >> {log}
+gpustat >> {log}
+
+sleep 5
+set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
+echo "Combining the following fastq files into {output.fastq}" >> {log}
+ls {params[output_dir]}/*.fastq >> {log}
+cat {params.output_dir}/*.fastq | bgzip -@ {threads} -c >{output.fastq} 2>> {log}
+rm {params.output_dir}/*.fastq
+"""
+
 rule basecall_guppy:
+    # Performs initial basecalling from <runid>/reads
     input:
         guppy = ancient(config["RUNTIME"]["GUPPY_EXEC"]),
-        fast5 = ancient("{runid}/reads"),
         venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        fast5 = ancient("{runid}/reads"),
     output:
-        fasta = "{runid,[^/]+}/guppy{suffix,[^/]*}/basecalls.fasta",
+        fastq = "{runid,[^/]+}/guppy{suffix,[^/]*}/basecalls.fastq.gz",
         summary = "{runid,[^/]+}/guppy{suffix,[^/]*}/sequencing_summary.txt",
     log:
         "{runid}/guppy{suffix,[^/]*}.log",
@@ -15,30 +45,25 @@ rule basecall_guppy:
     resources:
         gpu = 1
     shell:
-        """
-        check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        # snakemake will create the output dir, guppy will fail if it exists..
-        rm -r {params[output_dir]}
+        SCRIPT
 
-        echo "GPU status before" >> {log}
-        gpustat >> {log}
 
-        sleep $(((RANDOM % 30)  + 1 ))
-
-        GPU=$(pick_gpu 2>> {log})
-
-        echo "Runnning on host $HOSTNAME GPU $GPU" >> {log}
-
-        {input.guppy} -s {params.output_dir} -r -i {input.fast5} --device cuda:$GPU {params.opts} &>> {log}
-
-        echo "gpustat after" >> {log}
-        gpustat >> {log}
-
-        # convert fastq to fasta
-        sleep 5
-        echo "Combining the following fastq files into {output.fasta}" >> {log}
-        ls {params[output_dir]}/*.fastq >> {log}
-        set +u; {config[RUNTIME][SOURCE]} {input.venv}; set -u;
-        seqkit fq2fa {params.output_dir}/*.fastq > {output.fasta}
-        rm {params.output_dir}/*.fastq
-        """
+rule basecall_guppy_derived:
+    # Performs basecalling from derived folders named <runid>/.../fast5
+    input:
+        guppy = ancient(config["RUNTIME"]["GUPPY_EXEC"]),
+        venv = ancient(config["RUNTIME"]["IN_POMOXIS"]),
+        fast5 = ancient("{runid,[^/]+}/{dir}/fast5"),
+    output:
+        fastq = "{runid,[^/]+}/{dir}/guppy{suffix,[^/]*}/basecalls.fastq.gz",
+        summary = "{runid,[^/]+}/{dir}/guppy{suffix,[^/]*}/sequencing_summary.txt",
+    log:
+        "{runid}/{dir}/guppy{suffix,[^/]*}.log",
+    params:
+        output_dir = lambda w: "{runid}/{dir}/guppy{suffix}".format(**dict(w)),
+        opts = partial(get_opts, config=config, config_key="GUPPY_OPTS"),
+    threads: 4
+    resources:
+        gpu = 1
+    shell:
+        SCRIPT

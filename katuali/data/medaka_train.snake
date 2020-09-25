@@ -2,10 +2,10 @@ rule medaka_train_features:
     input:
         in_medaka = ancient(config["RUNTIME"]["IN_MEDAKA"]),
         in_pomoxis = ancient(config["RUNTIME"]["IN_POMOXIS"]),
-        draft = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta"),
-        draft_mmi = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.mmi"),
-        draft_fai = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.fai"),
-        basecalls = ancient("{runid}/{caller}/align/{region}/{dir}/basecalls.fasta"),
+        draft = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.gz"),
+        draft_mmi = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.gz.mmi"),
+        draft_fai = ancient("{runid}/{caller}/align/{region}/{dir}/consensus.fasta.gz.fai"),
+        basecalls = ancient("{runid}/{caller}/align/{region}/{dir}/basecalls.fastq.gz"),
         truth = ancient(partial(get_reference, config=config)),
     output:
         features = "{runid,[^/]+}/{caller,[^/]+}/align/{region,[^/]+}/{dir}/medaka_features{suffix,[^/]*}/medaka_train.hdf",
@@ -28,7 +28,7 @@ rule medaka_train_features:
     shell:
         """
         check_files_exist {config[RUNTIME][CHECK_FILES_EXIST_OPTS]} {input} &> {log}
-        
+
         if [[ "{params[opts]}" == *"HardRLEFeatureEncoder"* ]]
           then
           echo 'RLE encoding input files' >>{log}
@@ -58,13 +58,12 @@ rule medaka_train_features:
           samtools faidx {input.truth} {wildcards.region} > ${{truth_region}} 2>> {log}
           draft={input.draft}
           ALIGNMENT_SCORES="-M 2 -S 4 -O 4,24 -E 2,1"
-        fi 
-
+        fi
 
         set +u; {config[RUNTIME][SOURCE]} {input.in_pomoxis}; set -u;
 
         # keep a link of basecalls with the consensus
-        ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fasta
+        ln -sf $PWD/{input.basecalls} $PWD/{params.output_dir}/basecalls.fastq.gz
         sleep 1
 
         echo "aligning basecalls to draft" >>{log}

@@ -19,13 +19,13 @@ For example, while
 
 .. code-block:: bash
 
-    katuali run1/guppy/canu/consensus.fasta
+    katuali run1/guppy/canu/consensus.fasta.gz
 
 will basecall with guppy then assemble with canu
 
 .. code-block:: bash
 
-    katuali run1/guppy/shasta/consensus.fasta
+    katuali run1/guppy/shasta/consensus.fasta.gz
 
 will basecall with guppy then perform assembly with shasta (starting from `./run1/reads`), 
 
@@ -36,7 +36,7 @@ with medaka:
 
 .. code-block:: bash
 
-    katuali run1/guppy/canu/racon/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz
 
 This nested working directory stores the data in such a way that is it obvious
 what went into and out of each stage of the pipeline.
@@ -50,8 +50,8 @@ the canu assembly, we could use the targets:
 
 .. code-block:: bash
 
-    katuali run1/guppy/canu/racon/medaka/consensus.fasta \
-            run1/guppy/canu/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz \
+            run1/guppy/canu/medaka/consensus.fasta.gz
 
 `Snakemake` will create a graph of tasks to perform the common basecall
 and assembly tasks, then run separately two indepdendent medaka tasks from the same
@@ -76,17 +76,17 @@ Reads can be assembled in four ways at present:
 .. code-block:: bash
 
     # assemble with canu
-    katuali run1/guppy/canu/consensus.fasta  
+    katuali run1/guppy/canu/consensus.fasta.gz  
 
     # use pomoxis mini_assemble to assemble with miniasm, then form consensus
     # with racon
-    katuali run1/guppy/miniasm_racon/consensus.fasta  
+    katuali run1/guppy/miniasm_racon/consensus.fasta.gz  
 
     # assemble with flye 
-    katuali run1/guppy/flye/consensus.fasta
+    katuali run1/guppy/flye/consensus.fasta.gz
 
     # assemble with shasta
-    katuali run1/guppy/shasta/consensus.fasta
+    katuali run1/guppy/shasta/consensus.fasta.gz
 
 
 Polishing
@@ -100,9 +100,9 @@ required or encouraged).
 
 .. code-block:: bash
 
-    katuali run1/guppy/canu/racon/consensus.fasta
-    katuali run1/guppy/canu/racon/medaka/consensus.fasta
-    katuali run1/guppy/canu/racon/medaka/medaka/consensus.fasta
+    katuali run1/guppy/canu/racon/consensus.fasta.gz
+    katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz
+    katuali run1/guppy/canu/racon/medaka/medaka/consensus.fasta.gz
 
 
 Pipeline restrictions
@@ -131,7 +131,7 @@ The fast_assm_polish workflow is implemented with the following target template:
 
     PIPELINES:
         all_fast_assm_polish: [
-            "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta"
+            "{DATA}/guppy/miniasm/racon/medaka/consensus.fasta.gz"
     ]
 
 
@@ -203,7 +203,7 @@ katuali had basecalled allows any derived targets to be created.
     # These should be set as in the config.yaml file used for running the
     workflow. RUN is # the top level key of the DATA section
     RUN=run1
-    BASECALLER=guppy_flipflop
+    BASECALLER=guppy
     IN_POMOXIS=~/git/pomoxis/venv/bin/activate
 
     # ...no need to edit below here
@@ -213,7 +213,7 @@ katuali had basecalled allows any derived targets to be created.
     ln -s ${SUMMARY} ${BCDIR}/sequencing_summary.txt
 
     source ${IN_POMOXIS}
-    seqkit fq2fa ${BASECALLS} > ${BCDIR}/basecalls.fasta
+    cat ${BASECALLS} | bgzip -c > ${BCDIR}/basecalls.fastq.gz
 
 Now katuali can be run as normal, for example:
 
@@ -262,7 +262,7 @@ Once the reference is the config, running:
 
 .. code-block:: bash
 
-    katuali run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta
+    katuali run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta.gz
 
 will perform the following steps:
 
@@ -273,7 +273,7 @@ will perform the following steps:
     * subsample all contigs in the .bam file to 25X to create (in one step):
       `run1/guppy/align/all_contigs/25X/basecalls.fasta`
     * perform a ref-guided assembly and racon consensus to create:
-      `run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta`
+      `run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta.gz`
 
 
 .. note:: The rule to create subsampled datasets differs from other rules in
@@ -290,7 +290,7 @@ specifying targets such as:
 
 .. code-block:: bash
 
-    katuali run1/guppy/align/ecoli_SCS110_plasmid2/25X/miniasm_racon/consensus.fasta 
+    katuali run1/guppy/align/ecoli_SCS110_plasmid2/25X/miniasm_racon/consensus.fasta.gz 
 
 which will just process the reference sequence `ecoli_SCS110_plasmid2`.
 
@@ -302,7 +302,7 @@ It is also possible to subsample a region specifed as a samtools string:
 
 .. code-block:: bash
 
-    katuali run1/guppy/align/ecoli_SCS110_chromosome:50000-150000/25X/miniasm_racon/consensus.fasta
+    katuali run1/guppy/align/ecoli_SCS110_chromosome:50000-150000/25X/miniasm_racon/consensus.fasta.gz
 
 
 .. _train_medaka:

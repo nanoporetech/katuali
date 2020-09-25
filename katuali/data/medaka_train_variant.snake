@@ -36,16 +36,15 @@ rule build_truth_reference:
 
         # Fix-up VCF -- drop unphased and sort out overlapping calls
         zgrep '^#\|PATMAT\|HOMVAR' {input.vcf} | {input.vcfcreatemulti} | bgzip -@ {threads} -c > {params.fixed_vcf} 2>> {log}
-        tabix {params.fixed_vcf} 
+        tabix {params.fixed_vcf}
 
-        # Build maternal reference 
+        # Build maternal reference
         samtools faidx {input.reference} {params.chrs} | bcftools consensus --haplotype 2 -c {output.chain_maternal} {params.fixed_vcf} | sed 's/^>chr.*/&_{wildcards.sample}_maternal/' > {params.maternal_fa} 2>> {log}
 
-        # Build paternal reference 
+        # Build paternal reference
         samtools faidx {input.reference} {params.chrs} | bcftools consensus --haplotype 1 -c {output.chain_paternal} {params.fixed_vcf} | sed 's/^>chr.*/&_{wildcards.sample}_paternal/' > {params.paternal_fa} 2>> {log}
 
         cat {params.maternal_fa} {params.paternal_fa} | bgzip -@ {threads} -c > {output.fa}
-        
         rm {params.maternal_fa} {params.paternal_fa}
         """
 

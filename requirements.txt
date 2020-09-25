@@ -3,4 +3,4 @@ gpustat
 pandas
 pysam==0.15.2         # latest with non-broken wheels (26Feb2019)
 setuptools
-snakemake
+snakemake==5.9.1      # at some point after this snakemake became python>=3.6
