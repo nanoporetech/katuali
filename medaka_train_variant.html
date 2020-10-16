@@ -1,0 +1,396 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Medaka variant-calling training pipeline &mdash; Katuali 0.3.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Pipeline configuration" href="configuration.html" />
+    <link rel="prev" title="Medaka consensus training pipeline" href="medaka_train.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Katuali
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Basic Usage and Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Custom pipelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train.html">Medaka consensus training pipeline</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Medaka variant-calling training pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#input-data-specification">Input data specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#training-data">Training data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#variant-calling-resources">Variant calling resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-training-features">Creating training features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#training-models">Training models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#missing-feature-files">Missing feature files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Pipeline configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Katuali</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Medaka variant-calling training pipeline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/medaka_train_variant.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="medaka-variant-calling-training-pipeline">
+<span id="medaka-train-variant"></span><h1>Medaka variant-calling training pipeline<a class="headerlink" href="#medaka-variant-calling-training-pipeline" title="Permalink to this headline">¶</a></h1>
+<p>Katuali supports the training of medaka variant-calling models from <code class="docutils literal notranslate"><span class="pre">.fast5</span></code>
+files, or preprocessed data such as basecalls or alignments if they are
+available.</p>
+<p>Models can be trained both for the initial SNP calling from mixed reads prior
+to phasing, referred to below as SNP-calling models, and for final variant
+(SNP and indel) calling from phased reads, referred to below as variant-calling
+models. See the medaka <a class="reference external" href="https://nanoporetech.github.io/medaka/snp.html#">docs</a> for more information on the
+medaka variant calling pipeline.</p>
+<p>A specialised config file (<code class="docutils literal notranslate"><span class="pre">config_variant.yaml</span></code>) for medaka variant calling
+is provided by running</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali_config --variant my_config_variant.yaml.
+</pre></div>
+</div>
+</div></blockquote>
+<div class="section" id="input-data-specification">
+<h2>Input data specification<a class="headerlink" href="#input-data-specification" title="Permalink to this headline">¶</a></h2>
+<p>The data required for variant calling training is separated into two
+directory structures:</p>
+<ul class="simple">
+<li><p>training data</p></li>
+<li><p>variant calling resources: references and truth data.</p></li>
+</ul>
+</div>
+<div class="section" id="training-data">
+<h2>Training data<a class="headerlink" href="#training-data" title="Permalink to this headline">¶</a></h2>
+<p>As for the <a class="reference internal" href="medaka_train.html#medaka-train"><span class="std std-ref">Medaka consensus training pipeline</span></a> read <code class="docutils literal notranslate"><span class="pre">.fast5</span></code> files should be placed
+under top-level folders. Multiple top-levelfolders can be used.</p>
+<p>Within the <code class="docutils literal notranslate"><span class="pre">DATA</span></code> section of a katuali configuration file, these top-level
+folders should be listed along with details of the reference sequence.
+<code class="docutils literal notranslate"><span class="pre">MEDAKA_TRAIN_REGIONS</span></code>  lists the chromosomes included in training</p>
+<p>In the example below data from the run  (<code class="docutils literal notranslate"><span class="pre">dna_prom</span></code>) will be used for training for
+chromosomes 15 -19 of the GIAB sample NA24385.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">DATA</span><span class="p">:</span>
+    <span class="s">&#39;dna_prom&#39;</span><span class="p p-Indicator">:</span>
+        <span class="s">&#39;REFERENCE&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;/medaka_variant_resources/grch38/grch38.fna.gz.fasta&#39;</span>
+        <span class="s">&#39;MEDAKA_TRAIN_REGIONS&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[</span><span class="s">&#39;chr15&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;chr16&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;chr17&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;chr18&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;chr19&#39;</span><span class="p p-Indicator">]</span>
+        <span class="s">&#39;MEDAKA_EVAL_REGIONS&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">[]</span>
+        <span class="s">&#39;SAMPLE:</span><span class="nv"> </span><span class="s">&quot;NA24385&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="variant-calling-resources">
+<h2>Variant calling resources<a class="headerlink" href="#variant-calling-resources" title="Permalink to this headline">¶</a></h2>
+<p>The protocol for training for variant calling require various reference and
+truth data. This can be configured within the <code class="docutils literal notranslate"><span class="pre">VARIANT_RESOURCES</span></code> section of
+a katuali config file.  The default config is set up for the GIAB sample
+NA24385 (HG002), with configurable URLs which will be used to download the GIAB
+high-confidence variants (vcf file) and regions (bed file).</p>
+<p>Medaka training features for variant calling (but not SNP-calling) are formed
+from pileups of reads aligned to the GRCh38 reference scuffed up with variants
+from the 1000 Genomes Project.  The <code class="docutils literal notranslate"><span class="pre">VARIANTS_TO_ADD</span></code> config entry defines
+the template filepath of the per-chromosome VCF file which will be used to
+scuff up the reference. If the file is not present, it will automatically be
+downloaded. It is possible to use alternative variants to scuff the reference
+by changing <code class="docutils literal notranslate"><span class="pre">VARIANTS_TO_ADD</span></code> to point at your own VCF. Similarly, if the
+GRCh38 reference is not not found at the expected filepath
+(<code class="docutils literal notranslate"><span class="pre">medaka_variant_resources/grch38/grch38.fna.gz</span></code>), it will automatically be
+downloaded. If you already have this file downloaded and wish to avoid
+downloading it again, you can place a symlink at the expected filepath.</p>
+<p>It is possible to train from a different, or multiple samples by extending the
+<code class="docutils literal notranslate"><span class="pre">SAMPLES</span></code> config section:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">VARIANT_RESOURCES</span><span class="p">:</span>
+    <span class="s">&quot;SAMPLES&quot;</span><span class="p p-Indicator">:</span>
+        <span class="s">&quot;NA24385&quot;</span><span class="p p-Indicator">:</span>
+            <span class="s">&quot;TRUTH_HIGH_CONF_BED_URL&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/AshkenazimTrio/HG002_NA24385_son/NISTv3.3.2/GRCh38/HG002_GRCh38_GIAB_highconf_CG-Illfb-IllsentieonHC-Ion-10XsentieonHC-SOLIDgatkHC_CHROM1-22_v.3.3.2_highconf_noinconsistent.bed&quot;</span>
+            <span class="s">&quot;TRUTH_HIGH_CONF_VCF_URL&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/AshkenazimTrio/HG002_NA24385_son/NISTv3.3.2/GRCh38/HG002_GRCh38_GIAB_highconf_CG-Illfb-IllsentieonHC-Ion-10XsentieonHC-SOLIDgatkHC_CHROM1-22_v.3.3.2_highconf_triophased.vcf.gz&quot;</span>
+
+    <span class="s">&quot;VARIANTS_TO_ADD&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;medaka_variant_resources/grch38/1kgenomes/ALL.{chr}.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz&quot;</span>
+</pre></div>
+</div>
+<p>Based on the information provided in the config, <code class="docutils literal notranslate"><span class="pre">Katuali</span></code> will download and
+process reference and truth data into various intermediate files required for
+creating training features. This data required is stored under a directory
+structure <code class="docutils literal notranslate"><span class="pre">medaka_training_resources</span></code></p>
+<p>There should be no need for the user to delve into the contents of the
+directory, but its contents are nevertheless documented here. The following
+example shows the folder structure for the grch38 reference and the NA24385 sample.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>medaka_variant_resources/
+    grch38/                         <span class="c1"># grch38 reference directory (currently only the grch38 is supported).</span>
+        grch38.fna.gz               <span class="c1"># grch38 reference file which will be automatically downloaded.</span>
+        grch38.fna.gz_per_chr/      <span class="c1"># per chromosome references stored as chrX.fasta, automatically created.</span>
+        1kgenomes/                  <span class="c1"># VARIANTS_TO_ADD: vcf file per chromosome, automatically downloaded.</span>
+        NA24385/                    <span class="c1"># SAMPLE Truth reference {SAMPLE.fasta}: NA24385.fasta, created automatically from the truth vcf and reference.</span>
+            NA24385_per_chr/        <span class="c1"># Phased reference per chromosome (e.g. chr18.fasta</span>
+                                    <span class="c1"># chr18_NA24385_maternal.fasta and chr18_NA24385_paternal.fasta, created automatically).</span>
+    scuffed_ref/
+        NA24385/
+            chrN/                   <span class="c1"># Scuffed up reference ref_edited.fasta, ref_edited_rc.fasta, automatically created.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="creating-training-features">
+<h2>Creating training features<a class="headerlink" href="#creating-training-features" title="Permalink to this headline">¶</a></h2>
+<p>SNP and variant-calling models can be trained in a single command using the
+<code class="docutils literal notranslate"><span class="pre">all_medaka_train</span></code> pipeline, see <a class="reference internal" href="#medaka-train-variant-models"><span class="std std-ref">Training models</span></a>.</p>
+<p>As with the <a class="reference internal" href="medaka_train.html#medaka-train"><span class="std std-ref">Medaka consensus training pipeline</span></a>, it is also possible to just create the
+features for training outside of katuali.</p>
+<p>Features for training SNP-calling models can be created with the
+<code class="docutils literal notranslate"><span class="pre">all_medaka_snp_feat</span></code> pipeline:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali all_medaka_snp_feat
+</pre></div>
+</div>
+<p>This will create a SNP-calling feature file for every valid combination of
+dataset (top-level folder), region and coverage depth . For example the file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dna_prom/guppy/align/chr15/10X_prop/medaka_diploid_snp_features/dna_prom_chr15_10X_medaka_train.hdf
+</pre></div>
+</div>
+<p>will be produced for a top-level folder named <code class="docutils literal notranslate"><span class="pre">dna_prom</span></code>, chromosome 15, at
+coverage of <code class="docutils literal notranslate"><span class="pre">10</span></code>-fold.</p>
+<p>Similarly, features for training variant-calling models can be created with the
+<code class="docutils literal notranslate"><span class="pre">all_medaka_variant_feat</span></code> pipeline:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali all_medaka_variant
+</pre></div>
+</div>
+<p>This will create two variant-calling feature files for every valid combination
+of dataset (top-level folder), region and coverage depth. For example the files</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dna_prom/guppy/align/chr16/calls2scuffed_ref/20X_prop/medaka_features/medaka_train_variant_dna_prom_chr16_20X.hdf
+dna_prom/guppy/align/chr16/calls2scuffed_ref/20X_prop/medaka_features/medaka_train_variant_dna_prom_chr16_20X_rc.hdf
+</pre></div>
+</div>
+<p>will be produced for a top-level folder named <code class="docutils literal notranslate"><span class="pre">dna_prom</span></code>, chromosome 16, at
+coverage of <code class="docutils literal notranslate"><span class="pre">20</span></code>-fold.</p>
+</div>
+<div class="section" id="training-models">
+<span id="medaka-train-variant-models"></span><h2>Training models<a class="headerlink" href="#training-models" title="Permalink to this headline">¶</a></h2>
+<p>SNP and variant-calling models can be trained in a single command using the
+same <code class="docutils literal notranslate"><span class="pre">all_medaka_train</span></code> pipeline as used for training consensus models, see <a class="reference internal" href="medaka_train.html#training-models"><span class="std std-ref">Training models</span></a></p>
+<p>The features used for model training are fully configurable in the config,
+allowing a single <code class="docutils literal notranslate"><span class="pre">all_medaka_train</span></code> pipeline to train either a medaka
+consensus model, or medaka SNP and/or variant-calling models.</p>
+<p>This can be controled via the <code class="docutils literal notranslate"><span class="pre">MEDAKA_TRAIN_REPLICATES</span></code> config entry.</p>
+<p>This example from the default config trains three medaka-consensus model replicates using the
+<code class="docutils literal notranslate"><span class="pre">all_medaka_feat</span></code> pipeline to create medaka-consensus training features.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run multiple training replicates - output will be in medaka_train_{key},</span>
+<span class="c1"># values should be a key of the PIPELINES dictionary in this file. In simple</span>
+<span class="c1"># cases this allows running technical replicates of the training, but also</span>
+<span class="c1"># allows the pipeline to be changed to for example create features in a</span>
+<span class="c1"># different manner. For the latter change the value component to an alternative</span>
+<span class="c1"># user defined pipeline.</span>
+<span class="nt">MEDAKA_TRAIN_REPLICATES</span><span class="p">:</span>
+    <span class="s">&quot;_rep_1&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_feat&quot;</span>
+    <span class="s">&quot;_rep_2&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_feat&quot;</span>
+    <span class="s">&quot;_rep_3&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_feat&quot;</span>
+</pre></div>
+</div>
+<p>In contrast, this example from the variant-calling config trains three medaka
+SNP-calling replicates and three medaka variant-calling replicates, each using their
+respective feature-generation pipelines.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">MEDAKA_TRAIN_REPLICATES</span><span class="p">:</span>
+    <span class="s">&quot;_snp_rep_1&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_snp_feat&quot;</span>
+    <span class="s">&quot;_snp_rep_2&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_snp_feat&quot;</span>
+    <span class="s">&quot;_snp_rep_3&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_snp_feat&quot;</span>
+    <span class="s">&quot;_variant_rep_1&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_variant_feat&quot;</span>
+    <span class="s">&quot;_variant_rep_2&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_variant_feat&quot;</span>
+    <span class="s">&quot;_variant_rep_3&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;all_medaka_variant_feat&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="missing-feature-files">
+<h2>Missing feature files<a class="headerlink" href="#missing-feature-files" title="Permalink to this headline">¶</a></h2>
+<p>As for the <a class="reference internal" href="medaka_train.html#medaka-train"><span class="std std-ref">Medaka consensus training pipeline</span></a>, if input datasets have
+insufficient coverage-depth for some of the training chromosomes, some training
+feature files will not be produced. See <a class="reference internal" href="medaka_train.html#missing-feat"><span class="std std-ref">Coping with missing feature files</span></a> for how to cope
+with this.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="configuration.html" class="btn btn-neutral float-right" title="Pipeline configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="medaka_train.html" class="btn btn-neutral float-left" title="Medaka consensus training pipeline" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018-19, Oxford Nanopore Technologies
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

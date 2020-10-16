@@ -1,0 +1,294 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Installation &mdash; Katuali 0.3.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Basic Usage and Tests" href="tests.html" />
+    <link rel="prev" title="Katuali" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Katuali
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general-tools">General Tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basecalling-tools">Basecalling Tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#assembly-tools">Assembly Tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#consensus-tools">Consensus Tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-tools">Other tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Basic Usage and Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Custom pipelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train.html">Medaka consensus training pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train_variant.html">Medaka variant-calling training pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Pipeline configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Katuali</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Installation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="installation">
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>A Makefile is provided to create a <a class="reference external" href="https://docs.python.org/3/tutorial/venv.html">virtual environment</a> into which <code class="docutils literal notranslate"><span class="pre">katuali</span></code> will be installed.</p>
+<p>Katuali has been tested on Linux (specifically Ubuntu 16) and MacOS.</p>
+<p>To setup the environment run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/nanoporetech/katuali.git
+<span class="nb">cd</span> katuali
+make install
+<span class="nb">source</span> ./venv/bin/activate
+</pre></div>
+</div>
+<div class="section" id="dependencies">
+<span id="id2"></span><h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Katuali makes use of a number of tools to perform basecalling, assembly, and
+polishing that need to be installed in order to perform such steps of a pipeline.
+Katuali does not enforce that all possible tools are present; only those
+required to run a user’s pipeline need be installed. If Katuali cannot find a
+tool, it will alert the user.</p>
+<p>The list below indicates possible options for pipeline steps and the default
+filesystem location where Katuali expects to find them. Each item is shown as
+must be specified in the pipeline configuration, the locations can be
+changed by the user as appropriate.</p>
+<p>Refer to the documentation of each of these tools for installation instructions.</p>
+<div class="section" id="general-tools">
+<h3>General Tools<a class="headerlink" href="#general-tools" title="Permalink to this headline">¶</a></h3>
+<pre class="literal-block"><a class="reference external" href="https://github.com/nanoporetech/pomoxis">pomoxis</a>: &quot;~/git/pomoxis/venv/bin/activate&quot;</pre>
+<p>Pomoxis is used as a general utility throughout much of katuali, its
+installation is required for most functionality.</p>
+<p>Pomoxis &gt;= 0.3.2 is required for the medaka variant-calling training pipelines.</p>
+</div>
+<div class="section" id="basecalling-tools">
+<h3>Basecalling Tools<a class="headerlink" href="#basecalling-tools" title="Permalink to this headline">¶</a></h3>
+<pre class="literal-block"><a class="reference external" href="https://community.nanoporetech.com/downloads">guppy</a>: &quot;/usr/bin/guppy_basecaller&quot;</pre>
+</div>
+<div class="section" id="assembly-tools">
+<h3>Assembly Tools<a class="headerlink" href="#assembly-tools" title="Permalink to this headline">¶</a></h3>
+<pre class="literal-block"><a class="reference external" href="https://github.com/marbl/canu">canu</a>: &quot;~/git/canu-1.8/Linux-amd64/bin/canu&quot;
+<a class="reference external" href="https://github.com/fenderglass/Flye">flye</a>: &quot;~/git/Flye/bin/flye&quot;
+<a class="reference external" href="https://github.com/chanzuckerberg/shasta">shasta</a>: &quot;~/git/shasta-Linux-0.3.0&quot;
+<a class="reference external" href="https://github.com/nanoporetech/pomoxis">pomoxis</a>: &quot;~/git/pomoxis/venv/bin/activate&quot;</pre>
+<p>In the context of Katuali, pomoxis functions as a wrapper to
+<a class="reference external" href="https://github.com/lh3/miniasm">miniasm</a>. Canu is utilised in the standard
+workflow, while pomoxis is used in the fast workflow.</p>
+</div>
+<div class="section" id="consensus-tools">
+<h3>Consensus Tools<a class="headerlink" href="#consensus-tools" title="Permalink to this headline">¶</a></h3>
+<pre class="literal-block"><a class="reference external" href="https://github.com/nanoporetech/medaka">medaka</a>: &quot;~/git/medaka/venv/bin/activate&quot;</pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">tensorflow-gpu</span></code> must be installed in your medaka
+environment if you wish to run medaka using a GPU (required for medaka
+training, optional for running medaka consensus)</p>
+</div>
+<p>Katuali can also use <a class="reference external" href="https://github.com/lbcb-sci/racon">racon</a> which is included with
+pomoxis.</p>
+</div>
+<div class="section" id="other-tools">
+<h3>Other tools<a class="headerlink" href="#other-tools" title="Permalink to this headline">¶</a></h3>
+<pre class="literal-block"><a class="reference external" href="https://anaconda.org/bioconda/ucsc-liftover">liftover</a>: &quot;~/miniconda3/envs/liftover/bin/liftOver&quot;
+<a class="reference external" href="https://github.com/vcflib/vcflib">vcfcreatemulti</a>: &quot;~/git/vcflib/bin/vcfcreatemulti&quot;</pre>
+<p>LiftOver and vcfcreatemulti are used in the medaka variant-calling training pipelines and only
+needs to be installed if you intend to use these pipelines.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tests.html" class="btn btn-neutral float-right" title="Basic Usage and Tests" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Katuali" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018-19, Oxford Nanopore Technologies
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

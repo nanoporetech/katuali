@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Pipeline configuration &mdash; Katuali 0.3.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Frequently asked questions" href="faq.html" />
+    <link rel="prev" title="Medaka variant-calling training pipeline" href="medaka_train_variant.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Katuali
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Basic Usage and Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Custom pipelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train.html">Medaka consensus training pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train_variant.html">Medaka variant-calling training pipeline</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pipeline configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#nested-configuration">Nested configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processing-and-resource">Processing and resource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-medaka-consensus-on-gpu-or-cpu">Running medaka consensus on GPU or CPU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-on-the-local-machine">Running on the local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#submitting-tasks-to-a-cluster">Submitting tasks to a cluster</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Katuali</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Pipeline configuration</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/configuration.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pipeline-configuration">
+<span id="configuration"></span><h1>Pipeline configuration<a class="headerlink" href="#pipeline-configuration" title="Permalink to this headline">¶</a></h1>
+<p><cite>Katuali</cite> uses <cite>Snakemake</cite> which allows pipeline
+<a class="reference external" href="https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html">parameters</a>
+to be provided in a file, or on the command line.</p>
+<p>If you use the <cite>katuali</cite> wrapper script (rather than running <cite>Snakemake</cite>
+directly), by default your pipeline will use the yaml config provided with
+<cite>katuali</cite>.</p>
+<p>The default config file can be overridden using the <code class="docutils literal notranslate"><span class="pre">--configfile</span></code> option.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># use a custom config</span>
+katuali guppy/miniasm_racon/consensus.fasta.gz --configfile myconfig.yaml
+</pre></div>
+</div>
+<div class="section" id="nested-configuration">
+<h2>Nested configuration<a class="headerlink" href="#nested-configuration" title="Permalink to this headline">¶</a></h2>
+<p>Nested configs allow access of specific settings using a target suffix.
+The nested config entry below defines different mini_assemble options to be
+used with different suffixes:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">MINI_ASSEMBLE_OPTS</span><span class="p">:</span>
+    <span class="s">&quot;&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;&quot;</span>             <span class="c1"># use the mini_assemble defaults</span>
+    <span class="s">&quot;_c&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;-c&quot;</span>         <span class="c1"># run basecalls through pore-chop before assembly</span>
+    <span class="s">&quot;_ce&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;-c</span><span class="nv"> </span><span class="s">-e</span><span class="nv"> </span><span class="s">10&quot;</span>  <span class="c1"># run basecalls through pore-chop and error correct longest 10% of reads prior to assembly</span>
+</pre></div>
+</div>
+<p>The following katuali targets will then run with either the defaults, or <cite>_ce</cite>
+options:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># use default MINI_ASSEMBLE_OPTS (suffix is empty string &quot;&quot;)</span>
+katuali guppy/miniasm_racon/consensus.fasta.gz
+
+<span class="c1"># use MINI_ASSEMBLE_OPTS specified by suffix &quot;_ce&quot;</span>
+katuali guppy/miniasm_racon_ce/consensus.fasta.gz
+</pre></div>
+</div>
+<p>A suffix can be added to most targets to specify options. If the suffix does
+not exist in the nested config, an error will be raised.</p>
+</div>
+<div class="section" id="processing-and-resource">
+<h2>Processing and resource<a class="headerlink" href="#processing-and-resource" title="Permalink to this headline">¶</a></h2>
+<p>The pipeline can be used on the local machine, or submitted to a cluster.</p>
+<p>There are two parameters which control CPU usage:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the <code class="docutils literal notranslate"><span class="pre">--cores</span> <span class="pre">N</span></code> option, which limits the totol number of threads which can be simultaneously used by all Snakemake tasks.
+This can be specified on the command line.</p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">THREADS_PER_JOB</span></code> config parameter, determines the maximum
+number of <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/tutorial/advanced.html#step-1-specifying-the-number-of-used-threads">threads</a>
+that a single multi-threaded rule will use. When fewer cores than threads
+are provided, the number of threads a task uses will be reduced to the
+number of given cores. This parameter must be set within the <code class="docutils literal notranslate"><span class="pre">RUNTIME</span></code> section of the config file:</p></li>
+</ul>
+</div></blockquote>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">RUNTIME</span><span class="p">:</span>
+    <span class="nt">THREADS_PER_JOB</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">4</span>
+</pre></div>
+</div>
+<p>As an example, if <code class="docutils literal notranslate"><span class="pre">THREADS_PER_JOB</span></code> is set to 4 and <code class="docutils literal notranslate"><span class="pre">--cores</span></code> is set to 8, up to two multi-threaded
+tasks can run at a time.</p>
+</div>
+<div class="section" id="running-medaka-consensus-on-gpu-or-cpu">
+<h2>Running medaka consensus on GPU or CPU<a class="headerlink" href="#running-medaka-consensus-on-gpu-or-cpu" title="Permalink to this headline">¶</a></h2>
+<p>The workload of running the the medaka consensus neural-network can assigned to either CPU or GPU resources using the <code class="docutils literal notranslate"><span class="pre">MEDAKA_CONSENSUS_NUM_GPU</span></code> flag.</p>
+<p>Setting</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">RUNTIME</span><span class="p">:</span>
+    <span class="nt">MEDAKA_CONSENSUS_NUM_GPU</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0</span>
+</pre></div>
+</div>
+<p>will result in the neural-network being run on CPU, while setting</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">RUNTIME</span><span class="p">:</span>
+    <span class="nt">MEDAKA_CONSENSUS_NUM_GPU</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
+</pre></div>
+</div>
+<p>will result in the neural-network being run on GPU.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that MEDAKA_CONSENSUS_NUM_GPU should be 0 or 1; values greater than 1 are not supported.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note also that to <code class="docutils literal notranslate"><span class="pre">tensorflow-gpu</span></code> must be installed in your medaka environment if you wish to run medaka using a GPU.</p>
+</div>
+</div>
+<div class="section" id="running-on-the-local-machine">
+<h2>Running on the local machine<a class="headerlink" href="#running-on-the-local-machine" title="Permalink to this headline">¶</a></h2>
+<p>When running on a local machine using GPUs (e.g. while basecalling with guppy,
+training or evaluating medaka models), <cite>katuali</cite> can limit the number of concurrent GPU
+tasks scheduled so as not to saturate GPU resource by informing katuali how
+many GPUs are present on the machine:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NCPUS</span><span class="o">=</span><span class="k">$(</span>nproc<span class="k">)</span>  <span class="c1"># how many cores available on the machine</span>
+<span class="nv">NGPUS</span><span class="o">=</span><span class="k">$(</span>nvidia-smi --list-gpus <span class="p">|</span> wc -l<span class="k">)</span>  <span class="c1"># how many GPUs available on the machine</span>
+katuali --cores <span class="si">${</span><span class="nv">NCPUS</span><span class="si">}</span> --resources <span class="nv">gpu</span><span class="o">=</span><span class="si">${</span><span class="nv">NGPUS</span><span class="si">}</span> <span class="si">${</span><span class="nv">targets</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>here <code class="docutils literal notranslate"><span class="pre">--resources</span> <span class="pre">gpu=${NGPUS}</span></code> specifies the maximum number of GPUs which can be used
+simultaneously by concurrent tasks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that if <code class="docutils literal notranslate"><span class="pre">--cores</span></code> is not specified, it defaults to 1, while if
+<code class="docutils literal notranslate"><span class="pre">--resources</span></code> it defaults to 0 (unlimited) and that Snakemake manages
+<a class="reference external" href="https://snakemake.readthedocs.io/en/stable/tutorial/advanced.html#step-1-specifying-the-number-of-used-threads">threads/cores</a>
+separately from other <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#snakefiles-resources">resources</a>.</p>
+</div>
+</div>
+<div class="section" id="submitting-tasks-to-a-cluster">
+<span id="using-cluster"></span><h2>Submitting tasks to a cluster<a class="headerlink" href="#submitting-tasks-to-a-cluster" title="Permalink to this headline">¶</a></h2>
+<p>When submitting to a queuing system, the <code class="docutils literal notranslate"><span class="pre">--cores</span></code> option will limit the number
+of queue slots used simultaneously.</p>
+<p>The <cite>katuali</cite> wrapper has an <code class="docutils literal notranslate"><span class="pre">--autocluster</span></code> option which can handle submission to a
+default cluster using DRMAA:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NSLOTS</span><span class="o">=</span><span class="m">100</span>
+<span class="nv">target</span><span class="o">=</span>all_fast_assm_polish
+katuali --cores <span class="si">${</span><span class="nv">NSLOTS</span><span class="si">}</span> --autocluster <span class="si">${</span><span class="nv">target</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--autocluster</span></code> option makes us of the default <cite>katuali</cite> <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html#cluster-configuration">cluster config</a>
+to submit jobs to an SGE cluster. The use of cluster configs allows
+us to abstract away details specific to a given cluster, and easily switch
+between clusters simply by changing the cluster config. See the <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/snakefiles/configuration.html#cluster-configuration">Snakemake documentation
+on cluster configs for futher details</a>.</p>
+<p>Using the default <cite>katuali</cite> cluster config in conjuction with the <code class="docutils literal notranslate"><span class="pre">--autocluster</span></code> option is equivalent to running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NSLOTS</span><span class="o">=</span><span class="m">100</span>
+<span class="nv">target</span><span class="o">=</span>all_fast_assm_polish
+katuali --cores <span class="si">${</span><span class="nv">NSLOTS</span><span class="si">}</span> --latency-wait <span class="m">300</span> --drmaa <span class="s2">&quot;-V -cwd -l gpu={resources.gpu} -pe mt {threads} -o logs -j y&quot;</span>
+</pre></div>
+</div>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">&quot;-V</span> <span class="pre">-cwd</span> <span class="pre">-l</span> <span class="pre">gpu={resources.gpu}</span> <span class="pre">-pe</span> <span class="pre">mt</span> <span class="pre">{threads}</span> <span class="pre">-o</span> <span class="pre">logs</span> <span class="pre">-j</span> <span class="pre">y&quot;</span></code> are the
+options specific to the SGE scheduler informing it what resources a task
+requires.  Note that the resource requirements are expressed in brackets
+(<code class="docutils literal notranslate"><span class="pre">{resources.gpu}</span></code> and <code class="docutils literal notranslate"><span class="pre">{threads}</span></code>) and will be replaced with actual values
+depending on the rule generating the task being submitted.</p>
+<p><cite>katuali</cite> abstracts away these SGE-specific details by using its default cluster config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">__default__</span><span class="p">:</span>
+    <span class="nt">n_cpu</span><span class="p">:</span> <span class="s">&quot;-pe</span><span class="nv"> </span><span class="s">mt</span><span class="nv"> </span><span class="s">&quot;</span>
+    <span class="nt">n_gpu</span><span class="p">:</span> <span class="s">&quot;-l</span><span class="nv"> </span><span class="s">gpu=&quot;</span>
+    <span class="nt">export_env</span><span class="p">:</span> <span class="s">&quot;-V&quot;</span>
+    <span class="nt">cwd</span><span class="p">:</span> <span class="s">&quot;-cwd&quot;</span>
+    <span class="nt">logdir</span><span class="p">:</span> <span class="s">&quot;-o</span><span class="nv"> </span><span class="s">&quot;</span>
+    <span class="nt">misc</span><span class="p">:</span> <span class="s">&quot;-j</span><span class="nv"> </span><span class="s">y&quot;</span>
+</pre></div>
+</div>
+<p>Using this cluster config, the <cite>katuali</cite> <code class="docutils literal notranslate"><span class="pre">--autocluster</span></code> option can support
+any DRMAA-enabled cluster using an appropriate cluster-config as the command
+line call to Snakemake is expressed in terms of cluster config entries.
+The <code class="docutils literal notranslate"><span class="pre">--autocluster</span></code> option implements:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NSLOTS</span><span class="o">=</span><span class="m">100</span>
+<span class="nv">target</span><span class="o">=</span>all_fast_assm_polish
+<span class="nv">cluster_config</span><span class="o">=</span><span class="k">$(</span>katuali_datafile cluster_config.yaml<span class="k">)</span>
+katuali --cores <span class="si">${</span><span class="nv">NSLOTS</span><span class="si">}</span> --latency-wait <span class="m">300</span> --drmaa <span class="s2">&quot; {cluster.export_env} {cluster.cwd} {cluster.n_gpu}{resources.gpu} {cluster.n_cpu}{threads} {cluster.logdir}logs {cluster.misc}&quot;</span> --cluster-config <span class="si">${</span><span class="nv">cluster_config</span><span class="si">}</span> <span class="si">${</span><span class="nv">target</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>Here all <code class="docutils literal notranslate"><span class="pre">{cluster.&lt;variable_name&gt;}</span></code> templates are replaced by values from the cluster config.</p>
+<p>Hence running on another DRMAA cluster should be as simple as creating a new
+cluster config with terms equivalent to those in the default katuali
+cluster-config, then running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NSLOTS</span><span class="o">=</span><span class="m">100</span>
+<span class="nv">target</span><span class="o">=</span>all_fast_assm_polish
+katuali --cores <span class="si">${</span><span class="nv">NSLOTS</span><span class="si">}</span> --latency-wait <span class="m">300</span> --autocluster --cluster-config my_cluster_config.yaml <span class="si">${</span><span class="nv">target</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>When running on a cluster, the local snakemake task will submit all tasks to
+the queue for execution.  The <code class="docutils literal notranslate"><span class="pre">--latency-wait</span></code> parameter is useful for ensuring
+that pipelines don’t crash due to output files not appearing on the node where
+snakemake is run due to latencies on networked file systems.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="faq.html" class="btn btn-neutral float-right" title="Frequently asked questions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="medaka_train_variant.html" class="btn btn-neutral float-left" title="Medaka variant-calling training pipeline" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018-19, Oxford Nanopore Technologies
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

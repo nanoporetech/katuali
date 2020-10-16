@@ -1,0 +1,481 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Custom pipelines &mdash; Katuali 0.3.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Medaka consensus training pipeline" href="medaka_train.html" />
+    <link rel="prev" title="Basic Usage and Tests" href="tests.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Katuali
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tests.html">Basic Usage and Tests</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Custom pipelines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basecalling">Basecalling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#assembly">Assembly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#polishing">Polishing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pipeline-restrictions">Pipeline restrictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-generation-of-custom-pipeline-targets">Automatic generation of custom pipeline targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#starting-from-existing-basecalls">Starting from existing basecalls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calculating-read-coverage-depth">Calculating read coverage depth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-subsampled-datasets">Creating subsampled datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#subsampling-a-single-reference-contig">Subsampling a single reference contig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#subsampling-a-specified-region">Subsampling a specified region</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#medaka-training-pipelines">Medaka training pipelines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train.html">Medaka consensus training pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="medaka_train_variant.html">Medaka variant-calling training pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Pipeline configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Katuali</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Custom pipelines</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="custom-pipelines">
+<span id="introduction"></span><h1>Custom pipelines<a class="headerlink" href="#custom-pipelines" title="Permalink to this headline">¶</a></h1>
+<p>One of the main aims of <cite>Katuali</cite> is to enable the bolting-together of any
+number of basecallers, assemblers, and polishers into flexible (i.e. not
+predefined) pipelines. Basecallers, assemblers, and polishers can be
+interchanged because their Snakefile rules have standardised inputs and
+outputs.</p>
+<p><cite>Katuali</cite> makes strong use of <cite>Snakemake</cite>’s powerful <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#wildcards">wildcards</a>
+to extract pipeline parameters from the target file path. For example
+which assembler to use as well as parameters for these tools.</p>
+<p>For example, while</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/canu/consensus.fasta.gz
+</pre></div>
+</div>
+<p>will basecall with guppy then assemble with canu</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/shasta/consensus.fasta.gz
+</pre></div>
+</div>
+<p>will basecall with guppy then perform assembly with shasta (starting from <cite>./run1/reads</cite>),</p>
+<p>Each step of a multi-step pipeline stores its outputs in a subdirectory of the
+previous stage. In this way, we can define a multistep-pipeline to basecall
+with guppy, assemble with canu, perform consensus with racon, and finally polish
+with medaka:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz
+</pre></div>
+</div>
+<p>This nested working directory stores the data in such a way that is it obvious
+what went into and out of each stage of the pipeline.</p>
+<p>It also enables forks in the pipelines which might share basecalls (or other
+intermediate results), but differ in assembly or consensus methods.</p>
+<p>For example, if we wish to basecall with guppy, assemble with canu, run
+racon followed by medaka on the canu assembly, and seperately run medaka directly on
+the canu assembly, we could use the targets:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz <span class="se">\</span>
+        run1/guppy/canu/medaka/consensus.fasta.gz
+</pre></div>
+</div>
+<p><cite>Snakemake</cite> will create a graph of tasks to perform the common basecall
+and assembly tasks, then run separately two indepdendent medaka tasks from the same
+inputs (and in parallel, given enough resource).</p>
+<div class="section" id="basecalling">
+<h2>Basecalling<a class="headerlink" href="#basecalling" title="Permalink to this headline">¶</a></h2>
+<p>Supported basecallers include guppy.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/basecalls.fasta
+</pre></div>
+</div>
+</div>
+<div class="section" id="assembly">
+<h2>Assembly<a class="headerlink" href="#assembly" title="Permalink to this headline">¶</a></h2>
+<p>Reads can be assembled in four ways at present:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># assemble with canu</span>
+katuali run1/guppy/canu/consensus.fasta.gz
+
+<span class="c1"># use pomoxis mini_assemble to assemble with miniasm, then form consensus</span>
+<span class="c1"># with racon</span>
+katuali run1/guppy/miniasm_racon/consensus.fasta.gz
+
+<span class="c1"># assemble with flye</span>
+katuali run1/guppy/flye/consensus.fasta.gz
+
+<span class="c1"># assemble with shasta</span>
+katuali run1/guppy/shasta/consensus.fasta.gz
+</pre></div>
+</div>
+</div>
+<div class="section" id="polishing">
+<h2>Polishing<a class="headerlink" href="#polishing" title="Permalink to this headline">¶</a></h2>
+<p>Sequences can be polished with Racon or medaka to create higher
+accuracy consensus sequences. Consensus methods can also be combined (e.g.
+racon/medaka) meaning that the input to medaka will be the racon consensus.
+The last example requests two rounds of medaka (something not generally
+required or encouraged).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/canu/racon/consensus.fasta.gz
+katuali run1/guppy/canu/racon/medaka/consensus.fasta.gz
+katuali run1/guppy/canu/racon/medaka/medaka/consensus.fasta.gz
+</pre></div>
+</div>
+</div>
+<div class="section" id="pipeline-restrictions">
+<h2>Pipeline restrictions<a class="headerlink" href="#pipeline-restrictions" title="Permalink to this headline">¶</a></h2>
+<p><cite>Katuali</cite> aims to be as flexible as possible, but there are some obvious
+restrictions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>basecalling must be performed before assembly.</p></li>
+<li><p>assembly must come before polishing (use of polishing targets to
+error correct reads is not supported).</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="automatic-generation-of-custom-pipeline-targets">
+<h2>Automatic generation of custom pipeline targets<a class="headerlink" href="#automatic-generation-of-custom-pipeline-targets" title="Permalink to this headline">¶</a></h2>
+<p>If your pipeline involves the creation of many targets by looping over some
+variable(s), for example datasets, regions, assemblers, you can get
+katuali to automatically generate all the targets for you by creating a
+template of the target containing named
+placeholders of the config variable(s) that will be looped over.</p>
+<p>The fast_assm_polish workflow is implemented with the following target template:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">PIPELINES</span><span class="p">:</span>
+    <span class="nt">all_fast_assm_polish</span><span class="p">:</span> <span class="p p-Indicator">[</span>
+        <span class="s">&quot;{DATA}/guppy/miniasm/racon/medaka/consensus.fasta.gz&quot;</span>
+<span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>Running</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali all_fast_assm_polish
+</pre></div>
+</div>
+<p>will expand all the variables in the target template. In this example <code class="docutils literal notranslate"><span class="pre">{DATA}</span></code> will be expanded
+to all the datsets defined in <code class="docutils literal notranslate"><span class="pre">config[DATA]</span></code>.</p>
+<p>You can use any config parameter as a placeholder, however there are some rules
+concerning variables which are dataset-specific:</p>
+<ol class="arabic simple">
+<li><p>Dataset-specific variables are defined within the config section for that
+dataset (e.g. the <code class="docutils literal notranslate"><span class="pre">MEDAKA_EVAL_REGIONS</span></code> for dataset <code class="docutils literal notranslate"><span class="pre">MinIonRun1</span></code> are
+defined in <code class="docutils literal notranslate"><span class="pre">config[DATA][MinIonRun1][MEDAKA_EVAL_REGIONS]</span></code>), so that pipelines can be
+customised in a data-set specific way.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">{GENOME_SIZE}</span></code> placeholder, used to provide some assemblers an
+estimate of genome size,  is treated differently from other placholders. If
+the <code class="docutils literal notranslate"><span class="pre">GENOME_SIZE</span></code> variable is present in the config section of a dataset,
+this value will be used. However,
+if you have a reference and wish to assemble contigs independently (as is
+done in e.g. the medaka training pipeline), if <code class="docutils literal notranslate"><span class="pre">config[DATA][MinIonRun1][GENOME_SIZE]</span></code>
+is not present, but <code class="docutils literal notranslate"><span class="pre">config[DATA][MinIonRun1][REFERENCE]</span></code> is present,
+<code class="docutils literal notranslate"><span class="pre">{GENOME_SIZE}</span></code> will be automatically calculated from the reference
+sequence for each of the contigs/regions defined for that dataset. Any
+placeholder containing the string <code class="docutils literal notranslate"><span class="pre">REGION</span></code> will be used in this way to
+calculate genome/region sizes.  The region definitions can be contig names
+or full samtools region strings with start and end.</p></li>
+</ol>
+<p>Config pipeline entries are lists so that multiple target templates can be used in a single pipeline.</p>
+<p>As an example, the <code class="docutils literal notranslate"><span class="pre">all_consensus_eval</span></code> pipeline contains two target templates, to
+evaluate both the pre- and post-medaka consensus accuracy, in this case over a range of
+datasets, regions, depths, and medaka models, generating hundreds of targets in the process.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">PIPELINES</span><span class="p">:</span>
+    <span class="nt">all_consensus_eval</span><span class="p">:</span> <span class="p p-Indicator">[</span>
+        <span class="s">&quot;{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/medaka{MEDAKA_EVAL_SUFFIXES}/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt&quot;</span><span class="p p-Indicator">,</span>
+        <span class="s">&quot;{DATA}/guppy/align/{MEDAKA_EVAL_REGIONS}/{DEPTHS}X/canu/racon/assess{ASSESS_ASSM_SUFFIXES}/consensus_summ.txt&quot;</span>
+    <span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>The final step of each pipeline is to create an empty file with the name of the
+pipeline (e.g. <code class="docutils literal notranslate"><span class="pre">all_standard_assm_polish</span></code>) which indicates the pipeline has
+finished.  If you rerun the pipeline this file will be automatically deleted
+and recreated upon pipeline completion.</p>
+</div>
+<div class="section" id="starting-from-existing-basecalls">
+<span id="starting-from-basecalls"></span><h2>Starting from existing basecalls<a class="headerlink" href="#starting-from-existing-basecalls" title="Permalink to this headline">¶</a></h2>
+<p>If you have already basecalled your data, mocking out the working space as if
+katuali had basecalled allows any derived targets to be created.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Input files</span>
+<span class="nv">BASECALLS</span><span class="o">=</span>/path/to/basecalls.fastq
+<span class="nv">SUMMARY</span><span class="o">=</span>/path/to/sequencing_summary.txt
+
+<span class="c1"># These should be set as in the config.yaml file used for running the</span>
+workflow. RUN is <span class="c1"># the top level key of the DATA section</span>
+<span class="nv">RUN</span><span class="o">=</span>run1
+<span class="nv">BASECALLER</span><span class="o">=</span>guppy
+<span class="nv">IN_POMOXIS</span><span class="o">=</span>~/git/pomoxis/venv/bin/activate
+
+<span class="c1"># ...no need to edit below here</span>
+<span class="nv">BCDIR</span><span class="o">=</span><span class="si">${</span><span class="nv">RUN</span><span class="si">}</span>/<span class="si">${</span><span class="nv">BASECALLER</span><span class="si">}</span>/
+mkdir -p <span class="si">${</span><span class="nv">BCDIR</span><span class="si">}</span>
+mkdir <span class="si">${</span><span class="nv">RUN</span><span class="si">}</span>/reads
+ln -s <span class="si">${</span><span class="nv">SUMMARY</span><span class="si">}</span> <span class="si">${</span><span class="nv">BCDIR</span><span class="si">}</span>/sequencing_summary.txt
+
+<span class="nb">source</span> <span class="si">${</span><span class="nv">IN_POMOXIS</span><span class="si">}</span>
+cat <span class="si">${</span><span class="nv">BASECALLS</span><span class="si">}</span> <span class="p">|</span> bgzip -c &gt; <span class="si">${</span><span class="nv">BCDIR</span><span class="si">}</span>/basecalls.fastq.gz
+</pre></div>
+</div>
+<p>Now katuali can be run as normal, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali --configfile my_config.yaml all_standard_assm_polish
+</pre></div>
+</div>
+</div>
+<div class="section" id="calculating-read-coverage-depth">
+<h2>Calculating read coverage depth<a class="headerlink" href="#calculating-read-coverage-depth" title="Permalink to this headline">¶</a></h2>
+<p>It is often useful to know the read coverage depth of a dataset.
+This requires a reference.fasta to be specified in the config to which the reads will be aligned.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">DATA</span><span class="p">:</span>
+    <span class="s">&#39;run1&#39;</span><span class="p p-Indicator">:</span>
+        <span class="s">&#39;REFERENCE&#39;</span><span class="l l-Scalar l-Scalar-Plain">:/path/to/ref.fasta</span>
+</pre></div>
+</div>
+<p>The read coverage depth can then be calculated as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/align/depth
+</pre></div>
+</div>
+<p>The depth directory will contain a text file per reference contig with coverage
+vs genomic coordinate, as well as a file containing summary statistics for all
+contigs.</p>
+</div>
+<div class="section" id="creating-subsampled-datasets">
+<h2>Creating subsampled datasets<a class="headerlink" href="#creating-subsampled-datasets" title="Permalink to this headline">¶</a></h2>
+<p>Katuali also supports the generation of datasets with even coverage over a
+reference at a given depth.
+This requires a reference.fasta to be specified in the config to which the reads will be aligned.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">DATA</span><span class="p">:</span>
+    <span class="s">&#39;run1&#39;</span><span class="p p-Indicator">:</span>
+        <span class="s">&#39;REFERENCE&#39;</span><span class="l l-Scalar l-Scalar-Plain">:/path/to/ref.fasta</span>
+</pre></div>
+</div>
+<p>Once the reference is the config, running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta.gz
+</pre></div>
+</div>
+<p>will perform the following steps:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>basecall the reads to create:
+<cite>run1/guppy/basecalls.fasta</cite></p></li>
+<li><p>align the basecalls to the reference to create:
+<cite>run1/guppy/align/calls2ref.bam</cite></p></li>
+<li><p>subsample all contigs in the .bam file to 25X to create (in one step):
+<cite>run1/guppy/align/all_contigs/25X/basecalls.fasta</cite></p></li>
+<li><p>perform a ref-guided assembly and racon consensus to create:
+<cite>run1/guppy/align/all_contigs/25X/miniasm_racon/consensus.fasta.gz</cite></p></li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The rule to create subsampled datasets differs from other rules in
+that it creates two levels of nested directories in a single step (in this case
+<cite>all_contigs/25X</cite>). The extraction of specific regions/contigs without
+subsampling to a specific depth is not currently supported.</p>
+</div>
+</div>
+<div class="section" id="subsampling-a-single-reference-contig">
+<h2>Subsampling a single reference contig<a class="headerlink" href="#subsampling-a-single-reference-contig" title="Permalink to this headline">¶</a></h2>
+<p>It is also possible to subsample just one of the contigs in your reference by
+specifying targets such as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/align/ecoli_SCS110_plasmid2/25X/miniasm_racon/consensus.fasta.gz
+</pre></div>
+</div>
+<p>which will just process the reference sequence <cite>ecoli_SCS110_plasmid2</cite>.</p>
+</div>
+<div class="section" id="subsampling-a-specified-region">
+<h2>Subsampling a specified region<a class="headerlink" href="#subsampling-a-specified-region" title="Permalink to this headline">¶</a></h2>
+<p>It is also possible to subsample a region specifed as a samtools string:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>katuali run1/guppy/align/ecoli_SCS110_chromosome:50000-150000/25X/miniasm_racon/consensus.fasta.gz
+</pre></div>
+</div>
+</div>
+<div class="section" id="medaka-training-pipelines">
+<span id="train-medaka"></span><h2>Medaka training pipelines<a class="headerlink" href="#medaka-training-pipelines" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to train both medaka consensus models and medaka variant-calling models starting from folders of fast5s.
+See <a class="reference internal" href="medaka_train.html#medaka-train"><span class="std std-ref">Medaka consensus training pipeline</span></a> and <a class="reference internal" href="medaka_train_variant.html#medaka-train-variant"><span class="std std-ref">Medaka variant-calling training pipeline</span></a>.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="medaka_train.html" class="btn btn-neutral float-right" title="Medaka consensus training pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tests.html" class="btn btn-neutral float-left" title="Basic Usage and Tests" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018-19, Oxford Nanopore Technologies
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
