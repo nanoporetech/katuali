@@ -107,6 +107,9 @@ PIPELINES:
         "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X.hdf",
         "{DATA}/guppy_hac_prom/align/{MEDAKA_TRAIN_REGIONS}/calls2scuffed_ref/{DEPTHS}X_prop/medaka_features/medaka_train_variant_{DATA}_{MEDAKA_TRAIN_REGIONS}_{DEPTHS}X_rc.hdf"
     ]
+    all_medaka_train: [
+        "medaka_train{MEDAKA_TRAIN_REPLICATES}"
+    ]
     all_medaka_variant_resources: [
         "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}.fasta.gz",
         "medaka_variant_resources/grch38/{SAMPLE}/{SAMPLE}_per_chr_diploid/{MEDAKA_TRAIN_REGIONS}.fasta.gz",
